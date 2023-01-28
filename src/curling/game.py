@@ -95,11 +95,12 @@ class SingleEndCurlingGame(Game):
 
 
         if self.current_round == self.max_round - 1:
-            if len(self.curling.stones) == 0:
-                # play another two ends
-                self.max_round += 2
+            # only in house stones count for scoring
+            if len(self.curling.stones) == 0 or (score := self.evaluate_position()) == 0:
+                # small bonus to the first team to prevent a draw
+                return self.eps * -self.stone_to_play
             else:
-                return self.evaluate_position()
+                return score
 
     @property
     def in_free_guard_period(self):

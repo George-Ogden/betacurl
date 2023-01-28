@@ -17,6 +17,7 @@ class Game(metaclass=ABCMeta):
     to_play: int = None
     max_round = 0
     player_deltas: List[int] = [1, -1]
+    eps: float = 1e-6 # used in the event of a "draw"
     
     @abstractmethod
     def _get_observation(self)-> np.ndarray:
