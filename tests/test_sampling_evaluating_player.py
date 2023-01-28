@@ -4,7 +4,7 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
-from tests.utils import slow, StubGame
+from tests.utils import slow, StubGame, SparseStubGame
 from typing import Optional
 import numpy as np
 
@@ -20,6 +20,7 @@ class InBoundsEvaluator(EvaluationStrategy):
             return -observations[:, -8:].sum(axis=-1) * observations[:, 0]
 
 stub_game = StubGame()
+sparse_stub_game = SparseStubGame(2)
 single_end_game = SingleEndCurlingGame()
 clear_distinction = lambda game_spec: SamplingEvaluatingPlayer(
     game_spec,
@@ -122,3 +123,23 @@ def test_picks_best_move():
         arena.play_game(starting_player=i % 2, display=False)
         score += np.array(arena.game.score)
     assert (score > 100 * stub_game.max_move * stub_game.max_round / 2 * (player.num_samples - 2) / player.num_samples * (stub_game.action_size - 1) / stub_game.action_size).all()
+
+def test_works_with_less_information():
+    free_player = SamplingEvaluatingPlayer(
+        sparse_stub_game.game_spec,
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=NNEvaluationStrategy,
+        config=SamplingEvaluatingPlayerConfig(
+            num_eval_samples=10
+        )
+    )
+    forced_player = SamplingEvaluatingPlayer(
+        sparse_stub_game.game_spec,
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=NNEvaluationStrategy,
+        config=SamplingEvaluatingPlayerConfig(
+            num_eval_samples=1
+        )
+    )
+    arena = Arena(players=[free_player.dummy_constructor, forced_player.dummy_constructor], game=sparse_stub_game)
+    wins, losses = arena.play_games(2)
