@@ -1,14 +1,15 @@
-from src.curling.curling import Curling, StoneThrow, StoneColor, Stone
+from src.curling.curling import Curling, StoneThrow, StoneColor, Stone, SimulationConstants
 from src.game.game import Game, GameSpec
 
 from dm_env._environment import TimeStep
-from dm_env.specs import BoundedArray
 from typing import List, Optional, Tuple
+from dm_env.specs import BoundedArray
 
+from copy import copy, deepcopy
 import numpy as np
 
 class SingleEndCurlingGame(Game):
-    def __init__(self):
+    def __init__(self, simulation_constants: SimulationConstants = SimulationConstants()):
         self.curling = Curling()
         assert self.curling.num_stones_per_end % 2 == 0
         self.num_stones_per_end = self.curling.num_stones_per_end
@@ -27,6 +28,7 @@ class SingleEndCurlingGame(Game):
                 shape = (1 + self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
             )
         )
+        self.simulation_constants = simulation_constants
         self.reset()
     
     def _reset(self) -> TimeStep:
@@ -67,18 +69,42 @@ class SingleEndCurlingGame(Game):
         return stone_mask
     
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
+
+        if self.in_free_guard_period:
+            # record all stones in case of infringement
+            stones = copy(self.curling.stones)
+            previous_arrangement = deepcopy(self.curling.stones)
+            for stone in stones:
+                stone.is_guard = self.curling.in_fgz(stone)
+
         self.curling.throw(
             StoneThrow(
                 self.stone_to_play,
                 *action
-            ), display=display
+            ), 
+            display=display,
+            constants=self.simulation_constants
         )
+
+        if self.in_free_guard_period:
+            for stone in stones:
+                # if a stone has been knocked out of play, restore positions
+                if stone.is_guard and self.curling.out_of_bounds(stone):
+                    self.curling.stones = previous_arrangement
+                    break
+
+
         if self.current_round == self.max_round - 1:
             if len(self.curling.stones) == 0:
                 # play another two ends
                 self.max_round += 2
             else:
                 return self.evaluate_position()
+
+    @property
+    def in_free_guard_period(self):
+        # zero-indexed rounds
+        return self.current_round < 5
     
     def evaluate_position(self) -> int:
         assert len(self.curling.stones) > 0
