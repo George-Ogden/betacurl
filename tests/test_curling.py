@@ -634,3 +634,20 @@ def test_in_house():
     
     stone.position = (-curling.hog_line_position)
     assert not curling.in_house(stone)
+
+def test_in_house_scoring():
+    curling = Curling()
+    curling.stones.append(Stone(color=StoneColor.RED, position=(0, -curling.tee_line_position -curling.target_radii[-1])))
+    curling.stones.append(Stone(color=StoneColor.RED, position=(0, -curling.tee_line_position -curling.target_radii[0])))
+    assert curling.evaluate_position() == StoneColor.RED * 2
+
+def test_out_of_house_scoring():
+    curling = Curling()
+    curling.stones.append(Stone(color=StoneColor.RED, position=(0, -curling.hog_line_position)))
+    assert curling.evaluate_position() == 0
+
+def test_mixed_house_scoring():
+    curling = Curling()
+    curling.stones.append(Stone(color=StoneColor.RED, position=(0, -curling.tee_line_position -curling.target_radii[-1])))
+    curling.stones.append(Stone(color=StoneColor.RED, position=(0, -curling.hog_line_position)))
+    assert curling.evaluate_position() == StoneColor.RED

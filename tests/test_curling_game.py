@@ -1,4 +1,4 @@
-from src.curling import SingleEndCurlingGame, CURLING_GAME, Curling, SimulationConstants
+from src.curling import SingleEndCurlingGame, CURLING_GAME, Curling, SimulationConstants, StoneColor
 from src.game import Arena, Game, Player, RandomPlayer
 from src.curling.enums import DisplayTime
 from src.curling.curling import Canvas
@@ -313,3 +313,25 @@ def test_six_stone_rule_violation_edge_case():
     assert len(accurate_game.curling.stones) == 4
     for position, stone in zip(positions, accurate_game.curling.stones):
         assert (stone.position == position).all()
+
+def test_in_house_evaluation():
+    single_end_game.reset()
+    single_end_game.step(action=np.array((2.25, 0, 0)))
+    assert single_end_game.evaluate_position() == -single_end_game.stone_to_play
+
+def test_out_of_house_evaluation():
+    single_end_game.reset()
+    single_end_game.step(action=np.array((2, 0, 0)))
+    assert single_end_game.evaluate_position() == 0
+
+def test_game_continues_out_of_house():
+    single_end_game.reset()
+    for i in range(8):
+        time_step = single_end_game.step(action=np.array((2, 0, 0)))
+    assert time_step.step_type != StepType.LAST
+
+def test_game_continues_in_house():
+    single_end_game.reset()
+    for i in range(8):
+        time_step = single_end_game.step(action=np.array((2.25, 0, 0)))
+    assert time_step.step_type == StepType.LAST
