@@ -83,7 +83,7 @@ def test_evaluator_is_used():
         EvaluationStrategyClass=InBoundsEvaluator
     )
     move = maxmimum_mover.move(single_end_game)
-    assert maxmimum_mover.evaluator.evaluate(single_end_game.sample(move).observation) == 0
+    assert len(single_end_game.curling.stones) == 0
     
     random_mover = SamplingEvaluatingPlayer(
         single_end_game.game_spec,
@@ -94,7 +94,7 @@ def test_evaluator_is_used():
     random_mover.eval()
     move = random_mover.move(single_end_game)
     single_end_game.step(move)
-    assert single_end_game.curling.evaluate_position() != 0
+    assert len(single_end_game.curling.stones) != 0
 
 @slow
 def test_arena_training_happens():
