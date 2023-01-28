@@ -43,27 +43,26 @@ def test_in_bounds_evaluator():
 
 def test_training_and_evaluation_matter():
     single_end_game.reset()
-    obvious_player = clear_distinction(single_end_game.game_spec)
-    obvious_player.train()
-    assert obvious_player.num_samples == 10
-    assert obvious_player.is_training
+    player.train()
+    assert player.num_samples == 10
+    assert player.is_training
     
-    obvious_player.eval()
-    assert obvious_player.num_samples == 100
-    assert not obvious_player.is_training
+    player.eval()
+    assert player.num_samples == 100
+    assert not player.is_training
     
-    obvious_player.train()
-    assert obvious_player.num_samples == 10
-    assert obvious_player.is_training
+    player.train()
+    assert player.num_samples == 10
+    assert player.is_training
 
     for i in range(10):
-        if (single_end_game.sample(obvious_player.move(single_end_game)).observation[-8] == 0).all():
+        if (single_end_game.sample(player.move(single_end_game)).observation[-8] == 0).all():
             break
     else:
         assert False, "always in bounds while training"
     
-    obvious_player.eval()
-    single_end_game.step(obvious_player.move(single_end_game))
+    player.eval()
+    single_end_game.step(player.move(single_end_game))
     assert len(single_end_game.curling.stones) > 0
 
 
@@ -115,7 +114,7 @@ def test_picks_best_move():
     player = SamplingEvaluatingPlayer(
         stub_game.game_spec,
         SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=NNEvaluationStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
     )
     arena = Arena(players=[player.dummy_constructor] * 2, game=stub_game)
     score = 0
