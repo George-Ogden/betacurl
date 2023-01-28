@@ -3,7 +3,7 @@ from src.game import Game, GameSpec
 
 from dm_env._environment import TimeStep
 from dm_env.specs import BoundedArray
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from pytest import fixture, mark
 from glob import glob
@@ -16,21 +16,6 @@ SAVE_DIR = "test_save_dir"
 requires_cleanup = mark.usefixtures("cleanup")
 slow = mark.skip(reason="taking too long")
 display= mark.skipif("NO_DISPLAY" in os.environ, reason="no display")
-
-# def equal_defaultdicts(dict1, dict2):
-#     if dict1.keys() != dict2.keys():
-#         return False
-#     for k in dict1:
-#         if type(dict1[k]) != type(dict2[k]):
-#             return False
-#         if type(dict1[k]) == np.ndarray:
-#             if dict1[k].shape != dict2[k].shape or (dict1[k] != dict2[k]).all():
-#                 return False
-#         else:
-#             if dict1[k] != dict2[k]:
-#                 return False
-#     return True
-
 
 class StubGame(Game):
     """game where each player's score is incremented by the minimum of their actions"""
@@ -72,6 +57,13 @@ class StubGame(Game):
             print(*self.score)
         
         return delta
+
+class SparseStubGame(StubGame):
+    """stub game with rewadr only on last step"""
+    def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
+        reward = super()._step(action, display)
+        if self.current_round == self.max_round - 1:
+            return reward
 
 
 class BadSymetryStubGame(StubGame):
