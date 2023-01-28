@@ -94,7 +94,7 @@ class SamplingEvaluatingPlayer(Player):
         next_time_steps = [game.sample(action) for action in potential_actions]
         next_observations = np.stack([time_step.observation for time_step in next_time_steps], axis=0)
         rewards = np.array([time_step.reward for time_step in next_time_steps], dtype=np.float32)
-        rewards[rewards == None] = self.evaluator.evaluate(next_observations[rewards == None])
+        rewards[np.isnan(rewards)] = self.evaluator.evaluate(next_observations[np.isnan(rewards)])
         best_action = potential_actions[(rewards * game.player_delta).argmax()]
         return best_action
     
