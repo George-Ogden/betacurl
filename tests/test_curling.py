@@ -1,6 +1,8 @@
 from src.curling import Curling, StoneThrow, Stone, StoneColor, SimulationConstants
 from src.curling.enums import SimulationState, Colors, LinearTransform, DisplayTime
 from src.curling.curling import Canvas
+
+from tests.utils import display
 import pytest
 
 import numpy as np
@@ -207,6 +209,7 @@ def test_negative_spin_moves_right():
     assert len(curling.stones) == 1
     assert curling.stones[0].position[0] > curling.target_radii[0]
 
+@display
 def test_display():
     curling = Curling(StoneColor.YELLOW)
     curling.throw(StoneThrow(
@@ -221,6 +224,7 @@ def test_display():
     # cleanup
     cv2.destroyAllWindows()
 
+@display
 def test_image():
     curling = Curling(StoneColor.YELLOW)
     curling.throw(StoneThrow(

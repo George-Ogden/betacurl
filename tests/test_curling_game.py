@@ -4,7 +4,7 @@ from src.curling.enums import DisplayTime
 from src.curling.curling import Canvas
 
 from dm_env._environment import StepType
-from tests.utils import slow
+from tests.utils import slow, display
 import pytest
 
 import numpy as np
@@ -229,6 +229,7 @@ def test_symmetries_are_is_reasonable():
         assert (observation[1:9] == original_observation[1:9]).all()
 
 @slow
+@display
 def test_single_game_display():
     # setup
     Curling.num_stones_per_end = 2
@@ -244,6 +245,7 @@ def test_single_game_display():
     Curling.num_stones_per_end = 8
 
 @slow
+@display
 def test_multi_game_display():
     # setup
     Curling.num_stones_per_end = 2

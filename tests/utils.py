@@ -15,6 +15,7 @@ SAVE_DIR = "test_save_dir"
 
 requires_cleanup = mark.usefixtures("cleanup")
 slow = mark.skip(reason="taking too long")
+display= mark.skipif("NO_DISPLAY" in os.environ, reason="no display")
 
 # def equal_defaultdicts(dict1, dict2):
 #     if dict1.keys() != dict2.keys():
