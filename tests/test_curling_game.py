@@ -1,4 +1,4 @@
-from src.curling import SingleEndCurlingGame, CURLING_GAME, Curling
+from src.curling import SingleEndCurlingGame, CURLING_GAME, Curling, SimulationConstants
 from src.game import Arena, Game, Player, RandomPlayer
 from src.curling.enums import DisplayTime
 from src.curling.curling import Canvas
@@ -9,6 +9,8 @@ import pytest
 
 import numpy as np
 import cv2
+
+accurate_constants = SimulationConstants(dt=.02)
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
@@ -27,6 +29,7 @@ class OutOfBoundsPlayer(Player):
         return np.array((3, 1e-1, 0))
 
 single_end_game = SingleEndCurlingGame()
+accurate_game = SingleEndCurlingGame(accurate_constants)
 sophisticated_game = CURLING_GAME
 
 random_player = RandomPlayer(single_end_game.game_spec)
@@ -254,3 +257,57 @@ def test_multi_game_display():
     # cleanup
     cv2.destroyAllWindows()
     Curling.num_stones_per_end = 8
+
+def test_six_stone_rule_violation():
+    accurate_game.reset()
+    accurate_game.step(action=np.array((2.1, 0, 0)))
+    position = accurate_game.curling.stones[0].position.copy()
+    color = accurate_game.curling.stones[0].color
+    accurate_game.step(action=np.array((3, 0, 0)))
+    assert len(accurate_game.curling.stones) == 1
+    assert (accurate_game.curling.stones[0].position == position).all()
+    assert accurate_game.curling.stones[0].color == color
+
+def test_six_stone_rule_non_violation():
+    accurate_game.reset()
+    for i in range(6):
+        accurate_game.step(action=np.array((2.15, 0, 0)))
+    accurate_game.step(action=np.array((4, 7e-3, 0)))
+    assert len(accurate_game.curling.stones) < 6
+
+def test_six_stone_rule_in_house_non_violation():
+    accurate_game.reset()
+    accurate_game.step(action=np.array((2.22, 0, 0)))
+    position = accurate_game.curling.stones[0].position.copy()
+    color = accurate_game.curling.stones[0].color
+    accurate_game.step(action=np.array((3, 0, 0)))
+    assert len(accurate_game.curling.stones) == 0 or\
+        ((accurate_game.curling.stones[0].position != position).all() and\
+        accurate_game.curling.stones[0].color != color)
+
+def test_six_stone_rule_in_house_non_violation_both_out():
+    accurate_game.reset()
+    accurate_game.step(action=np.array((2.22, 0, 0)))
+    position = accurate_game.curling.stones[0].position.copy()
+    color = accurate_game.curling.stones[0].color
+    accurate_game.step(action=np.array((4, 0.005, 0)))
+    assert len(accurate_game.curling.stones) == 0 or\
+        ((accurate_game.curling.stones[0].position != position).all() and\
+        accurate_game.curling.stones[0].color != color)
+
+def test_six_stone_rule_non_violation_edge_case():
+    accurate_game.reset()
+    for i in range(5):
+        accurate_game.step(action=np.array((2.15, 0, 0)))
+    accurate_game.step(action=np.array((4, 7e-3, 0)))
+    assert len(accurate_game.curling.stones) < 5
+
+def test_six_stone_rule_violation_edge_case():
+    accurate_game.reset()
+    for i in range(4):
+        accurate_game.step(action=np.array((2.15, 0, 0)))
+    positions = [stone.position.copy() for stone in accurate_game.curling.stones]
+    accurate_game.step(action=np.array((4, 7e-3, 0)))
+    assert len(accurate_game.curling.stones) == 4
+    for position, stone in zip(positions, accurate_game.curling.stones):
+        assert (stone.position == position).all()
