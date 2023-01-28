@@ -54,7 +54,7 @@ def test_override_params():
     
     history = model.fit(input_data, output_data, epochs=5, loss="mae", optimizer="SGD")
     assert history.epoch == list(range(5))
-    assert model.model.optimizer.name.upper() == "SGD"
+    assert model.model.optimizer._name.upper() == "SGD"
     assert model.model.loss == "mae"
 
 def test_sampler_learns():
