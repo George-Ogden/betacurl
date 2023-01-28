@@ -1,10 +1,17 @@
+# cached files
 __pycache__
 *.pyc
-.vscode/
-output/
 .pytest_cache/
+
+# editor settings
+.vscode/
+
+# model outputs
+test_save_dir
+output/
 *.pickle
 *.h5
 
+# test files
 physics.py
 main.py
