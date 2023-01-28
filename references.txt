@@ -1,5 +1,0 @@
-https://link.springer.com/content/pdf/10.1007/s12283-013-0129-8.pdf?pdf=button
-https://worldcurling.org/competitions/rules/ (https://s3.eu-west-1.amazonaws.com/media.worldcurling.org/media.worldcurling.org/wcf_worldcurling/2022/09/19104837/2022-The-Rules-of-Curling19092022.pdf)
-https://github.com/suragnair/alpha-zero-general
-https://arxiv.org/abs/1712.01815
-tensorflow
