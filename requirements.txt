@@ -2,6 +2,7 @@ dm_env
 numpy
 opencv-python
 pytest
+simple-parsing
 tensorflow
 tqdm
 wandb
