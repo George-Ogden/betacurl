@@ -4,10 +4,6 @@ from src.evaluation import NNEvaluationStrategy
 from tests.utils import StubGame
 
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.layers as nn
-
-from dm_control import suite
 
 stub_game = StubGame(6)
 
