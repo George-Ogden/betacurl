@@ -203,7 +203,6 @@ class Stone:
         normal_force = self.weight / simulation_constants.num_points_on_circle
         forward_ratio = np.cos(phi) # ratio along the disc used to calculate friction
         mu = self.curling_constants.calculate_friction(point_speed, forward_ratio)
-        # print(point_speed, forward_ratio, mu)
         frictional_force = np.minimum(normal_force * mu, point_speed * (self.mass / simulation_constants.num_points_on_circle) / dt) # F <= mu * N
         # point force in opposite direction to velocity
         frictional_force = np.tile(frictional_force, (2, 1)).T * -point_velocity / (np.tile(point_speed, (2, 1))).T
