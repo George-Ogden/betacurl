@@ -164,7 +164,7 @@ class Stone:
     acceleration = np.array((0., 0.)) # xy acceleration of the stone
     velocity = np.array((0.01, 2.2)) # xy velocity of the stone
     position = np.array((0., -Curling.button_distance)) # xy position of the stone
-    def __init__(self, color: StoneColor, position: Tuple[float, float], velocity: float, angle: float, spin: float, curling_constants: CurlingConstants = Curling.constants):
+    def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: CurlingConstants = Curling.constants):
         """create a moving stone (equivalent to throwing)
 
         Args:
