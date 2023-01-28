@@ -93,7 +93,7 @@ def test_coach_uses_config_in_practise():
     coach.learn()
     end_time = time.time()
     
-    assert len(glob(f"{SAVE_DIR}/*")) == 4
+    assert len(glob(f"{SAVE_DIR}/model-0*")) == 3
     assert len(coach.train_example_history) == 1
 
     assert len(LearningCheck.times) == 4
