@@ -569,7 +569,7 @@ def test_linear_transform():
 
 def test_display_times():
     for time in DisplayTime:
-        if DisplayTime == DisplayTime.FOREVER:
+        if time == DisplayTime.FOREVER:
             assert int(time.value(1000 * accurate_constants.dt)) == 0
         else:
             assert int(time.value(1000 * accurate_constants.dt)) > 0
