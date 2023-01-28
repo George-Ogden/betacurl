@@ -100,7 +100,7 @@ class Curling:
         ordered_stones = [self.stones[index] for index in distance_ordering]
         score = 0
         for stone in ordered_stones:
-            if score * stone.color < 0:
+            if score * stone.color < 0 or not self.in_house(stone):
                 break
             score += stone.color
         return score
