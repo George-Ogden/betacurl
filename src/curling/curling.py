@@ -9,21 +9,16 @@ import cv2
 from typing import Tuple, Optional, List, ClassVar
 from dataclasses import dataclass
 
-"""If, prior to the delivery of the sixth stone of an end, a delivered stone causes,
-either directly or indirectly, an opposition stone to be moved from the FGZ
-to an out-of-play position, then the delivered stone is removed from play,
-and any displaced stones are replaced, by the non-offending team, to their
-positions prior to the violation taking place."""
 class Curling:
     constants: CurlingConstants = CurlingConstants()
-    button_distance: np.floating = np.array(38.405) # distance to button
+    starting_button_distance: np.floating = np.array(38.405) # distance to button from where stone is released
     pitch_length: np.floating = np.array(45.720)
     pitch_width: np.floating = np.array(4.750) 
-    button_offset: np.floating = np.array(5.487) # distance from top of screen to button
-    button_position = np.array((0., -button_offset))
     hog_line_position: np.floating = np.array(11.888) # distance from back line to hog line
     tee_line_position: np.floating = np.array(5.487) # distance from back line to tee line
+    button_position = np.array((0., -tee_line_position))
     target_radii: np.ndarray = np.array((0.152, 0.610, 1.219, 1.829)) # radii of rings in the circle
+    house_radius: np.floating = np.array((1.996)) # distance from centre of stone to button
     vertical_lines: np.ndarray = np.array((-.457, 0, .457)) # positioning of vertical lines
     horizontal_lines: np.ndarray = np.array((3.658, tee_line_position, hog_line_position, 33.832, 40.233, 42.062)) # positioning of horizontal lines
     num_stones_per_end: int = 8
@@ -50,7 +45,7 @@ class Curling:
     def render(self) -> Canvas:
         canvas = Canvas(self, pixels_per_meter=920//self.pitch_length)
         canvas.draw_vertical_lines(self.vertical_lines)
-        canvas.draw_targets(buffer=self.button_offset, radii=self.target_radii)
+        canvas.draw_targets(buffer=self.tee_line_position, radii=self.target_radii)
         canvas.draw_horizontal_lines(self.horizontal_lines)
 
         for stone in self.stones:
@@ -59,6 +54,16 @@ class Curling:
     
     def out_of_bounds(self, stone: Stone) -> bool:
         return np.abs(stone.position[0]) > self.pitch_width / 2 or stone.position[1] > 0
+    
+    def button_distance(self, stone: Stone) -> float:
+        return np.linalg.norm(stone.position - self.button_position)
+    
+    def in_house(self, stone: Stone) -> bool:
+        return self.button_distance(stone) < self.house_radius
+    
+    def in_fgz(self, stone: Stone) -> bool:
+        """determines if a stone is in the free guard zone"""
+        return (-stone.position[1] >= self.tee_line_position and -stone.position[1] <= self.hog_line_position) and not self.in_house(stone)
     
     def display(self, constants: SimulationConstants = SimulationConstants()):
         self.render().display(constants)
@@ -69,7 +74,7 @@ class Curling:
             velocity=stone_throw.velocity,
             angle=stone_throw.angle,
             spin=stone_throw.spin,
-            position=(0, -self.button_distance -self.button_offset),
+            position=(0, -self.starting_button_distance -self.tee_line_position),
             curling_constants=self.constants
         )
 
@@ -87,7 +92,7 @@ class Curling:
                 self.display(constants)
 
     def evaluate_position(self):
-        stone_distances = np.linalg.norm([stone.position - self.button_position for stone in self.stones], axis=-1)
+        stone_distances = [self.button_distance(stone) for stone in self.stones]
         if len(self.stones) == 0:
             distance_ordering = []
         else:
@@ -153,7 +158,7 @@ class Stone:
     mass: np.floating = np.array(19.) # stones between 17.24-19.96
     height: np.floating = np.array(0.1143) # height of the stone
     ring_radius: np.floating = np.array(0.065) # radius of the inner ring
-    outer_radius: np.floating = np.array(0.145) # radius of the entire stone
+    outer_radius: np.floating = np.array(0.142) # radius of the entire stone
     angular_acceleration: np.floating = np.array(0.) # angular acceleration
     angular_velocity: np.floating = np.array(1.5) # clockwise is negative (rad/s)
     angular_position: np.floating = np.array(0.)
@@ -163,7 +168,7 @@ class Stone:
     coefficient_of_friction: np.floating = np.array(.2) # coefficient of friction between stones
     acceleration = np.array((0., 0.)) # xy acceleration of the stone
     velocity = np.array((0.01, 2.2)) # xy velocity of the stone
-    position = np.array((0., -Curling.button_distance)) # xy position of the stone
+    position = np.array((0., -Curling.starting_button_distance)) # xy position of the stone
     def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: CurlingConstants = Curling.constants):
         """create a moving stone (equivalent to throwing)
 
