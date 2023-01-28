@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.vscode/
+output/
+.pytest_cache/
+*.pickle
+*.h5
+
+physics.py
+main.py

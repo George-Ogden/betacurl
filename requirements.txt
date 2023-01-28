@@ -1,0 +1,7 @@
+dm_env
+numpy
+opencv-python
+pytest
+tensorflow
+tqdm
+wandb
