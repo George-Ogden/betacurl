@@ -93,10 +93,8 @@ class SamplingEvaluatingPlayer(Player):
     def get_best_move_from_samples(self, game: Game, potential_actions: Iterable[ArrayLike]) -> np.ndarray:
         next_time_steps = [game.sample(action) for action in potential_actions]
         next_observations = np.stack([time_step.observation for time_step in next_time_steps], axis=0)
-        rewards = np.array([time_step.reward or 0. for time_step in next_time_steps], dtype=np.float32)
-        predicted_rewards = self.evaluator.evaluate(next_observations)
-        rewards += predicted_rewards
-        # print(predicted_rewards, next_observations)
+        rewards = np.array([time_step.reward for time_step in next_time_steps], dtype=np.float32)
+        rewards[rewards == None] = self.evaluator.evaluate(next_observations[rewards == None])
         best_action = potential_actions[(rewards * game.player_delta).argmax()]
         return best_action
     

@@ -569,7 +569,10 @@ def test_linear_transform():
 
 def test_display_times():
     for time in DisplayTime:
-        assert int(time.value(1000 * accurate_constants.dt)) > 0
+        if DisplayTime == DisplayTime.FOREVER:
+            assert int(time.value(1000 * accurate_constants.dt)) == 0
+        else:
+            assert int(time.value(1000 * accurate_constants.dt)) > 0
     
 def test_horizontal_lines_are_symmetric():
     line_sums = Curling.horizontal_lines + Curling.horizontal_lines[::-1]

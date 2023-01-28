@@ -89,16 +89,17 @@ class SingleEndCurlingGame(Game):
         return StoneColor._value2member_map_[self.player_delta]
     
     def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
-        # flip along x
         observation = self.validate_observation(observation)
         action = self.validate_action(action)
+        # flip along x
         symmetries = [(observation, action, reward), (*self.flip_x(observation.copy(), action.copy()), reward)]
+        # change who played
         symmetries += [self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries]
         return symmetries
     
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         self.get_positions(observation)[::2] *= -1
-        action[[0, 2, 3]] *= -1
+        action[[1, 2]] *= -1
         return observation, action
     
     def get_positions(self, observation: np.ndarray) -> np.ndarray:

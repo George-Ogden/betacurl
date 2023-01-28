@@ -190,8 +190,8 @@ def test_symmetries_are_is_reasonable():
         original_mask = single_end_game.get_mask(original_observation)
         
         reward_delta = reward / original_reward
-        position_delta = original_action[2] / action[2]
-        assert original_action[1] == action[1] and np.allclose(original_action[0], action[0] * position_delta) and np.allclose(original_action[3], action[3] * position_delta)
+        position_delta = np.nan_to_num(original_action[1] / action[1], 1)
+        assert original_action[0] == action[0] and np.allclose(original_action[1], action[1] * position_delta) and np.allclose(original_action[2], action[2] * position_delta)
         
         positions = single_end_game.get_positions(observation)
         original_positions = single_end_game.get_positions(original_observation)
