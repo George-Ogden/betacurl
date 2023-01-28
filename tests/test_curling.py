@@ -11,13 +11,13 @@ accurate_constants = SimulationConstants(dt=.02)
 
 def get_short_curling(stone_on_button=False):
     short_curling = Curling(StoneColor.RED)
-    short_curling.button_distance = short_curling.button_offset
-    short_curling.pitch_length = short_curling.button_offset * 2
+    short_curling.starting_button_distance = short_curling.tee_line_position
+    short_curling.pitch_length = short_curling.tee_line_position * 2
     if stone_on_button:
         short_curling.stones.append(
             Stone(
                 StoneColor.YELLOW,
-                position=(0, -short_curling.button_offset),
+                position=(0, -short_curling.tee_line_position),
                 velocity=0,
                 angle=0,
                 spin=0,
@@ -277,7 +277,7 @@ def test_dual_collision():
     curling.stones.append(
         Stone(
             StoneColor.YELLOW,
-            position=(-0.2, -curling.button_offset),
+            position=(-0.2, -curling.tee_line_position),
             velocity=0,
             angle=0.00,
             spin=0,
@@ -286,7 +286,7 @@ def test_dual_collision():
     curling.stones.append(
         Stone(
             StoneColor.YELLOW,
-            position=(0.2, -curling.button_offset),
+            position=(0.2, -curling.tee_line_position),
             velocity=0,
             angle=0.00,
             spin=0,
@@ -318,7 +318,7 @@ def test_single_collision_multiple_stones():
     curling.stones.append(
         Stone(
             StoneColor.YELLOW,
-            position=(-0.2, -curling.button_offset),
+            position=(-0.2, -curling.tee_line_position),
             velocity=0,
             angle=0.00,
             spin=0,
@@ -327,7 +327,7 @@ def test_single_collision_multiple_stones():
     curling.stones.append(
         Stone(
             StoneColor.YELLOW,
-            position=(0.2, -curling.button_offset),
+            position=(0.2, -curling.tee_line_position),
             velocity=0,
             angle=0.00,
             spin=0,
@@ -582,3 +582,51 @@ def test_vertical_lines_are_symmetric():
     line_sums = Curling.vertical_lines + Curling.vertical_lines[::-1]
     assert (line_sums == 0).all()
         
+def test_free_guard_zone():
+    curling = Curling()
+    stone = Stone(color=StoneColor.RED, position=(0,0))
+    assert not curling.in_fgz(stone)
+    
+    stone.position = (0, -curling.tee_line_position + curling.target_radii[0])
+    assert not curling.in_fgz(stone)
+    
+    stone.position = (1, -curling.tee_line_position - curling.target_radii[0])
+    assert not curling.in_fgz(stone)
+    
+    stone.position = (0, -curling.tee_line_position - curling.target_radii[-1])
+    assert not curling.in_fgz(stone)
+
+    stone.position = (0, -curling.tee_line_position - curling.target_radii[-1] * 2)
+    assert curling.in_fgz(stone)
+    
+    stone.position = (-1, -curling.hog_line_position + curling.target_radii[0])
+    assert curling.in_fgz(stone)
+    
+    stone.position = (0, -curling.hog_line_position - curling.target_radii[0])
+    assert not curling.in_fgz(stone)
+    
+    stone.position = (1, -curling.horizontal_lines[-2])
+    assert not curling.in_fgz(stone)
+
+def test_in_house():
+    curling = Curling()
+    stone = Stone(color=StoneColor.RED, position=(0,0))
+    assert not curling.in_house(stone)
+    
+    stone.position = (0, -curling.tee_line_position + curling.target_radii[0])
+    assert curling.in_house(stone)
+    
+    stone.position = (1, -curling.tee_line_position - curling.target_radii[0])
+    assert curling.in_house(stone)
+    
+    stone.position = (curling.target_radii[0], -curling.tee_line_position + curling.target_radii[-2])
+    assert curling.in_house(stone)
+    
+    stone.position = (-1, -curling.tee_line_position - curling.target_radii[-1])
+    assert not curling.in_house(stone)
+    
+    stone.position = (-curling.target_radii[-1], -curling.tee_line_position)
+    assert curling.in_house(stone)
+    
+    stone.position = (-curling.hog_line_position)
+    assert not curling.in_house(stone)
