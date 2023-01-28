@@ -73,36 +73,6 @@ def test_game_to_play_oscillates():
         single_end_game.step(good_player.move(single_end_game))
         assert single_end_game.to_play == 1 - (i % 2)
 
-def test_game_to_play_continues_with_additional_stones():
-    single_end_game.reset(starting_player=1)
-    assert single_end_game.to_play == 1
-    expected_stone = single_end_game.stone_to_play
-    for i in range(8):
-        time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
-        assert time_step.step_type == StepType.MID
-        
-    for i in range(2):
-        time_step = single_end_game.step(good_player.move(single_end_game))
-        expected_stone = ~expected_stone
-        assert single_end_game.to_play == i % 2
-        assert single_end_game.stone_to_play == expected_stone
-        assert time_step.step_type == (StepType.MID if i == 0 else StepType.LAST)
-    
-    single_end_game.reset(starting_player=0)
-    expected_stone = single_end_game.stone_to_play
-    assert single_end_game.to_play == 0
-    assert single_end_game.max_round == 8
-    for i in range(12):
-        time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
-        assert time_step.step_type == StepType.MID
-    
-    for i in range(2):
-        time_step = single_end_game.step(good_player.move(single_end_game))
-        expected_stone = ~expected_stone
-        assert single_end_game.to_play == 1 - i % 2
-        assert single_end_game.stone_to_play == expected_stone
-        assert time_step.step_type == (StepType.MID if i == 0 else StepType.LAST)
-
 def test_valid_actions_are_valid():
     for i in range(1000):
         single_end_game.validate_action(random_player.move(single_end_game))
@@ -324,14 +294,18 @@ def test_out_of_house_evaluation():
     single_end_game.step(action=np.array((2, 0, 0)))
     assert single_end_game.evaluate_position() == 0
 
-def test_game_continues_out_of_house():
-    single_end_game.reset()
+def test_drawn_game_where_player_1_starts():
+    single_end_game.reset(0)
+    starter = single_end_game.stone_to_play
     for i in range(8):
-        time_step = single_end_game.step(action=np.array((2, 0, 0)))
-    assert time_step.step_type != StepType.LAST
-
-def test_game_continues_in_house():
-    single_end_game.reset()
-    for i in range(8):
-        time_step = single_end_game.step(action=np.array((2.25, 0, 0)))
+        time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
+    assert np.sign(time_step.reward) == starter
+
+def test_drawn_game_where_player_2_starts():
+    single_end_game.reset(0)
+    starter = single_end_game.stone_to_play
+    for i in range(8):
+        time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
+    assert time_step.step_type == StepType.LAST
+    assert np.sign(time_step.reward) == starter
