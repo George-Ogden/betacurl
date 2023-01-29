@@ -30,8 +30,8 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
             evaluations = tf.squeeze(evaluations, 0)
         return evaluations.numpy()
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **training_args):
+    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
         training_data = [(augmented_observation, augmented_reward) for (player, observation, action, reward) in training_history for augmented_observation, augmented_action, augmented_reward in augmentation_function(observation, action, reward)]
         observations, values = zip(*training_data)
 
-        self.fit(np.array(observations), np.array(values), **training_args)
+        self.fit(np.array(observations), np.array(values), **hyperparams)

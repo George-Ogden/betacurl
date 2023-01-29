@@ -5,7 +5,7 @@ from src.sampling import SamplingStrategy, NNSamplingStrategy
 from src.game.game import GameSpec, Game
 from src.io import SaveableObject
 
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from abc import ABCMeta, abstractmethod
 from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
@@ -120,8 +120,8 @@ class SamplingEvaluatingPlayer(Player):
         player.sampler = player.sampler_type.load(directory)
         return player
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]]):
+    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
         if hasattr(self.evaluator, "learn"):
-            self.evaluator.learn(training_history, augmentation_function, )
+            self.evaluator.learn(training_history, augmentation_function, **hyperparams)
         if hasattr(self.sampler, "learn"):
-            self.sampler.learn(training_history, augmentation_function, )
+            self.sampler.learn(training_history, augmentation_function, **hyperparams)
