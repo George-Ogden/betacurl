@@ -2,7 +2,8 @@ from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluating
 from src.sampling import RandomSamplingStrategy, NNSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
 
-from tests.utils import StubGame, SAVE_DIR, requires_cleanup, cleanup, cleanup_dir, slow
+from tests.utils import StubGame, SparseStubGame, SAVE_DIR, requires_cleanup, cleanup, cleanup_dir, slow
+from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
 from glob import glob
 import numpy as np
 import time
@@ -27,6 +28,7 @@ config_dict = dict(
 )
 
 stub_game = StubGame(6)
+sparse_stub_game = SparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
@@ -293,3 +295,76 @@ def test_warmup():
         assert type(coach.best_player) != SamplingEvaluatingPlayer or type(coach.best_player.sampler) != BrokenSampler
         assert len(coach.train_example_history[-1]) > 0
     
+@requires_cleanup
+def test_sparse_game_for_coaching():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MaxSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) == MaxSamplingStrategy
+
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MinSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) != MinSamplingStrategy
+
+@requires_cleanup
+def test_learning_patience():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MaxSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=10,
+            successive_win_requirement=4,
+            train_buffer_length=20,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) == MaxSamplingStrategy
+    assert len(glob(f"{SAVE_DIR}/*")) == 6
+
+@requires_cleanup
+def test_learning_patience_without_win():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MinSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=8,
+            successive_win_requirement=4,
+            train_buffer_length=20,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) != MinSamplingStrategy
+    assert len(glob(f"{SAVE_DIR}/*")) == 5
