@@ -6,6 +6,7 @@ import os
 
 def main(args):
     player = SamplingEvaluatingPlayer.load(args.model_directory)
+    player.num_eval_samples = 50
     arena = Arena(players=[player.dummy_constructor] * 2, game=CURLING_GAME)
     arena.play_game(display=True, training=False)
 
