@@ -34,6 +34,8 @@ class CoachConfig:
     """directory to save logs, model, files, etc. to"""
     best_checkpoint_path: str = "model-best"
     """name of best model"""
+    successive_win_requirement: int = 7
+    """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
     
     training_epochs: int = 50
@@ -76,6 +78,8 @@ class Coach(SaveableObject):
         self.win_threshold = int(config.win_threshold * self.num_eval_games)
         self.resume_from_checkpoint = config.resume_from_checkpoint
         assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
+        self.learning_patience = config.successive_win_requirement
+        self.patience = self.learning_patience
 
         self.training_args = dict(
             epochs = config.training_epochs,
@@ -138,6 +142,14 @@ class Coach(SaveableObject):
             random_wins, random_losses = self.benchmark(RandomPlayer)
             wandb.log({"best_win_ratio": wins / self.num_eval_games, "random_win_ratio": random_wins / self.num_eval_games})
             self.save_model(current_iteration=iteration + 1, wins=wins)
+            if self.update_patience(wins):
+                break
+
+    def update_patience(self, wins: int) -> bool:
+        if wins > self.win_threshold:
+            self.patience = self.learning_patience
+        self.patience -= 1
+        return self.patience <= 0
     
     def benchmark(self, Opponent: Callable[[GameSpec], Player]) -> Tuple[int, int]:
         eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
