@@ -16,12 +16,12 @@ class ModelDecorator(SaveableObject):
     def save(self, directory: str):
         model = self.model
         self.model = None
-        
+
         super().save(directory)
         model.save(self.get_model_filename(directory))
-        
+
         self.model = model
-    
+
     @classmethod
     def load(cls, directory: str) -> "Self":
         model = super().load(directory)
@@ -31,16 +31,16 @@ class ModelDecorator(SaveableObject):
     @classmethod
     def get_model_filename(cls, directory):
         return os.path.join(directory,cls.DEFAULT_MODEL_FILE)
-    
+
     def learn(self, training_data):
         ...
-    
+
     def normalise_inputs(self, inputs: np.ndarray) -> np.ndarray:
         return inputs
-    
+
     def normalise_outputs(self, outputs: np.ndarray) -> np.ndarray:
         return outputs
-    
+
     def fit(self, X: np.ndarray, Y: np.ndarray, **kwargs: Any) -> callbacks.History:
         assert type(X) == np.ndarray and type(Y) == np.ndarray
         compile_options = {
@@ -61,7 +61,7 @@ class ModelDecorator(SaveableObject):
             if k in compile_options:
                 compile_options[k] = v
                 used_kwargs.append(k)
-        
+
         for key in used_kwargs:
             del kwargs[key]
 

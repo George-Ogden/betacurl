@@ -61,7 +61,7 @@ def test_coach_saves_config():
         if k in special_cases:
             continue
         assert getattr(boring_coach, k) == v
-    
+
     # special cases
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
@@ -78,7 +78,7 @@ class LearningCheck:
 class SampleLearnLogger(RandomSamplingStrategy, LearningCheck):
     ...
 class EvaluatorLearnLogger(EvaluationStrategy, LearningCheck):
-    ... 
+    ...
 
 @requires_cleanup
 def test_coach_uses_config_in_practise():
@@ -96,7 +96,7 @@ def test_coach_uses_config_in_practise():
     start_time = time.time()
     coach.learn()
     end_time = time.time()
-    
+
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 3
     assert len(coach.train_example_history) == 1
 
@@ -113,7 +113,7 @@ def test_checkpoint_restored_correctly():
     )
     coach.player.dummy_variable = 15
     coach.save_model(10, wins=0)
-    
+
     new_coach = Coach(
         stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
@@ -131,8 +131,8 @@ def test_checkpoint_restores_in_training():
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
-            resume_from_checkpoint=True, 
-            num_iterations=4, 
+            resume_from_checkpoint=True,
+            num_iterations=4,
             **necessary_config
         )
     )
@@ -143,7 +143,7 @@ def test_checkpoint_restores_in_training():
     update_time = time.time()
     cleanup_dir(coach.get_checkpoint_path(3))
     cleanup_dir(coach.get_checkpoint_path(4))
-    
+
     coach.learn()
 
     assert os.path.getmtime(coach.get_checkpoint_path(0)) < update_time
@@ -153,7 +153,7 @@ def test_checkpoint_restores_in_training():
 @requires_cleanup
 def test_latent_variable_stored_and_saved():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=NNSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -172,7 +172,7 @@ def test_latent_variable_stored_and_saved():
 @requires_cleanup
 def test_training_history_restored():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -189,7 +189,7 @@ def test_training_history_restored():
 @requires_cleanup
 def test_best_player_saveds_and_loads():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -200,10 +200,10 @@ def test_best_player_saveds_and_loads():
         )
     )
     coach.learn()
-    
+
     champion = SamplingEvaluatingPlayer(stub_game.game_spec)
     champion.dummy_variable = 22
-    
+
     player = coach.player
     coach.player = champion
     coach.save_model(0, 40)
@@ -278,7 +278,7 @@ def test_no_default_best():
     )
     coach.learn()
     assert not os.path.exists(coach.best_checkpoint_path)
- 
+
 @requires_cleanup
 def test_warmup():
     coach = Coach(
@@ -296,7 +296,7 @@ def test_warmup():
     except BrokenSamplerCalledException:
         assert type(coach.best_player) != SamplingEvaluatingPlayer or type(coach.best_player.sampler) != BrokenSampler
         assert len(coach.train_example_history[-1]) > 0
-    
+
 @requires_cleanup
 def test_sparse_game_for_coaching():
     coach = Coach(

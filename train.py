@@ -11,7 +11,7 @@ import argparse
 def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
     wandb.config.update(args)
-    
+
     player_config = SamplingEvaluatingPlayerConfig(
         **{k: v for k, v in filter(lambda attr: hasattr(SamplingEvaluatingPlayerConfig, attr[0]), vars(args).items())}
     )
@@ -34,7 +34,7 @@ def get_dataclass_attributes_doc(some_dataclass):
         all_docstrings = get_attribute_docstring(some_dataclass, key)
         doc_list = asdict(all_docstrings).values()
         return '\n'.join(doc_list)
- 
+
     attribute_docs = {}
     for key in get_type_hints(some_dataclass).keys():
         attribute_docs[key] = get_attribute_unified_doc(some_dataclass, key)

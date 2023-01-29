@@ -29,12 +29,12 @@ def test_model_fits():
             layers.Dense(1)
         ]
     )
-    
+
     input_data = np.random.randn(10_000, 2)
     output_data = input_data.mean(axis=-1)
-    
+
     model.fit(input_data, output_data)
-    
+
     test_data = np.random.randn(100, 2)
     predictions = model.model.predict(test_data).squeeze(-1)
     error = (predictions - test_data.mean(axis=-1)) ** 2
@@ -48,10 +48,10 @@ def test_override_params():
             layers.Dense(1)
         ]
     )
-    
+
     input_data = np.random.randn(100, 2)
     output_data = input_data.mean(axis=-1)
-    
+
     history = model.fit(input_data, output_data, epochs=5, loss="mae", optimizer="SGD")
     assert history.epoch == list(range(5))
     assert model.model.optimizer.name.upper() == "SGD"

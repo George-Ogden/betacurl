@@ -66,7 +66,7 @@ def test_game_to_play_oscillates():
         expected_stone = ~expected_stone
         assert single_end_game.to_play == i % 2
         assert single_end_game.stone_to_play == expected_stone
-    
+
     single_end_game.reset(starting_player=0)
     assert single_end_game.to_play == 0
     for i in range(8):
@@ -92,15 +92,15 @@ def test_valid_observations_are_valid():
     validate_mask(observation)
     assert single_end_game.get_observation().dtype == single_end_game.game_spec.observation_spec.dtype
     single_end_game.validate_observation(single_end_game.get_observation())
-    
+
     observation = single_end_game.step(good_player.move(single_end_game)).observation
     assert (observation == single_end_game.get_observation()).all()
     single_end_game.validate_observation(observation)
     assert observation.dtype == single_end_game.game_spec.observation_spec.dtype
-    
+
     assert single_end_game.get_observation().dtype == single_end_game.game_spec.observation_spec.dtype
     single_end_game.validate_observation(single_end_game.get_observation())
-    
+
 def test_good_player_always_wins():
     assert forced_arena.play_games(5) == (0, 5)
 
@@ -116,31 +116,31 @@ def test_observation_is_reasonable():
     first_observation = single_end_game.get_observation()
     single_end_game.step(right_player.move(single_end_game))
     second_observation = single_end_game.get_observation()
-    
+
     assert len(first_observation) == 33
     assert len(second_observation) == 33
 
     assert first_observation.dtype == single_end_game.game_spec.observation_spec.dtype
     assert second_observation.dtype == single_end_game.game_spec.observation_spec.dtype
-    
+
     validate_mask(first_observation)
     validate_mask(second_observation)
-    
+
     assert first_observation[0] != second_observation[0]
-    
+
     assert first_observation[1:9].sum() == 1
     assert second_observation[1:9].sum() == 1
-    
+
     assert ((first_observation[1:9] == 1) | (first_observation[1:9] == 0)).all()
     assert ((second_observation[1:9] == 1) | (second_observation[1:9] == 0)).all()
-    
+
     assert np.abs(np.argwhere(first_observation[1:9]).reshape(()) - np.argwhere(second_observation[1:9]).reshape(())) == 1
-    
+
     for stone in single_end_game.curling.stones:
         left_index = np.argwhere(np.abs(second_observation - stone.position[0]) < 1e-6).reshape(())
         right_index = np.argwhere(np.abs(second_observation - stone.position[1]) < 1e-6).reshape(())
         assert left_index + 1 == right_index
-    
+
     assert first_observation[-8:].sum() == 2
     assert second_observation[-8:].sum() == 3
 
@@ -153,19 +153,19 @@ def test_symmetries_are_is_reasonable():
     original_observation = single_end_game.get_observation()
     original_action = right_player.move(single_end_game)
     original_reward = 2
-    
+
     symmetries = single_end_game.get_symmetries(original_observation, original_action, original_reward)
-    
+
     for observation, action, reward in symmetries:
         validate_mask(observation)
-        
+
         mask = single_end_game.get_mask(observation)
         original_mask = single_end_game.get_mask(original_observation)
-        
+
         reward_delta = reward / original_reward
         position_delta = np.nan_to_num(original_action[1] / action[1], 1)
         assert original_action[0] == action[0] and np.allclose(original_action[1], action[1] * position_delta) and np.allclose(original_action[2], action[2] * position_delta)
-        
+
         positions = single_end_game.get_positions(observation)
         original_positions = single_end_game.get_positions(original_observation)
         if observation[0] == original_observation[0]:
@@ -192,10 +192,10 @@ def test_symmetries_are_is_reasonable():
                 right_index = np.argwhere(np.abs(yellow_stones - position[1]) < 1e-6).reshape(())
 
             assert right_index - 1 in left_index
-    
+
         assert observation.dtype == single_end_game.game_spec.observation_spec.dtype
         assert action.dtype == single_end_game.game_spec.move_spec.dtype
-    
+
         assert (observation[1:9] == original_observation[1:9]).all()
 
 @slow
@@ -209,7 +209,7 @@ def test_single_game_display():
 
     short_arena.play_game(display=True)
     assert cv2.getWindowProperty(Canvas.WINDOW_NAME, cv2.WND_PROP_VISIBLE) != -1
-    
+
     # cleanup
     cv2.destroyAllWindows()
     Curling.num_stones_per_end = 8
@@ -225,7 +225,7 @@ def test_multi_game_display():
 
     short_arena.play_games(display=True, num_games=2)
     assert cv2.getWindowProperty(Canvas.WINDOW_NAME, cv2.WND_PROP_VISIBLE) != -1
-    
+
     # cleanup
     cv2.destroyAllWindows()
     Curling.num_stones_per_end = 8
