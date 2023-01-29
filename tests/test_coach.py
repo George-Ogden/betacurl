@@ -368,3 +368,23 @@ def test_learning_patience_without_win():
     coach.learn()
     assert type(coach.best_player.sampler) != MinSamplingStrategy
     assert len(glob(f"{SAVE_DIR}/*")) == 5
+
+@requires_cleanup
+def test_logs_format(capsys):
+    coach = Coach(
+        game=stub_game,
+        SamplingStrategyClass=RandomSamplingStrategy,
+        config=CoachConfig(
+            num_iterations=5,
+            train_buffer_length=5,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+
+    output = capsys.readouterr()
+    assert not "{" in output
+    assert not "}" in output
