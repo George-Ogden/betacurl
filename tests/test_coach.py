@@ -71,15 +71,15 @@ def test_coach_saves_config():
         assert getattr(boring_coach, k) == v
 
     for k, v in training_args.items():
-        assert boring_coach.training_args[k] == v
+        assert boring_coach.training_hyperparams[k] == v
 
     # special cases
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
     assert boring_coach.learning_patience == 4
 
-    assert boring_coach.training_args["patience"] == 20
-    assert boring_coach.training_args["epochs"] == 10
+    assert boring_coach.training_hyperparams["patience"] == 20
+    assert boring_coach.training_hyperparams["epochs"] == 10
 
     assert type(boring_coach.player.sampler) == RandomSamplingStrategy
     assert type(boring_coach.player.evaluator) == EvaluationStrategy
@@ -119,7 +119,7 @@ def test_coach_uses_config_in_practise():
     assert (start_time < np.array(LearningCheck.times)).all() and (np.array(LearningCheck.times) < end_time).all()
 
 @requires_cleanup
-def test_coach_uses_training_config_in_practise():
+def test_coach_uses_training_config_with_evaluator():
     coach = Coach(
         game=StubGame(),
         SamplingStrategyClass=RandomSamplingStrategy,
@@ -147,10 +147,46 @@ def test_coach_uses_training_config_in_practise():
 
     model = coach.player.evaluator.model
     modified_model = modified_coach.player.evaluator.model
-    assert model.history.params.epochs == 10
-    assert modified_model.history.params.epochs == 5
-    assert model.optimizer._learning_rate.numpy() == .1
-    assert model.history.params.steps < modified_model.history.params.steps
+    assert model.history.params["epochs"] == 10
+    assert modified_model.history.params["epochs"] == 5
+    assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
+    assert model.history.params["steps"] < modified_model.history.params["steps"]
+
+@requires_cleanup
+def test_coach_uses_training_config_with_sampler():
+    coach = Coach(
+        game=SparseStubGame(),
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            **config_dict | {
+                "num_iterations": 1
+            }
+        )
+    )
+
+    modified_coach = Coach(
+        game=SparseStubGame(),
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            **config_dict |
+            {
+                "batch_size": 2,
+                "training_epochs": 5,
+                "num_iterations": 1
+            }
+        )
+    )
+
+    coach.learn()
+    modified_coach.learn()
+
+    model = coach.player.sampler.model
+    modified_model = modified_coach.player.sampler.model
+    assert model._train_counter == 10
+    assert modified_model._train_counter == 5
+    assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
 
 @requires_cleanup
 def test_checkpoint_restored_correctly():

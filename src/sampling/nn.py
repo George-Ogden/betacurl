@@ -5,8 +5,8 @@ from src.io import ModelDecorator
 import tensorflow as tf
 import numpy as np
 
-from dm_env.specs import BoundedArray
 from typing import Callable, List, Optional, Tuple
+from dm_env.specs import BoundedArray
 
 class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
     DEFAULT_MODEL_FILE = "sampler.h5"
@@ -45,11 +45,11 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         samples = self.postprocess_actions(samples)
         return samples
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]]):
+    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
         training_data = [(augmented_observation, augmented_action) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward) if np.sign(player) == np.sign(reward) else [])]
         observations, actions = zip(*training_data)
 
         noise = np.random.randn(len(observations), self.latent_size)
         observations = np.concatenate((noise, observations), axis=1)
 
-        self.fit(observations, np.array(actions))
+        self.fit(observations, np.array(actions), **hyperparams)
