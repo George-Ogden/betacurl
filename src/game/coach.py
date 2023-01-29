@@ -37,7 +37,7 @@ class CoachConfig:
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
-    
+
     training_epochs: int = 50
     """number of epochs to train each model for"""
     training_patience: int = 5
@@ -53,24 +53,24 @@ class CoachConfig:
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
     def __init__(
-        self, 
-        game: Game, 
-        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy, 
-        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy, 
+        self,
+        game: Game,
+        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
         self.player = SamplingEvaluatingPlayer(
-            game_spec=game.game_spec, 
-            SamplingStrategyClass=SamplingStrategyClass, 
+            game_spec=game.game_spec,
+            SamplingStrategyClass=SamplingStrategyClass,
             EvaluationStrategyClass=EvaluationStrategyClass,
             config=config.player_config
         )
-        
+
         self.train_example_history = []
         self.config = copy(config)
         self.player_config = self.config.player_config
-        
+
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
         self.train_buffer_length = config.train_buffer_length
@@ -88,7 +88,7 @@ class Coach(SaveableObject):
             lr = config.lr,
             batch_size = config.batch_size,
         )
-        
+
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
         self.model_filename = config.model_filenames
@@ -96,30 +96,30 @@ class Coach(SaveableObject):
     @property
     def best_checkpoint_path(self) -> str:
         return os.path.join(self.save_directory, self.best_model_file)
-    
+
     def get_checkpoint_path(self, iteration: int) -> str:
         return os.path.join(self.save_directory, self.model_filename.format(iteration))
-    
+
     def load_checkpoint(self) -> Optional[int]:
         last_iteration = None
         for i in range(self.num_iterations + 1):
             potential_directory = self.get_checkpoint_path(i)
             if os.path.exists(potential_directory):
                 last_iteration = i
-        
+
         if last_iteration is not None:
             coach = self.load(self.get_checkpoint_path(last_iteration))
             for k, v in vars(coach).items():
                 setattr(self, k, v)
-            
+
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
-    
+
     def learn(self):
         start_iteration = 0
         if self.resume_from_checkpoint:
             start_iteration = self.load_checkpoint() or 0
-        
+
         print("Starting the learning process")
         self.save_model(current_iteration=start_iteration, wins=-1)
 
@@ -135,7 +135,7 @@ class Coach(SaveableObject):
 
             while len(self.train_example_history) > self.train_buffer_length:
                 self.train_example_history.pop(0)
-            
+
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 
             self.player.learn(train_examples, self.game.get_symmetries)
@@ -153,7 +153,7 @@ class Coach(SaveableObject):
             self.patience = self.learning_patience
         self.patience -= 1
         return self.patience <= 0
-    
+
     def benchmark(self, Opponent: Callable[[GameSpec], Player]) -> Tuple[int, int]:
         eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
         wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
@@ -192,16 +192,16 @@ class Coach(SaveableObject):
         if wins > self.win_threshold:
             print("Saving new best model")
             self.save(self.best_checkpoint_path)
-    
+
     def save(self, directory: str):
         player = self.player
         self.player = None
-        
+
         super().save(directory)
 
         self.player = player
         player.save(directory)
-    
+
 
     @classmethod
     def load_player(cls, directory: str) -> SamplingEvaluatingPlayer:
@@ -212,7 +212,7 @@ class Coach(SaveableObject):
         self = super().load(directory)
         self.player = self.load_player(directory)
         return self
-    
+
     @staticmethod
     def transform_history_for_training(training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         total_reward = 0

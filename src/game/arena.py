@@ -12,11 +12,11 @@ class Arena():
         assert len(players) == 2, "only two player games allowed"
         self.players: List[Player] = [Player(game.game_spec) for Player in players]
         self.game = game
-    
+
     def play_game(self, starting_player: Optional[int] = None, display: bool = False, return_history: bool = False, training: bool = False) -> Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, float]]]]:
         """
         Returns:
-            Union[int, Tuple[int, List[Tuple[np.ndarray, np.ndarray, float]]]]: return either 
+            Union[int, Tuple[int, List[Tuple[np.ndarray, np.ndarray, float]]]]: return either
                 - the final result (return_history=False)
                 - a tuple of (reward, history), where history contains tuples of (player_id, observation, action, reward) at each time step
         """
@@ -34,22 +34,22 @@ class Arena():
             player = players[player_index]
             observation = self.game._get_observation()
             action = player.move(self.game)
-            
+
             time_step = self.game.step(action, display=display)
             reward = time_step.reward
             if reward is not None:
                 total_reward += reward
-            
+
             if return_history:
                 history.append((player_index, observation, action, reward))
-        
+
         assert total_reward != 0, "Games cannot end in a draw!"
-        
+
         if return_history:
             return total_reward, history
         else:
             return total_reward
-    
+
     def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, int]:
         """
         Returns:

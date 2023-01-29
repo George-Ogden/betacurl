@@ -42,7 +42,7 @@ def test_random_sampling_strategy_batch():
 
 def test_random_sampling_strategy_batch():
     batch_strategy_test(random_strategy)
-    
+
 def test_nn_sampling_strategy():
     strategy_test(nn_strategy)
 

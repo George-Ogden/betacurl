@@ -74,7 +74,7 @@ def test_energy_decrease():
         assert new_spin_speed <= spin_speed
         speed = new_speed
         spin_speed = new_spin_speed
-    
+
 def test_reasonable_throw_default():
     curling = Curling(StoneColor.RED)
     curling.throw(StoneThrow(
@@ -220,7 +220,7 @@ def test_display():
     ), constants=approx_constants)
     curling.display()
     assert cv2.getWindowProperty(Canvas.WINDOW_NAME, cv2.WND_PROP_VISIBLE) != -1
-    
+
     # cleanup
     cv2.destroyAllWindows()
 
@@ -312,7 +312,7 @@ def test_dual_collision():
 
         assert curling.stones[1].position[0] > 1e-1
         assert curling.stones[1].velocity[0] > -1e-3 or np.linalg.norm(curling.stones[1].velocity) < 1e-1
-    
+
     assert curling.stones[0].position[0] < -curling.target_radii[1]
     assert curling.stones[1].position[0] > curling.target_radii[1]
     assert np.abs(curling.stones[2].position[0]) < curling.target_radii[0]
@@ -408,7 +408,7 @@ def test_angle_causes_no_spin():
             velocity=2.25
         )
     )
-    
+
     assert np.abs(curling.stones[0].angular_position) < 1e-1
 
 def test_left_collision_causes_negative_spin():
@@ -427,7 +427,7 @@ def test_left_collision_causes_negative_spin():
         assert np.linalg.norm(curling.stones[0].position[0]) < 1e-3 or \
             np.linalg.norm(curling.stones[0].velocity) < 1e-2 or \
             (curling.stones[0].angular_velocity > 0 and curling.stones[1].angular_velocity < -1e-3)
-        
+
 def test_right_collision_causes_positive_spin():
     curling = get_short_curling(True)
     curling.stones.append(
@@ -577,7 +577,7 @@ def test_display_times():
             assert int(time.value(1000 * accurate_constants.dt)) == 0
         else:
             assert int(time.value(1000 * accurate_constants.dt)) > 0
-    
+
 def test_horizontal_lines_are_symmetric():
     line_sums = Curling.horizontal_lines + Curling.horizontal_lines[::-1]
     assert (line_sums == Curling.pitch_length).all()
@@ -585,30 +585,30 @@ def test_horizontal_lines_are_symmetric():
 def test_vertical_lines_are_symmetric():
     line_sums = Curling.vertical_lines + Curling.vertical_lines[::-1]
     assert (line_sums == 0).all()
-        
+
 def test_free_guard_zone():
     curling = Curling()
     stone = Stone(color=StoneColor.RED, position=(0,0))
     assert not curling.in_fgz(stone)
-    
+
     stone.position = (0, -curling.tee_line_position + curling.target_radii[0])
     assert not curling.in_fgz(stone)
-    
+
     stone.position = (1, -curling.tee_line_position - curling.target_radii[0])
     assert not curling.in_fgz(stone)
-    
+
     stone.position = (0, -curling.tee_line_position - curling.target_radii[-1])
     assert not curling.in_fgz(stone)
 
     stone.position = (0, -curling.tee_line_position - curling.target_radii[-1] * 2)
     assert curling.in_fgz(stone)
-    
+
     stone.position = (-1, -curling.hog_line_position + curling.target_radii[0])
     assert curling.in_fgz(stone)
-    
+
     stone.position = (0, -curling.hog_line_position - curling.target_radii[0])
     assert not curling.in_fgz(stone)
-    
+
     stone.position = (1, -curling.horizontal_lines[-2])
     assert not curling.in_fgz(stone)
 
@@ -616,22 +616,22 @@ def test_in_house():
     curling = Curling()
     stone = Stone(color=StoneColor.RED, position=(0,0))
     assert not curling.in_house(stone)
-    
+
     stone.position = (0, -curling.tee_line_position + curling.target_radii[0])
     assert curling.in_house(stone)
-    
+
     stone.position = (1, -curling.tee_line_position - curling.target_radii[0])
     assert curling.in_house(stone)
-    
+
     stone.position = (curling.target_radii[0], -curling.tee_line_position + curling.target_radii[-2])
     assert curling.in_house(stone)
-    
+
     stone.position = (-1, -curling.tee_line_position - curling.target_radii[-1])
     assert not curling.in_house(stone)
-    
+
     stone.position = (-curling.target_radii[-1], -curling.tee_line_position)
     assert curling.in_house(stone)
-    
+
     stone.position = (-curling.hog_line_position)
     assert not curling.in_house(stone)
 

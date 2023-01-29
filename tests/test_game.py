@@ -13,7 +13,6 @@ random_player = RandomPlayer(stub_game.game_spec)
 forced_arena = Arena([GoodPlayer, BadPlayer], stub_game)
 random_arena = Arena([RandomPlayer, RandomPlayer], stub_game)
 
-
 def test_stub_game_game_spec_is_correct():
     assert stub_game.game_spec == GameSpec(
         move_spec=BoundedArray(
@@ -24,13 +23,11 @@ def test_stub_game_game_spec_is_correct():
         ),
     )
 
-
 def test_correct_number_of_rounds_played():
     assert stub_game.reset().step_type == StepType.FIRST
     for i in range(5):
         assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
     assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
-
 
 def test_game_to_play_oscillates():
     stub_game.reset(starting_player=1)
@@ -38,13 +35,12 @@ def test_game_to_play_oscillates():
     for i in range(6):
         stub_game.step(random_player.move(stub_game))
         assert stub_game.to_play == i % 2
-    
+
     stub_game.reset(starting_player=0)
     assert stub_game.to_play == 0
     for i in range(6):
         stub_game.step(random_player.move(stub_game))
         assert stub_game.to_play == 1 - (i % 2)
-
 
 def test_correct_number_of_rounds_played_with_reset():
     assert stub_game.reset().step_type == StepType.FIRST
@@ -57,7 +53,6 @@ def test_correct_number_of_rounds_played_with_reset():
         assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
     assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
 
-
 def test_sample_has_no_side_effects():
     assert stub_game.reset().step_type == StepType.FIRST
     for i in range(10):
@@ -69,7 +64,6 @@ def test_sample_has_no_side_effects():
             stub_game.sample(random_player.move(stub_game))
             assert stub_game.score == original
     assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
-
 
 def test_valid_actions_are_valid():
     stub_game.validate_action(random_player.move(stub_game))
@@ -88,23 +82,20 @@ def test_valid_observations_are_valid():
 
     assert stub_game.get_observation().dtype == stub_game.game_spec.observation_spec.dtype
     stub_game.validate_observation(stub_game.get_observation())
-    
+
     observation = stub_game.step(random_player.move(stub_game)).observation
     assert (observation == stub_game.get_observation()).all()
     stub_game.validate_observation(observation)
     assert observation.dtype == stub_game.game_spec.observation_spec.dtype
-    
+
     assert stub_game.get_observation().dtype == stub_game.game_spec.observation_spec.dtype
     stub_game.validate_observation(stub_game.get_observation())
-    
 
 def test_arena_allows_good_player_to_win():
     assert forced_arena.play_game(0) == 10 * 3
 
-
 def test_good_player_always_wins():
     assert forced_arena.play_games(10) == (10, 0)
-
 
 def test_arena_logs(capsys):
     forced_arena.play_game(display=True)
