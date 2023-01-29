@@ -12,6 +12,7 @@ import os
 special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
+    successive_win_requirement=4,
 )
 
 necessary_config = {
@@ -64,6 +65,7 @@ def test_coach_saves_config():
     # special cases
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
+    assert boring_coach.learning_patience == 4
 
     assert type(boring_coach.player.sampler) == RandomSamplingStrategy
     assert type(boring_coach.player.evaluator) == EvaluationStrategy
