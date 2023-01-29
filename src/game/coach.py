@@ -120,9 +120,11 @@ class Coach(SaveableObject):
         if self.resume_from_checkpoint:
             start_iteration = self.load_checkpoint() or 0
         
+        print("Starting the learning process")
         self.save_model(current_iteration=start_iteration, wins=-1)
 
         for iteration in range(start_iteration, self.num_iterations):
+            print(f"Starting iteration {iteration}")
             train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
             for i in trange(self.num_games_per_episode, desc="Self Play"):
@@ -140,6 +142,7 @@ class Coach(SaveableObject):
 
             wins = self.evaluate()
             random_wins, random_losses = self.benchmark(RandomPlayer)
+            print(f"{wins}(/{self.num_eval_games}) against current best player")
             wandb.log({"best_win_ratio": wins / self.num_eval_games, "random_win_ratio": random_wins / self.num_eval_games})
             self.save_model(current_iteration=iteration + 1, wins=wins)
             if self.update_patience(wins):
@@ -183,6 +186,7 @@ class Coach(SaveableObject):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
+        print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration == 1)}")
         self.save(self.get_checkpoint_path(current_iteration))
 
         if wins > self.win_threshold:
