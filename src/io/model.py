@@ -8,7 +8,6 @@ import numpy as np
 
 from typing import Any
 from wandb.keras import WandbMetricsLogger
-# from typing import Self
 
 class ModelDecorator(SaveableObject):
     model: tf.keras.Model = None
