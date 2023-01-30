@@ -2,12 +2,8 @@ from src.sampling.base import SamplingStrategy
 from src.model import ModelFactory, BEST_MODEL_FACTORY
 from src.io import ModelDecorator
 
-from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import numpy as np
-
-from tqdm.keras import TqdmCallback
-import wandb
 
 from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
@@ -76,48 +72,3 @@ class WeightedNNSamplingStrategy(NNSamplingStrategy):
         hyperparams["patience"] = hyperparams.get("epochs", 1000)
         hyperparams["validation_split"] = 0
         self.fit(observations, np.array(actions), sample_weight=np.array(weights), **hyperparams)
-
-class WeightedNNSamplingStrategy(NNSamplingStrategy):
-    def compute_loss(self, batch: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
-        mean, log_std = self.model(batch)
-        log_probs = self.compute_log_probs(actions, mean, log_std)
-        loss = -tf.reduce_mean(log_probs * rewards)
-        return loss
-    
-    @tf.function
-    def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer):
-        with tf.GradientTape() as tape:
-            observations, actions, rewards = batch
-            loss = self.compute_loss(observations, actions, rewards)
-        grads = tape.gradient(loss, self.model.trainable_variables)
-        optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        return loss
-    
-    def compute_validation_loss(self, validation_data: np.ndarray) -> tf.Tensor:
-        validation_loss = 0
-        for batch in validation_data:
-            actions = batch[1]
-            rewards = batch[2]
-            validation_loss += self.compute_loss(batch[0], actions, rewards)
-        return validation_loss / len(validation_data)
-
-
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
-        training_data, validation_data = train_test_split(training_data, test_size=hyperparams.get("validation_split"))
-        
-
-        optimizer = tf.optimizers.Adam(learning_rate=hyperparams.get("learning_rate", 1e-2))
-        history = tf.keras.callbacks.History()
-        callbacks = [callbacks.EarlyStopping(patience=hyperparams.get("patience", 5), monitor="val_loss"), WandbMetricsLogger(), history]
-        batch_size = hyperparams.get("batch_size", 16)
-        for epoch in range(hyperparams.get("epochs", 20)):
-            # TODO: shuffle data
-            for i in range(0, len(training_data), batch_size):
-                batch = training_data[i:i + batch_size]
-                loss = self.train_step(batch, optimizer)
-            validation_loss = self.compute_validation_loss(validation_data)
-            for callback in callbacks:
-                callback.on_epoch_end(epoch, {"loss": loss, "val_loss": validation_loss})
-        return history
-
