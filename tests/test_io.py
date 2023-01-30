@@ -37,7 +37,7 @@ def test_saveable_object_saves():
     SaveableObject.DEFAULT_FILENAME = "file"
     object = SaveableObject()
     generic_save_test(object)
-    
+
     # cleanup
     SaveableObject.DEFAULT_FILENAME = None
 
@@ -154,9 +154,9 @@ def test_player_save_no_side_effects():
     )
     evaluator_config = deepcopy(player.evaluator.model.get_config())
     sampler_config = deepcopy(player.sampler.model.get_config())
-    
+
     generic_save_test(player)
-    
+
     assert player.evaluator.model.get_config() == evaluator_config
     assert player.sampler.model.get_config() == sampler_config
 

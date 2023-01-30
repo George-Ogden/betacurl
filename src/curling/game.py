@@ -30,11 +30,11 @@ class SingleEndCurlingGame(Game):
         )
         self.simulation_constants = simulation_constants
         self.reset()
-    
+
     def _reset(self) -> TimeStep:
         self.curling.reset(self.stone_to_play)
         self.max_round = self.num_stones_per_end
-    
+
     def _get_observation(self)-> np.ndarray:
         """
         Returns:
@@ -43,31 +43,31 @@ class SingleEndCurlingGame(Game):
         round_encoding = np.zeros(self.num_stones_per_end, dtype=bool) # number of rounds remaining
         if self.current_round != self.max_round:
             round_encoding[self.max_round - self.current_round - 1] = 1
-        
+
         metadata = np.concatenate(((self.stone_to_play,), round_encoding)) # next stone, rounds to play
         red_stones = list(filter(lambda stone: stone.color == StoneColor.RED, self.curling.stones))
         yellow_stones = list(filter(lambda stone: stone.color == StoneColor.YELLOW, self.curling.stones))
-        
+
         red_positions = self.get_stone_positions(red_stones)
         yellow_positions = self.get_stone_positions(yellow_stones)
         position =  np.concatenate((red_positions, yellow_positions)) # positions of stones
-        
+
         red_mask = self.get_stone_mask(red_stones)
         yellow_mask = self.get_stone_mask(yellow_stones)
         stone_mask = np.concatenate((red_mask, yellow_mask)) # masks where positions are used
-        
+
         return np.concatenate((metadata, position, stone_mask))
-    
+
     def get_stone_positions(self, stones: List[Stone]) -> np.ndarray:
         positions = np.concatenate([stone.position for stone in stones]) if len(stones) > 0 else np.zeros(())
         positions.resize(self.num_stones_per_end)
         return positions
-    
+
     def get_stone_mask(self, stones: List[Stone]) -> np.ndarray:
         stone_mask = np.ones(len(stones))
         stone_mask.resize(self.num_stones_per_end // 2)
         return stone_mask
-    
+
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
 
         if self.in_free_guard_period:
@@ -81,7 +81,7 @@ class SingleEndCurlingGame(Game):
             StoneThrow(
                 self.stone_to_play,
                 *action
-            ), 
+            ),
             display=display,
             constants=self.simulation_constants
         )
@@ -106,15 +106,15 @@ class SingleEndCurlingGame(Game):
     def in_free_guard_period(self):
         # zero-indexed rounds
         return self.current_round < 5
-    
+
     def evaluate_position(self) -> int:
         assert len(self.curling.stones) > 0
         return self.curling.evaluate_position()
-    
+
     @property
     def stone_to_play(self) -> StoneColor:
         return StoneColor._value2member_map_[self.player_delta]
-    
+
     def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
         observation = self.validate_observation(observation)
         action = self.validate_action(action)
@@ -123,12 +123,12 @@ class SingleEndCurlingGame(Game):
         # change who played
         symmetries += [self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries]
         return symmetries
-    
+
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         self.get_positions(observation)[::2] *= -1
         action[[1, 2]] *= -1
         return observation, action
-    
+
     def get_positions(self, observation: np.ndarray) -> np.ndarray:
         return observation[1 + self.num_stones_per_end:1 + self.num_stones_per_end * 3]
 
@@ -137,13 +137,13 @@ class SingleEndCurlingGame(Game):
 
     def flip_order(self, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[np.ndarray, np.ndarray, float]:
         observation[0] *= -1
-        
+
         positions = self.get_positions(observation)
         red_stones = positions[:self.num_stones_per_end].copy()
         yellow_stones = positions[self.num_stones_per_end:].copy()
         positions[:self.num_stones_per_end] = yellow_stones
         positions[self.num_stones_per_end:] = red_stones
-        
+
         mask = self.get_mask(observation)
         red_mask = mask[:self.num_stones_per_end // 2].copy()
         yellow_mask = mask[self.num_stones_per_end // 2:].copy()
