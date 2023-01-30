@@ -31,6 +31,7 @@ class Arena():
         players = self.players
         while time_step.step_type != StepType.LAST:
             player_index = self.game.to_play
+            player_delta = self.game.player_delta
             player = players[player_index]
             observation = self.game._get_observation()
             action = player.move(self.game)
@@ -41,7 +42,7 @@ class Arena():
                 total_reward += reward
 
             if return_history:
-                history.append((player_index, observation, action, reward))
+                history.append((player_delta, observation, action, reward))
 
         assert total_reward != 0, "Games cannot end in a draw!"
 
