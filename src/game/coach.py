@@ -127,7 +127,7 @@ class Coach(SaveableObject):
             print(f"Starting iteration {iteration}")
             train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
-            for i in trange(self.num_games_per_episode, desc="Self Play"):
+            for i in trange(self.num_games_per_episode, desc="Self play"):
                 result, game_history = train_arena.play_game(starting_player=i % 2, return_history=True, training=True)
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
@@ -163,7 +163,7 @@ class Coach(SaveableObject):
     def evaluate(self) -> int:
         champion = self.best_player
         wins, losses = self.benchmark(champion.dummy_constructor)
-        print(f"Most recent model result: {wins}-{losses}")
+        print(f"Most recent model result: {wins}-{losses} (current-best)")
         return wins
 
     @property
@@ -186,7 +186,7 @@ class Coach(SaveableObject):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
-        print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration == 1)}")
+        print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
         self.save(self.get_checkpoint_path(current_iteration))
 
         if wins > self.win_threshold:

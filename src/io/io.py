@@ -1,8 +1,6 @@
 import pickle
 import os
 
-# from typing import Self
-
 class SaveableObject:
     DEFAULT_FILENAME: str = None
     def save(self, directory: str):

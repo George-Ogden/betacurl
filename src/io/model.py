@@ -6,9 +6,9 @@ from tensorflow.keras import callbacks, optimizers
 import tensorflow as tf
 import numpy as np
 
-from typing import Any
 from wandb.keras import WandbMetricsLogger
-# from typing import Self
+from tqdm.keras import TqdmCallback
+from typing import Any
 
 class ModelDecorator(SaveableObject):
     model: tf.keras.Model = None
@@ -51,8 +51,8 @@ class ModelDecorator(SaveableObject):
         train_options = {
             "batch_size": 64,
             "validation_split": 0.1,
-            "verbose": 1,
-            "callbacks": [callbacks.EarlyStopping(patience=kwargs.pop("patience", 5), monitor="val_mae"), WandbMetricsLogger()],
+            "verbose": 0,
+            "callbacks": [callbacks.EarlyStopping(patience=kwargs.pop("patience", 5), monitor="val_mae"), WandbMetricsLogger(), TqdmCallback(desc=f"Training {type(self).__name__} ({self.model._name})")],
             "epochs": 50,
         }
 
