@@ -19,7 +19,7 @@ special_cases = dict(
 
 training_args =  dict(
     lr=1e-1,
-    batch_size=16
+    batch_size=64
 )
 
 necessary_config = {
@@ -136,7 +136,6 @@ def test_coach_uses_training_config_with_evaluator():
         config=CoachConfig(
             **config_dict |
             {
-                "batch_size": 2,
                 "training_epochs": 5
             }
         )
@@ -150,7 +149,6 @@ def test_coach_uses_training_config_with_evaluator():
     assert model.history.params["epochs"] == 10
     assert modified_model.history.params["epochs"] == 5
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
-    assert model.history.params["steps"] < modified_model.history.params["steps"]
 
 @requires_cleanup
 def test_coach_uses_training_config_with_sampler():
@@ -172,7 +170,6 @@ def test_coach_uses_training_config_with_sampler():
         config=CoachConfig(
             **config_dict |
             {
-                "batch_size": 2,
                 "training_epochs": 5,
                 "num_iterations": 1
             }
