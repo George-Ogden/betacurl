@@ -1,8 +1,9 @@
 from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import RandomSamplingStrategy, NNSamplingStrategy, SamplingStrategy
-from src.evaluation import EvaluationStrategy
+from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 
-from tests.utils import StubGame, SAVE_DIR, requires_cleanup, cleanup, cleanup_dir, slow
+from tests.utils import StubGame, SparseStubGame, SAVE_DIR, requires_cleanup, cleanup, cleanup_dir, slow
+from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
 from glob import glob
 import numpy as np
 import time
@@ -11,6 +12,14 @@ import os
 special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
+    successive_win_requirement=4,
+    training_patience=20,
+    training_epochs=10,
+)
+
+training_args =  dict(
+    lr=1e-1,
+    batch_size=64
 )
 
 necessary_config = {
@@ -23,10 +32,12 @@ config_dict = dict(
     num_iterations=2,
     train_buffer_length=1,
     **necessary_config,
-    **special_cases
+    **special_cases,
+    **training_args
 )
 
 stub_game = StubGame(6)
+sparse_stub_game = SparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
@@ -55,13 +66,20 @@ def test_coach_saves_config():
 
     assert not os.path.exists(SAVE_DIR)
     for k, v in config_dict.items():
-        if k in special_cases:
+        if k in special_cases or k in training_args:
             continue
         assert getattr(boring_coach, k) == v
-    
+
+    for k, v in training_args.items():
+        assert boring_coach.training_hyperparams[k] == v
+
     # special cases
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
+    assert boring_coach.learning_patience == 4
+
+    assert boring_coach.training_hyperparams["patience"] == 20
+    assert boring_coach.training_hyperparams["epochs"] == 10
 
     assert type(boring_coach.player.sampler) == RandomSamplingStrategy
     assert type(boring_coach.player.evaluator) == EvaluationStrategy
@@ -74,7 +92,7 @@ class LearningCheck:
 class SampleLearnLogger(RandomSamplingStrategy, LearningCheck):
     ...
 class EvaluatorLearnLogger(EvaluationStrategy, LearningCheck):
-    ... 
+    ...
 
 @requires_cleanup
 def test_coach_uses_config_in_practise():
@@ -86,18 +104,86 @@ def test_coach_uses_config_in_practise():
             **config_dict
         )
     )
+
     coach.player.evaluator_type = EvaluationStrategy
     coach.player.sampler_type = RandomSamplingStrategy
 
     start_time = time.time()
     coach.learn()
     end_time = time.time()
-    
+
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 3
     assert len(coach.train_example_history) == 1
 
     assert len(LearningCheck.times) == 4
     assert (start_time < np.array(LearningCheck.times)).all() and (np.array(LearningCheck.times) < end_time).all()
+
+@requires_cleanup
+def test_coach_uses_training_config_with_evaluator():
+    coach = Coach(
+        game=StubGame(),
+        SamplingStrategyClass=RandomSamplingStrategy,
+        EvaluationStrategyClass=NNEvaluationStrategy,
+        config=CoachConfig(
+            **config_dict
+        )
+    )
+
+    modified_coach = Coach(
+        game=StubGame(),
+        SamplingStrategyClass=RandomSamplingStrategy,
+        EvaluationStrategyClass=NNEvaluationStrategy,
+        config=CoachConfig(
+            **config_dict |
+            {
+                "training_epochs": 5
+            }
+        )
+    )
+
+    coach.learn()
+    modified_coach.learn()
+
+    model = coach.player.evaluator.model
+    modified_model = modified_coach.player.evaluator.model
+    assert model.history.params["epochs"] == 10
+    assert modified_model.history.params["epochs"] == 5
+    assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
+
+@requires_cleanup
+def test_coach_uses_training_config_with_sampler():
+    coach = Coach(
+        game=SparseStubGame(),
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            **config_dict | {
+                "num_iterations": 1
+            }
+        )
+    )
+
+    modified_coach = Coach(
+        game=SparseStubGame(),
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            **config_dict |
+            {
+                "training_epochs": 5,
+                "num_iterations": 1
+            }
+        )
+    )
+
+    coach.learn()
+    modified_coach.learn()
+
+    model = coach.player.sampler.model
+    modified_model = modified_coach.player.sampler.model
+    assert model._train_counter == 10
+    assert modified_model._train_counter == 5
+    assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
 
 @requires_cleanup
 def test_checkpoint_restored_correctly():
@@ -109,7 +195,7 @@ def test_checkpoint_restored_correctly():
     )
     coach.player.dummy_variable = 15
     coach.save_model(10, wins=0)
-    
+
     new_coach = Coach(
         stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
@@ -127,8 +213,8 @@ def test_checkpoint_restores_in_training():
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
-            resume_from_checkpoint=True, 
-            num_iterations=4, 
+            resume_from_checkpoint=True,
+            num_iterations=4,
             **necessary_config
         )
     )
@@ -139,7 +225,7 @@ def test_checkpoint_restores_in_training():
     update_time = time.time()
     cleanup_dir(coach.get_checkpoint_path(3))
     cleanup_dir(coach.get_checkpoint_path(4))
-    
+
     coach.learn()
 
     assert os.path.getmtime(coach.get_checkpoint_path(0)) < update_time
@@ -149,7 +235,7 @@ def test_checkpoint_restores_in_training():
 @requires_cleanup
 def test_latent_variable_stored_and_saved():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=NNSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -168,7 +254,7 @@ def test_latent_variable_stored_and_saved():
 @requires_cleanup
 def test_training_history_restored():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -185,7 +271,7 @@ def test_training_history_restored():
 @requires_cleanup
 def test_best_player_saveds_and_loads():
     coach = Coach(
-        game=stub_game, 
+        game=stub_game,
         SamplingStrategyClass=RandomSamplingStrategy,
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
@@ -196,10 +282,10 @@ def test_best_player_saveds_and_loads():
         )
     )
     coach.learn()
-    
+
     champion = SamplingEvaluatingPlayer(stub_game.game_spec)
     champion.dummy_variable = 22
-    
+
     player = coach.player
     coach.player = champion
     coach.save_model(0, 40)
@@ -274,7 +360,7 @@ def test_no_default_best():
     )
     coach.learn()
     assert not os.path.exists(coach.best_checkpoint_path)
- 
+
 @requires_cleanup
 def test_warmup():
     coach = Coach(
@@ -292,4 +378,97 @@ def test_warmup():
     except BrokenSamplerCalledException:
         assert type(coach.best_player) != SamplingEvaluatingPlayer or type(coach.best_player.sampler) != BrokenSampler
         assert len(coach.train_example_history[-1]) > 0
-    
+
+@requires_cleanup
+def test_sparse_game_for_coaching():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MaxSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) == MaxSamplingStrategy
+
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MinSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) != MinSamplingStrategy
+
+@requires_cleanup
+def test_learning_patience():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MaxSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=10,
+            successive_win_requirement=4,
+            train_buffer_length=20,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) == MaxSamplingStrategy
+    assert len(glob(f"{SAVE_DIR}/*")) == 6
+
+@requires_cleanup
+def test_learning_patience_without_win():
+    coach = Coach(
+        game=sparse_stub_game,
+        SamplingStrategyClass=MinSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            num_iterations=8,
+            successive_win_requirement=4,
+            train_buffer_length=20,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert type(coach.best_player.sampler) != MinSamplingStrategy
+    assert len(glob(f"{SAVE_DIR}/*")) == 5
+
+@requires_cleanup
+def test_logs_format(capsys):
+    coach = Coach(
+        game=stub_game,
+        SamplingStrategyClass=RandomSamplingStrategy,
+        config=CoachConfig(
+            num_iterations=5,
+            train_buffer_length=5,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+
+    output = capsys.readouterr()
+    assert not "{" in output
+    assert not "}" in output

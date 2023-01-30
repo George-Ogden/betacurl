@@ -47,11 +47,11 @@ def test_training_and_evaluation_matter():
     player.train()
     assert player.num_samples == 10
     assert player.is_training
-    
+
     player.eval()
     assert player.num_samples == 100
     assert not player.is_training
-    
+
     player.train()
     assert player.num_samples == 10
     assert player.is_training
@@ -61,11 +61,10 @@ def test_training_and_evaluation_matter():
             break
     else:
         assert False, "always in bounds while training"
-    
+
     player.eval()
     single_end_game.step(player.move(single_end_game))
     assert len(single_end_game.curling.stones) > 0
-
 
 def test_sampler_is_used():
     maxmimum_mover = SamplingEvaluatingPlayer(
@@ -85,7 +84,7 @@ def test_evaluator_is_used():
     )
     move = maxmimum_mover.move(single_end_game)
     assert len(single_end_game.curling.stones) == 0
-    
+
     random_mover = SamplingEvaluatingPlayer(
         single_end_game.game_spec,
         SamplingStrategyClass=RandomSamplingStrategy,
@@ -102,14 +101,12 @@ def test_arena_training_happens():
     results = distinguishable_arena.play_games(10, training=False)
     assert results[0] >= 8
 
-    
     results = distinguishable_arena.play_games(25, training=True)
     assert min(results) >= 5
 
 def test_eval_train_are_same_class():
     assert type(player.train()) == type(player)
     assert type(player.eval()) == type(player)
-
 
 def test_picks_best_move():
     player = SamplingEvaluatingPlayer(

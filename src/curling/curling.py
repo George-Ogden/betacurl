@@ -13,7 +13,7 @@ class Curling:
     constants: CurlingConstants = CurlingConstants()
     starting_button_distance: np.floating = np.array(38.405) # distance to button from where stone is released
     pitch_length: np.floating = np.array(45.720)
-    pitch_width: np.floating = np.array(4.750) 
+    pitch_width: np.floating = np.array(4.750)
     hog_line_position: np.floating = np.array(11.888) # distance from back line to hog line
     tee_line_position: np.floating = np.array(5.487) # distance from back line to tee line
     button_position = np.array((0., -tee_line_position))
@@ -24,11 +24,11 @@ class Curling:
     num_stones_per_end: int = 8
     def __init__(self, starting_color: Optional[StoneColor] = None):
         self.reset(starting_color)
-    
+
     def reset(self, starting_color: Optional[StoneColor] = None):
         self.stones: List[Stone] = []
         self.next_stone_colour = starting_color or np.random.choice([StoneColor.RED, StoneColor.YELLOW])
-        
+
     def step(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
         finished = SimulationState.FINISHED
         invalid_stone_indices = []
@@ -41,7 +41,7 @@ class Curling:
             self.stones.pop(invalid_index)
         Stone.handle_collisions(self.stones)
         return finished
-    
+
     def render(self) -> Canvas:
         canvas = Canvas(self, pixels_per_meter=920//self.pitch_length)
         canvas.draw_vertical_lines(self.vertical_lines)
@@ -51,23 +51,23 @@ class Curling:
         for stone in self.stones:
             canvas.draw_stone(stone)
         return canvas
-    
+
     def out_of_bounds(self, stone: Stone) -> bool:
         return np.abs(stone.position[0]) > self.pitch_width / 2 or stone.position[1] > 0
-    
+
     def button_distance(self, stone: Stone) -> float:
         return np.linalg.norm(stone.position - self.button_position)
-    
+
     def in_house(self, stone: Stone) -> bool:
         return self.button_distance(stone) < self.house_radius
-    
+
     def in_fgz(self, stone: Stone) -> bool:
         """determines if a stone is in the free guard zone"""
         return (-stone.position[1] >= self.tee_line_position and -stone.position[1] <= self.hog_line_position) and not self.in_house(stone)
-    
+
     def display(self, constants: SimulationConstants = SimulationConstants()):
         self.render().display(constants)
-    
+
     def create_stone(self, stone_throw: StoneThrow):
         return Stone(
             color=stone_throw.color,
@@ -85,7 +85,7 @@ class Curling:
             self.create_stone(
                 stone_throw
             )
-                
+
         )
         while self.step(constants) == SimulationState.UNFINISHED:
             if display:
@@ -118,7 +118,7 @@ class Canvas:
 
     def adjust_coordinates(self, xy: Tuple[float, float]) -> Tuple[int, int]:
         return (int((xy[0] + self.pitch_width / 2) * self.pixels_per_meter), int((-xy[1]) * self.pixels_per_meter))
-    
+
     def convert_radius(self, radius: float) -> float:
         return int(radius * self.pixels_per_meter)
 
@@ -126,11 +126,11 @@ class Canvas:
         TARGET_COLOURS = (Colors.RED, Colors.WHITE, Colors.BLUE, Colors.WHITE)
         for color, radius in zip(TARGET_COLOURS, reversed(sorted((radii)))):
             cv2.circle(self._canvas, center=self.adjust_coordinates((0, offset)), radius=self.convert_radius(radius), color=color.value, thickness=-1)
-    
+
     def draw_horizontal_lines(self, lines: List[float]):
         for height in lines:
             cv2.line(self._canvas, self.adjust_coordinates((-self.pitch_width, -height)), self.adjust_coordinates((self.pitch_width, -height)), color=Colors.WHITE.value, thickness=1)
-        
+
     def draw_vertical_lines(self, lines: List[float]):
         for width in lines:
             cv2.line(self._canvas, self.adjust_coordinates((width, 0)), self.adjust_coordinates((width, -self.pitch_length)), color=Colors.WHITE.value, thickness=1)
@@ -138,17 +138,17 @@ class Canvas:
     def draw_targets(self, radii: List[float], buffer: float):
         self.draw_target(radii=radii, offset=-buffer)
         self.draw_target(radii, buffer-self.pitch_length)
-    
+
     def draw_stone(self, stone: Stone):
         stone_color = Colors.RED if stone.color == StoneColor.RED else Colors.YELLOW
         cv2.circle(self._canvas, center=self.adjust_coordinates(stone.position), radius=self.convert_radius(stone.outer_radius), color=stone_color.value, thickness=-1)
         cv2.circle(self._canvas, center=self.adjust_coordinates(stone.position), radius=self.convert_radius(stone.outer_radius), color=Colors.GRAY.value, thickness=1)
         handle_offset = stone.outer_radius * (np.cos(stone.angular_position), np.sin(stone.angular_position))
         cv2.line(self._canvas, pt1=self.adjust_coordinates(stone.position + handle_offset), pt2=self.adjust_coordinates(stone.position - handle_offset), color=Colors.GRAY.value, thickness=1)
-    
+
     def get_canvas(self)-> np.ndarray:
         return self._canvas
-    
+
     def display(self, constants: SimulationConstants = SimulationConstants()):
         cv2.imshow(self.WINDOW_NAME, self._canvas)
         linear_transform = self.DISPLAY_TIME.value
@@ -189,16 +189,16 @@ class Stone:
         if np.linalg.norm(self.velocity) < simulation_constants.eps:
             self.angular_velocity = 0
             return SimulationState.FINISHED
-        
+
         dt = simulation_constants.dt
         theta = np.arange(0, 2 * np.pi, simulation_constants.dtheta)
         relative_point_position = np.array((-np.sin(theta), np.cos(theta))).T * self.ring_radius # position of this point relative to centre of stone
         normalised_tangent = np.array((-np.cos(theta), -np.sin(theta))).T # direction of the tangent normal to the radius from the centre
         phi = theta - np.arctan2(-self.velocity[0], self.velocity[1]) # angle relative to direction of motion
-            
+
         point_velocity = self.angular_velocity * self.ring_radius * normalised_tangent + self.velocity # speed relative to the ground
         point_speed = np.linalg.norm(point_velocity, axis=-1)
-            
+
         # divide weight between all the points
         normal_force = self.weight / simulation_constants.num_points_on_circle
         forward_ratio = np.cos(phi) # ratio along the disc used to calculate friction
@@ -206,13 +206,13 @@ class Stone:
         frictional_force = np.minimum(normal_force * mu, point_speed * (self.mass / simulation_constants.num_points_on_circle) / dt) # F <= mu * N
         # point force in opposite direction to velocity
         frictional_force = np.tile(frictional_force, (2, 1)).T * -point_velocity / (np.tile(point_speed, (2, 1))).T
-            
+
         # add the frictional force
         net_force = frictional_force.sum(axis=0)
         # torque magnitude
         torque = -np.linalg.det(np.stack((frictional_force, relative_point_position), axis=1)).sum(axis=-1)
-        
-        
+
+
         # update values
         self.angular_acceleration = torque / self.moment_of_inertia
         self.angular_velocity += self.angular_acceleration * dt
@@ -221,7 +221,7 @@ class Stone:
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
         return SimulationState.UNFINISHED
-    
+
     @staticmethod
     def handle_collisions(stones: List[Stone], constants: SimulationConstants = SimulationConstants()):
         impulses = np.zeros((len(stones), 2))
@@ -248,7 +248,7 @@ class Stone:
 
                     # tangent impulse is limited by the relative tangent velocity
                     tangent_impulse = min(
-                        Stone.coefficient_of_friction * np.linalg.norm(impulse), 
+                        Stone.coefficient_of_friction * np.linalg.norm(impulse),
                         (1 + Stone.coefficient_of_restitution) * np.abs(relative_tangent_velocity) / (stone1.outer_radius ** 2 / stone1.moment_of_inertia + 1 / stone1.mass + stone2.outer_radius ** 2 / stone2.moment_of_inertia + 1 / stone2.mass)
                     ) * np.sign(relative_tangent_velocity)
 
@@ -258,7 +258,7 @@ class Stone:
                     tangent_impulse *= -tangent_vector
                     impulses[i] += tangent_impulse
                     impulses[j] -= tangent_impulse
-        
+
         dt = constants.dt
         for stone, impulse, torque in zip(stones, impulses, torques):
             if (torque != 0).any() or (impulse != 0).any():
@@ -276,8 +276,8 @@ class Stone:
 @dataclass
 class StoneThrow:
     bounds: ClassVar[np.ndarray] = np.array([
-        (2, 4), 
-        (-.1, .1), 
+        (2, 4),
+        (-.1, .1),
         (-4, 4)
     ]).astype(float)
     color: StoneColor

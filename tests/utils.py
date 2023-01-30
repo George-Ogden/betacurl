@@ -55,16 +55,16 @@ class StubGame(Game):
 
         if display:
             print(*self.score)
-        
+
         return delta
 
 class SparseStubGame(StubGame):
     """stub game with rewadr only on last step"""
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
-        reward = super()._step(action, display)
+        super()._step(action, display)
+        reward = float(self.get_observation())
         if self.current_round == self.max_round - 1:
-            return reward
-
+            return reward if reward != 0 else self.eps * -self.player_delta
 
 class BadSymetryStubGame(StubGame):
     def get_symmetries(
@@ -72,11 +72,9 @@ class BadSymetryStubGame(StubGame):
     ) -> List[Tuple[np.ndarray, np.ndarray, float]]:
         return [(observation * 0 + 1, action * 0 + 1, 1), (observation * 0 - 1, action * 0 + 2, -1)]
 
-
 class GoodPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.maximum
-
 
 class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
@@ -84,7 +82,7 @@ class BadPlayer(Player):
 
 @fixture
 def cleanup():
-    yield 
+    yield
     cleanup_dir(SAVE_DIR)
 
 def cleanup_dir(dir: str):
@@ -93,6 +91,6 @@ def cleanup_dir(dir: str):
             cleanup_dir(filename)
         else:
             os.remove(filename)
-    
+
     if os.path.exists(dir):
         os.rmdir(dir)
