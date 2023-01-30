@@ -81,7 +81,7 @@ class Coach(SaveableObject):
         self.learning_patience = config.successive_win_requirement
         self.patience = self.learning_patience
 
-        self.training_args = dict(
+        self.training_hyperparams = dict(
             epochs = config.training_epochs,
             patience = config.training_patience,
             validation_split = config.validation_split,
@@ -138,7 +138,7 @@ class Coach(SaveableObject):
 
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 
-            self.player.learn(train_examples, self.game.get_symmetries)
+            self.player.learn(train_examples, self.game.get_symmetries, **self.training_hyperparams)
 
             wins = self.evaluate()
             random_wins, random_losses = self.benchmark(RandomPlayer)

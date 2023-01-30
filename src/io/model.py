@@ -44,7 +44,7 @@ class ModelDecorator(SaveableObject):
     def fit(self, X: np.ndarray, Y: np.ndarray, **kwargs: Any) -> callbacks.History:
         assert type(X) == np.ndarray and type(Y) == np.ndarray
         compile_options = {
-            "optimizer": optimizers.Adam(learning_rate=kwargs.pop("lr", 1e-2    )),
+            "optimizer": optimizers.Adam(learning_rate=kwargs.pop("lr", 1e-2)),
             "loss": "mse",
             "metrics": ["mae"]
         }
