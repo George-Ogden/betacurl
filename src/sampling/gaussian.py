@@ -2,11 +2,12 @@ from src.sampling.nn import NNSamplingStrategy
 from src.model import ModelFactory, BEST_MODEL_FACTORY
 
 from sklearn.model_selection import train_test_split
+from tensorflow_probability import distributions
 import tensorflow as tf
 import numpy as np
 
-from tensorflow.keras import callbacks
 from wandb.keras import WandbMetricsLogger
+from tensorflow.keras import callbacks
 from tqdm.keras import TqdmCallback
 
 from typing import Callable, List, Tuple
@@ -15,13 +16,23 @@ from dm_env.specs import BoundedArray
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, latent_size: int = 4):
-        # modify action range ...
         super().__init__(action_spec, observation_spec, model_factory, latent_size)
+        self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
     
-    def postprocess_actions(self, actions: np.ndarray) -> np.ndarray:
-        actions += (self.action_range[1] + self.action_range[0]) / 2
-        # sample from normal distribution ...
-        return actions
+    def setup_model(self, action_spec, observation_spec, model_factory, latent_size):
+        config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
+        self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
+    
+    @tf.function
+    def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
+        actions = tf.reshape(actions, (actions.shape[0], *self.action_shape, 2))
+        means, log_stds = tf.split(actions, 2, axis=-1)
+        
+        means += self.action_mean
+        stds = tf.exp(log_stds)
+        normal = distributions.Normal(means, stds)
+        
+        return normal.sample()
 
     def compute_loss(self, batch: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
         mean, log_std = self.model(batch)
