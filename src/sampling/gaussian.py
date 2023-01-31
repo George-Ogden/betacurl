@@ -41,8 +41,8 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         return tf.reduce_sum(log_probs, axis=-1)
 
     def compute_loss(self, batch: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
-        mean, log_std = self.model(batch)
-        log_probs = self.compute_log_probs(actions, mean, log_std)
+        mean, log_std = tf.split(self.model(batch), 2, axis=-1)
+        log_probs = self.compute_log_probs(mean, log_std, actions)
         loss = -tf.reduce_mean(log_probs * rewards)
         return loss
     
