@@ -1,7 +1,7 @@
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.io import ModelDecorator
+from src.io import ModelDecorator, TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
 
@@ -51,7 +51,15 @@ def test_override_params():
     input_data = np.random.randn(100, 2)
     output_data = input_data.mean(axis=-1)
 
-    history = model.fit(input_data, output_data, epochs=5, loss="mae", optimizer="SGD")
+    history = model.fit(
+        input_data,
+        output_data,
+        training_config=TrainingConfig(
+            epochs=5,
+            loss="mae",
+            optimizer_type="SGD"
+        )
+    )
     assert history.epoch == list(range(5))
     assert model.model.optimizer.name.upper() == "SGD"
     assert model.model.loss == "mae"
@@ -105,10 +113,11 @@ def test_weighted_sampling_improves_on_normal_sampling():
         weighted_player.sampler.model = deepcopy(regular_player.sampler.model)
         assert (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
         
-        weighted_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, epochs=2)
+        training_config = TrainingConfig(epochs=2)
+        weighted_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, training_config=training_config)
         assert not (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
 
-        regular_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, epochs=2)
+        regular_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, training_config=training_config)
 
         arena = Arena(players=[weighted_player.dummy_constructor, regular_player.dummy_constructor], game=stub_game)
         wins, losses = arena.play_games(10)
