@@ -10,7 +10,7 @@ class FCNNModelFactory(ModelFactory):
     CONFIG_CLASS = FCNNConfig
     @classmethod
     def create_model(cls, input_size: int, output_size: int, config: Optional[FCNNConfig] = FCNNConfig()) -> Model:
-        return keras.Sequential(name="simple_linear",
+        return keras.Sequential(name="fcnn",
             layers=[
                 keras.Input(shape=(input_size,)),
                 layers.BatchNormalization(),
