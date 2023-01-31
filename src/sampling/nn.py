@@ -13,10 +13,14 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, latent_size: int = 4):
         super().__init__(action_spec, observation_spec)
         self.latent_size = latent_size
+        self.setup_model(action_spec, observation_spec, model_factory, latent_size)
+
+    def setup_model(self, action_spec, observation_spec, model_factory, latent_size):
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="sigmoid")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape), config=config)
 
-    def postprocess_actions(self, actions: np.ndarray) -> np.ndarray:
+    @tf.function
+    def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
         actions *= self.action_range[1] - self.action_range[0]
         actions += self.action_range[0]
         return actions
@@ -48,8 +52,8 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         if not batched_throughput:
             samples = tf.squeeze(samples, 0)
 
-        samples = samples.numpy()
         samples = self.postprocess_actions(samples)
+        samples = samples.numpy()
         return samples
 
     def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
