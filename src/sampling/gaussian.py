@@ -34,6 +34,12 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         
         return normal.sample()
 
+    @staticmethod
+    def compute_log_probs(means, log_stds, actions):
+        normal = distributions.Normal(means, tf.exp(log_stds))
+        log_probs = normal.log_prob(actions)
+        return tf.reduce_sum(log_probs, axis=-1)
+
     def compute_loss(self, batch: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
         mean, log_std = self.model(batch)
         log_probs = self.compute_log_probs(actions, mean, log_std)
