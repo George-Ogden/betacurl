@@ -69,8 +69,17 @@ class ModelDecorator(SaveableObject):
     def normalise_outputs(self, outputs: np.ndarray) -> np.ndarray:
         return outputs
 
-    def fit(self, X: np.ndarray, Y: np.ndarray, training_config: TrainingConfig) -> callbacks.History:
-        assert type(X) == np.ndarray and type(Y) == np.ndarray
+    def fit(
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
+        if type(X) != np.ndarray:
+            X = np.array(X)
+        if type(Y) != np.ndarray:
+            Y = np.array(Y)
+
         compile_options = {
             "optimizer": training_config.optimizer,
             "loss": training_config.loss,
