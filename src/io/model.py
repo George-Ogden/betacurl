@@ -8,7 +8,22 @@ import numpy as np
 
 from wandb.keras import WandbMetricsLogger
 from tqdm.keras import TqdmCallback
-from typing import Any
+
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+@dataclass
+class TrainingConfig:
+    optimizer: str = "Adam"
+    learning_rate: float = 1e-2
+    loss: str = "mse"
+    metrics: List[str] = ["mae"]
+    batch_size: int = 64
+    validation_split: float = 0.1
+    callbacks: Optional[List[callbacks.Callback]] = None
+    epochs: int = 20
+    compile_kwargs: Optional[Dict[str, Any]] = None
+    fit_kwargs: Optional[Dict[str, Any]] = None
 
 class ModelDecorator(SaveableObject):
     model: tf.keras.Model = None
