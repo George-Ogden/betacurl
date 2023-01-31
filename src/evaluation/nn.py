@@ -38,4 +38,4 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     ):
         training_data = [(augmented_observation, augmented_reward) for (player, observation, action, reward) in training_history for augmented_observation, augmented_action, augmented_reward in augmentation_function(observation, action, reward)]
         observations, values = zip(*training_data)
-        self.fit(np.array(observations), np.array(values), training_config)
+        self.fit(observations, values, training_config)

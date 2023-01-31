@@ -61,7 +61,7 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
 
         observations = self.add_noise_to_observations(observations)
 
-        self.fit(observations, np.array(actions), training_config)
+        self.fit(observations, actions, training_config)
         return
 
 class WeightedNNSamplingStrategy(NNSamplingStrategy):
@@ -82,4 +82,4 @@ class WeightedNNSamplingStrategy(NNSamplingStrategy):
         training_config.fit_kwargs = dict(
             sample_weight = np.array(weights)
         )
-        self.fit(observations, np.array(actions), training_config)
+        self.fit(observations, actions, training_config)
