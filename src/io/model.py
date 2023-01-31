@@ -14,17 +14,29 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class TrainingConfig:
-    optimizer: str = "Adam"
-    learning_rate: float = 1e-2
-    loss: str = "mse"
-    metrics: List[str] = ["mae"]
-    batch_size: int = 64
-    patience: int = 7
-    validation_split: float = 0.1
-    callbacks: Optional[List[callbacks.Callback]] = None
     epochs: int = 20
+    """number of epochs to train each model for"""
+    batch_size: int = 64
+    """training batch size"""
+    patience: int = 7
+    """number of epochs without improvement during training (0 to ignore)"""
+    lr: float = 1e-2
+    """model learning rate"""
+    validation_split: float = 0.1
+    """proportion of data to validate on"""
+    loss: str = "mse"
+    optimizer_type: str = "Adam"
+    metrics: List[str] = ["mae"]
+    callbacks: Optional[List[callbacks.Callback]] = None
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
+
+    @property
+    def optimizer(self) -> optimizers.Optimizer:
+        optimizers.get(self.optimizer_type)(
+            learning_rate=self.lr, 
+            **(self.optimizer_kwargs or {})
+        )
 
 class ModelDecorator(SaveableObject):
     model: tf.keras.Model = None
@@ -60,10 +72,7 @@ class ModelDecorator(SaveableObject):
     def fit(self, X: np.ndarray, Y: np.ndarray, training_config: TrainingConfig) -> callbacks.History:
         assert type(X) == np.ndarray and type(Y) == np.ndarray
         compile_options = {
-            "optimizer": optimizers.get(training_config.optimizer)(
-                learning_rate=training_config.learning_rate, 
-                **(training_config.optimizer_kwargs or {})
-            ),
+            "optimizer": training_config.optimizer,
             "loss": training_config.loss,
             "metrics": training_config.metrics,
         }
