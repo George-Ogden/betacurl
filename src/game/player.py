@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.sampling import SamplingStrategy, NNSamplingStrategy
 from src.game.game import GameSpec, Game
-from src.io import SaveableObject
+from src.io import SaveableObject, TrainingConfig
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from abc import ABCMeta, abstractmethod
@@ -120,8 +120,13 @@ class SamplingEvaluatingPlayer(Player):
         player.sampler = player.sampler_type.load(directory)
         return player
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
+    def learn(
+        self,
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ):
         if hasattr(self.evaluator, "learn"):
-            self.evaluator.learn(training_history, augmentation_function, **hyperparams)
+            self.evaluator.learn(training_history, augmentation_function, training_config)
         if hasattr(self.sampler, "learn"):
-            self.sampler.learn(training_history, augmentation_function, **hyperparams)
+            self.sampler.learn(training_history, augmentation_function, training_config)
