@@ -3,14 +3,15 @@ import os
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras import callbacks, optimizers
+from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
 from wandb.keras import WandbMetricsLogger
 from tqdm.keras import TqdmCallback
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
 
 @dataclass
 class TrainingConfig:
@@ -26,16 +27,31 @@ class TrainingConfig:
     """proportion of data to validate on"""
     loss: str = "mse"
     optimizer_type: str = "Adam"
-    metrics: List[str] = ["mae"]
-    callbacks: Optional[List[callbacks.Callback]] = None
+    metrics: List[str] = field(default_factory=lambda: ["mae"])
+    additional_callbacks: Optional[List[callbacks.Callback]] = None
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
 
     @property
     def optimizer(self) -> optimizers.Optimizer:
-        optimizers.get(self.optimizer_type)(
-            learning_rate=self.lr, 
-            **(self.optimizer_kwargs or {})
+        return type(optimizers.get(self.optimizer_type))(
+            learning_rate=self.lr
+        )
+    
+    @property
+    def callbacks(self) -> List[callbacks.Callback]:
+        return [
+            WandbMetricsLogger(),
+            TqdmCallback(desc="Training"),
+        ] + (
+            self.additional_callbacks or []
+        ) + (
+            [
+                callbacks.EarlyStopping(
+                    patience=self.patience,
+                    monitor="val_mae"
+                )
+            ] if self.patience > 0 else []
         )
 
 class ModelDecorator(SaveableObject):
@@ -90,10 +106,7 @@ class ModelDecorator(SaveableObject):
             "batch_size": training_config.batch_size,
             "validation_split": training_config.validation_split,
             "verbose": 0,
-            "callbacks": [
-                WandbMetricsLogger(),
-                TqdmCallback(desc=f"Training {type(self).__name__} ({self.model._name})"),
-            ] + (training_config.callbacks or []) + ([callbacks.EarlyStopping(patience=training_config.patience, monitor="val_mae")] if training_config.patience > 0 else []),
+            "callbacks": training_config.callbacks,
             "epochs": training_config.epochs,
         }
 

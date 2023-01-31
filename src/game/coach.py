@@ -80,6 +80,8 @@ class Coach(SaveableObject):
         self.resume_from_checkpoint = config.resume_from_checkpoint
         assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
         self.learning_patience = config.successive_win_requirement
+        # start training with full patience
+        self.patience = self.learning_patience
 
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
