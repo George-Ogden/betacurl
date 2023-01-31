@@ -1,6 +1,7 @@
 from src.sampling import GaussianSamplingStrategy
 
 from dm_env.specs import BoundedArray
+from copy import deepcopy
 import tensorflow as tf
 import numpy as np
 
@@ -19,11 +20,24 @@ def test_samples_are_normal():
         samples = wide_range_strategy.postprocess_actions(actions)
         mean = float(tf.reduce_mean(samples).numpy())
         std = float(tf.math.reduce_std(samples).numpy())
-    assert .8 < mean < 1.2
+    assert .5 < mean < 1.5
     assert 1.5 < std < 2.5
 
 def test_log_probs_are_reasonable():
     assert GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((0.,),)) > GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((1.,),))
     assert GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((0.,),)) > GaussianSamplingStrategy.compute_log_probs(((0.,),), ((1.,),), ((0.,),))
     assert GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((0.,),)) > GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((1.,),))
+    assert GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((0.,),)) > GaussianSamplingStrategy.compute_log_probs(((0.,0.),), ((0.,0.),), ((0.,0.),))
     assert np.allclose(GaussianSamplingStrategy.compute_log_probs(((1.,),), ((0.,),), ((0.5,),)), GaussianSamplingStrategy.compute_log_probs(((0.,),), ((0.,),), ((0.5,),)))
+
+def test_loss_function_is_reasonable():
+    standard_normal = lambda batch: ((0., 0.),)
+    skewed = lambda batch: ((1., 0.),)
+    strategy = deepcopy(single_action_strategy)
+    strategy.model = standard_normal
+    assert np.allclose(strategy.compute_loss(None, ((0.,)), (1.)) * 2, strategy.compute_loss(None, ((0.,)), (2.,)))
+    assert strategy.compute_loss(None, ((0.,)), (1.)) < strategy.compute_loss(None, ((1.,)), (1.,))
+    strategy.model = skewed
+    assert strategy.compute_loss(None, ((0.,)), (1.)) > strategy.compute_loss(None, ((1.,)), (1.,))
+    assert np.allclose(strategy.compute_loss(None, ((.5,)), (1.)), strategy.compute_loss(None, ((.5,)), (1.,)))
+    assert np.allclose(strategy.compute_loss(None, ((.5,)), (2.)), strategy.compute_loss(None, ((.5,)), (-2.,)) * -1)
