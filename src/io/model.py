@@ -19,6 +19,7 @@ class TrainingConfig:
     loss: str = "mse"
     metrics: List[str] = ["mae"]
     batch_size: int = 64
+    patience: int = 7
     validation_split: float = 0.1
     callbacks: Optional[List[callbacks.Callback]] = None
     epochs: int = 20
@@ -56,31 +57,29 @@ class ModelDecorator(SaveableObject):
     def normalise_outputs(self, outputs: np.ndarray) -> np.ndarray:
         return outputs
 
-    def fit(self, X: np.ndarray, Y: np.ndarray, **kwargs: Any) -> callbacks.History:
+    def fit(self, X: np.ndarray, Y: np.ndarray, training_config: TrainingConfig) -> callbacks.History:
         assert type(X) == np.ndarray and type(Y) == np.ndarray
         compile_options = {
-            "optimizer": optimizers.Adam(learning_rate=kwargs.pop("lr", 1e-2)),
-            "loss": "mse",
-            "metrics": ["mae"]
+            "optimizer": optimizers.get(training_config.optimizer)(
+                learning_rate=training_config.learning_rate, 
+                **(training_config.optimizer_kwargs or {})
+            ),
+            "loss": training_config.loss,
+            "metrics": training_config.metrics,
         }
+
         train_options = {
-            "batch_size": 64,
-            "validation_split": 0.1,
+            "batch_size": training_config.batch_size,
+            "validation_split": training_config.validation_split,
             "verbose": 0,
-            "callbacks": [callbacks.EarlyStopping(patience=kwargs.pop("patience", 5), monitor="val_mae"), WandbMetricsLogger(), TqdmCallback(desc=f"Training {type(self).__name__} ({self.model._name})")],
-            "epochs": 50,
+            "callbacks": [
+                WandbMetricsLogger(),
+                TqdmCallback(desc=f"Training {type(self).__name__} ({self.model._name})"),
+            ] + (training_config.callbacks or []) + ([callbacks.EarlyStopping(patience=training_config.patience, monitor="val_mae")] if training_config.patience > 0 else []),
+            "epochs": training_config.epochs,
         }
-
-        used_kwargs = []
-        for k, v in kwargs.items():
-            if k in compile_options:
-                compile_options[k] = v
-                used_kwargs.append(k)
-
-        for key in used_kwargs:
-            del kwargs[key]
 
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         self.model.compile(**compile_options)
-        return self.model.fit(X, Y, **train_options | kwargs)
+        return self.model.fit(X, Y, **{**train_options, **(training_config.fit_kwargs or {})})
