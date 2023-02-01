@@ -55,6 +55,7 @@ class SamplingEvaluatingPlayerConfig:
     """size of latent space for sample generation"""
 
 class SamplingEvaluatingPlayer(Player):
+    SEPARATE_ATTRIBUTES = ["evaluator", "sampler"]
     def __init__(
         self,
         game_spec: GameSpec,
@@ -72,9 +73,6 @@ class SamplingEvaluatingPlayer(Player):
         latent_variable = {} if config.latent_size is None else dict(latent_size=config.latent_size)
         self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, **latent_variable)
         self.evaluator: EvaluationStrategy = EvaluationStrategyClass(observation_spec=game_spec.observation_spec)
-
-        self.sampler_type = type(self.sampler)
-        self.evaluator_type = type(self.evaluator)
 
     def train(self) -> SamplingEvaluatingPlayer:
         self.num_samples = self.num_train_samples
@@ -98,27 +96,6 @@ class SamplingEvaluatingPlayer(Player):
             rewards[np.isnan(rewards)] = self.evaluator.evaluate(next_observations[np.isnan(rewards)])
         best_action = potential_actions[(rewards * game.player_delta).argmax()]
         return best_action
-
-    def save(self, directory: str):
-        sampler = self.sampler
-        evaluator = self.evaluator
-        self.sampler = None
-        self.evaluator = None
-
-        super().save(directory)
-
-        self.sampler = sampler
-        self.evaluator = evaluator
-
-        evaluator.save(directory)
-        sampler.save(directory)
-
-    @classmethod
-    def load(cls, directory: str) -> SamplingEvaluatingPlayer:
-        player = super().load(directory)
-        player.evaluator = player.evaluator_type.load(directory)
-        player.sampler = player.sampler_type.load(directory)
-        return player
 
     def learn(
         self,
