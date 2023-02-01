@@ -12,13 +12,14 @@ def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
     wandb.config.update(args)
 
-    player_config = SamplingEvaluatingPlayerConfig(
-        **{k: v for k, v in filter(lambda attr: hasattr(SamplingEvaluatingPlayerConfig, attr[0]), vars(args).items())}
-    )
-    coach_config = CoachConfig(
-        player_config=player_config,
-        **{k: v for k, v in filter(lambda attr: hasattr(CoachConfig, attr[0]), vars(args).items())}
-    )
+    def set_attributes(config):
+        for k, v in asdict(config).items():
+            if is_dataclass(v):
+                set_attributes(v)
+            elif k in args:
+                setattr(config, k, getattr(args, k))
+    coach_config = CoachConfig()
+    set_attributes(coach_config)
 
     coach = Coach(
         game=CURLING_GAME,
