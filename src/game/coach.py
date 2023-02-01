@@ -2,7 +2,7 @@ from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, P
 from src.sampling import SamplingStrategy, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.game import Arena, Game, GameSpec
-from src.io import SaveableObject
+from src.io import SaveableObject, TrainingConfig
 
 from tqdm import trange, tqdm
 import numpy as np
@@ -17,7 +17,7 @@ from copy import copy
 @dataclass
 class CoachConfig:
     player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
-    """number of games with random sampling"""
+    training_config: TrainingConfig = TrainingConfig()
     resume_from_checkpoint: bool = False
     """continue training from previous checkpoint"""
     num_games_per_episode: int = 100
@@ -37,17 +37,6 @@ class CoachConfig:
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
-
-    training_epochs: int = 50
-    """number of epochs to train each model for"""
-    training_patience: int = 5
-    """number of epochs without improvement during training"""
-    validation_split: float = .1
-    """proportion of data to validate on"""
-    batch_size: int = 16
-    """training batch size"""
-    lr: float = 1e-2
-    """model learning rate"""
 
 
 class Coach(SaveableObject):
@@ -70,6 +59,7 @@ class Coach(SaveableObject):
         self.train_example_history = []
         self.config = copy(config)
         self.player_config = self.config.player_config
+        self.training_config = self.config.training_config
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
@@ -79,15 +69,8 @@ class Coach(SaveableObject):
         self.resume_from_checkpoint = config.resume_from_checkpoint
         assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
         self.learning_patience = config.successive_win_requirement
+        # start training with full patience
         self.patience = self.learning_patience
-
-        self.training_hyperparams = dict(
-            epochs = config.training_epochs,
-            patience = config.training_patience,
-            validation_split = config.validation_split,
-            lr = config.lr,
-            batch_size = config.batch_size,
-        )
 
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
@@ -138,7 +121,7 @@ class Coach(SaveableObject):
 
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 
-            self.player.learn(train_examples, self.game.get_symmetries, **self.training_hyperparams)
+            self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
             wins = self.evaluate()
             random_wins, random_losses = self.benchmark(RandomPlayer)
