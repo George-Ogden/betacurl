@@ -38,17 +38,6 @@ class CoachConfig:
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
 
-    training_epochs: int = 50
-    """number of epochs to train each model for"""
-    training_patience: int = 5
-    """number of epochs without improvement during training"""
-    validation_split: float = .1
-    """proportion of data to validate on"""
-    batch_size: int = 16
-    """training batch size"""
-    lr: float = 1e-2
-    """model learning rate"""
-
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
