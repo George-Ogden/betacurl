@@ -1,5 +1,5 @@
-from src.model.config import SimpleLinearModelConfig
-from src.model.base import ModelFactory
+from .config import SimpleLinearModelConfig
+from .base import ModelFactory
 
 from tensorflow.keras import layers, Model
 from tensorflow import keras

@@ -1,4 +1,4 @@
-from src.model.config import ModelConfig
+from .config import ModelConfig
 from tensorflow.keras import Model
 
 from abc import ABCMeta, abstractclassmethod

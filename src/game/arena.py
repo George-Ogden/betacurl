@@ -1,5 +1,5 @@
-from src.game.game import Game, GameSpec
-from src.game.player import Player
+from .game import Game, GameSpec
+from .player import Player
 
 from dm_env._environment import StepType
 import numpy as np

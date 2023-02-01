@@ -1,4 +1,4 @@
-from src.io.io import SaveableObject
+from .io import SaveableObject
 import os
 
 from tensorflow.keras.models import load_model

@@ -1,4 +1,4 @@
-from src.sampling.base import SamplingStrategy
+from .base import SamplingStrategy
 import numpy as np
 
 from typing import Optional

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.sampling import SamplingStrategy, NNSamplingStrategy
-from src.game.game import GameSpec, Game
-from src.io import SaveableObject, TrainingConfig
+from ..evaluation import EvaluationStrategy, NNEvaluationStrategy
+from ..sampling import SamplingStrategy, NNSamplingStrategy
+from ..io import SaveableObject, TrainingConfig
+from .game import GameSpec, Game
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from abc import ABCMeta, abstractmethod
