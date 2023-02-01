@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from ..evaluation import EvaluationStrategy, NNEvaluationStrategy
 from ..sampling import SamplingStrategy, NNSamplingStrategy
-from ..io import SaveableObject, TrainingConfig
+from ..model import Learnable, TrainingConfig
+from ..io import SaveableObject
 from .game import GameSpec, Game
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
@@ -54,7 +55,7 @@ class SamplingEvaluatingPlayerConfig:
     latent_size: Optional[int] = None
     """size of latent space for sample generation"""
 
-class SamplingEvaluatingPlayer(Player):
+class SamplingEvaluatingPlayer(Player, Learnable):
     SEPARATE_ATTRIBUTES = ["evaluator", "sampler"]
     def __init__(
         self,
@@ -103,7 +104,7 @@ class SamplingEvaluatingPlayer(Player):
         augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ):
-        if hasattr(self.evaluator, "learn"):
+        if isinstance(self.evaluator, Learnable):
             self.evaluator.learn(training_history, augmentation_function, training_config)
-        if hasattr(self.sampler, "learn"):
+        if isinstance(self.sampler, Learnable):
             self.sampler.learn(training_history, augmentation_function, training_config)

@@ -1,6 +1,5 @@
+from ..model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from .base import SamplingStrategy
-from ..model import ModelFactory, BEST_MODEL_FACTORY
-from ..io import ModelDecorator, TrainingConfig
 
 import tensorflow as tf
 import numpy as np
