@@ -3,12 +3,56 @@ import os
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras import callbacks, optimizers
+from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
 from wandb.keras import WandbMetricsLogger
 from tqdm.keras import TqdmCallback
-from typing import Any
+
+from typing import Any, Dict, List, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class TrainingConfig:
+    epochs: int = 20
+    """number of epochs to train each model for"""
+    batch_size: int = 64
+    """training batch size"""
+    patience: int = 7
+    """number of epochs without improvement during training (0 to ignore)"""
+    lr: float = 1e-2
+    """model learning rate"""
+    validation_split: float = 0.1
+    """proportion of data to validate on"""
+    loss: str = "mse"
+    optimizer_type: str = "Adam"
+    metrics: List[str] = field(default_factory=lambda: ["mae"])
+    additional_callbacks: Optional[List[callbacks.Callback]] = None
+    compile_kwargs: Optional[Dict[str, Any]] = None
+    fit_kwargs: Optional[Dict[str, Any]] = None
+
+    @property
+    def optimizer(self) -> optimizers.Optimizer:
+        return type(optimizers.get(self.optimizer_type))(
+            learning_rate=self.lr
+        )
+    
+    @property
+    def callbacks(self) -> List[callbacks.Callback]:
+        return [
+            WandbMetricsLogger(),
+            TqdmCallback(desc="Training"),
+        ] + (
+            self.additional_callbacks or []
+        ) + (
+            [
+                callbacks.EarlyStopping(
+                    patience=self.patience,
+                    monitor="val_mae"
+                )
+            ] if self.patience > 0 else []
+        )
 
 class ModelDecorator(SaveableObject):
     model: tf.keras.Model = None
@@ -41,31 +85,32 @@ class ModelDecorator(SaveableObject):
     def normalise_outputs(self, outputs: np.ndarray) -> np.ndarray:
         return outputs
 
-    def fit(self, X: np.ndarray, Y: np.ndarray, **kwargs: Any) -> callbacks.History:
-        assert type(X) == np.ndarray and type(Y) == np.ndarray
+    def fit(
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
+        if type(X) != np.ndarray:
+            X = np.array(X)
+        if type(Y) != np.ndarray:
+            Y = np.array(Y)
+
         compile_options = {
-            "optimizer": optimizers.Adam(learning_rate=kwargs.pop("lr", 1e-2)),
-            "loss": "mse",
-            "metrics": ["mae"]
+            "optimizer": training_config.optimizer,
+            "loss": training_config.loss,
+            "metrics": training_config.metrics,
         }
+
         train_options = {
-            "batch_size": 64,
-            "validation_split": 0.1,
+            "batch_size": training_config.batch_size,
+            "validation_split": training_config.validation_split,
             "verbose": 0,
-            "callbacks": [callbacks.EarlyStopping(patience=kwargs.pop("patience", 5), monitor="val_mae"), WandbMetricsLogger(), TqdmCallback(desc=f"Training {type(self).__name__} ({self.model._name})")],
-            "epochs": 50,
+            "callbacks": training_config.callbacks,
+            "epochs": training_config.epochs,
         }
-
-        used_kwargs = []
-        for k, v in kwargs.items():
-            if k in compile_options:
-                compile_options[k] = v
-                used_kwargs.append(k)
-
-        for key in used_kwargs:
-            del kwargs[key]
 
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         self.model.compile(**compile_options)
-        return self.model.fit(X, Y, **train_options | kwargs)
+        return self.model.fit(X, Y, **{**train_options, **(training_config.fit_kwargs or {})})
