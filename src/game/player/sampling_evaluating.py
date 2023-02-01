@@ -1,59 +1,18 @@
 from __future__ import annotations
 
-from ..evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ..sampling import SamplingStrategy, NNSamplingStrategy
-from ..model import Learnable, TrainingConfig
-from ..io import SaveableObject
-from .game import GameSpec, Game
+from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
+from ...sampling import SamplingStrategy, NNSamplingStrategy
+from ...model import Learnable, TrainingConfig
+from ..game import GameSpec, Game
+from .config import SamplingEvaluatingPlayerConfig
+from .base import Player
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
-from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Iterable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
-from dataclasses import dataclass
 
 from copy import copy
 import numpy as np
-
-class Player(SaveableObject, metaclass=ABCMeta):
-    DEFAULT_FILENAME = "player.pickle"
-    def __init__(self, game_spec: GameSpec):
-        self.game_spec = game_spec
-        self.train()
-
-    def train(self) -> "Self":
-        self.is_training = True
-        return self
-
-    def eval(self) -> "Self":
-        self.is_training = False
-        return self
-
-    def dummy_constructor(self, game_spec: GameSpec) -> "Self":
-        return self
-
-    @abstractmethod
-    def move(self, game: Game)-> np.ndarray:
-        ...
-
-class RandomPlayer(Player):
-    def __init__(self, game_spec: GameSpec):
-        self.minimum = game_spec.move_spec.minimum
-        self.maximum = game_spec.move_spec.maximum
-
-    def move(self, game: Game)-> np.ndarray:
-        return np.random.uniform(low=self.minimum, high=self.maximum)
-
-@dataclass
-class SamplingEvaluatingPlayerConfig:
-    num_train_samples: int = 100
-    """number of samples generated during training"""
-    num_eval_samples: int = 100
-    """number of samples generated during evaluation"""
-    epsilon: float = 0.1
-    """epsilon-greedy exploration parameter"""
-    latent_size: Optional[int] = None
-    """size of latent space for sample generation"""
 
 class SamplingEvaluatingPlayer(Player, Learnable):
     SEPARATE_ATTRIBUTES = ["evaluator", "sampler"]
