@@ -1,6 +1,6 @@
-from src.model.config import ModelConfig, SimpleLinearModelConfig
-from src.model.base import ModelFactory
-from src.model.simple_linear import SimpleLinearModelFactory
-from src.model.fcnn import FCNNModelFactory
+from .config import ModelConfig, SimpleLinearModelConfig
+from .simple_linear import SimpleLinearModelFactory
+from .fcnn import FCNNModelFactory
+from .base import ModelFactory
 
 BEST_MODEL_FACTORY = FCNNModelFactory

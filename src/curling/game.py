@@ -1,5 +1,5 @@
-from src.curling.curling import Curling, StoneThrow, StoneColor, Stone, SimulationConstants
-from src.game.game import Game, GameSpec
+from ..curling.curling import Curling, StoneThrow, StoneColor, Stone, SimulationConstants
+from ..game.game import Game, GameSpec
 
 from dm_env._environment import TimeStep
 from typing import List, Optional, Tuple

@@ -1,4 +1,4 @@
-from src.evaluation.base import EvaluationStrategy
+from .base import EvaluationStrategy
 
 import numpy as np
 

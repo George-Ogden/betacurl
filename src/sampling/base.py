@@ -1,4 +1,4 @@
-from src.io import SaveableObject
+from ..io import SaveableObject
 
 from dm_env.specs import BoundedArray
 from typing import Optional

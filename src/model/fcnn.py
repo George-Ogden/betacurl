@@ -1,5 +1,5 @@
-from src.model.config import FCNNConfig
-from src.model.base import ModelFactory
+from .config import FCNNConfig
+from .base import ModelFactory
 
 from tensorflow.keras import layers, Model
 from tensorflow import keras

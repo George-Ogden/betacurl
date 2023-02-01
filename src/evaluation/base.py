@@ -1,4 +1,4 @@
-from src.io import SaveableObject
+from ..io import SaveableObject
 import numpy as np
 
 from dm_env.specs import BoundedArray

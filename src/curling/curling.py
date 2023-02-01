@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.curling.constants import CurlingConstants, SimulationConstants
-from src.curling.enums import StoneColor, SimulationState, Colors, DisplayTime
+from .constants import CurlingConstants, SimulationConstants
+from .enums import StoneColor, SimulationState, Colors, DisplayTime
 
 import numpy as np
 import cv2

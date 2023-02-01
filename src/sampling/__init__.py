@@ -1,3 +1,3 @@
-from src.sampling.random import RandomSamplingStrategy
-from src.sampling.base import SamplingStrategy
-from src.sampling.nn import NNSamplingStrategy, WeightedNNSamplingStrategy
+from .nn import NNSamplingStrategy, WeightedNNSamplingStrategy
+from .random import RandomSamplingStrategy
+from .base import SamplingStrategy
