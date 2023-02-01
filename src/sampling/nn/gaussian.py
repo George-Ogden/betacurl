@@ -1,6 +1,3 @@
-from src.sampling.nn import NNSamplingStrategy
-from src.model import ModelFactory, BEST_MODEL_FACTORY
-
 from sklearn.model_selection import train_test_split
 from tensorflow_probability import distributions
 import tensorflow as tf
@@ -8,11 +5,12 @@ import numpy as np
 
 from wandb.keras import WandbMetricsLogger
 from tensorflow.keras import callbacks
-from tqdm.keras import TqdmCallback
 
 from typing import Callable, List, Tuple
-
 from dm_env.specs import BoundedArray
+
+from .nn import NNSamplingStrategy
+from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, latent_size: int = 4):
@@ -67,16 +65,20 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         return validation_loss / len(validation_data)
 
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams) -> callbacks.History:
+    def learn(
+        self,
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
-        training_data, validation_data = train_test_split(training_data, test_size=hyperparams.get("validation_split"))
+        training_data, validation_data = train_test_split(training_data, test_size=training_config.validation_split)
         
-
-        optimizer = tf.optimizers.Adam(learning_rate=hyperparams.get("learning_rate", 1e-2))
-        history = tf.keras.callbacks.History()
-        callbacks = [callbacks.EarlyStopping(patience=hyperparams.get("patience", 5), monitor="val_loss"), WandbMetricsLogger(), history]
-        batch_size = hyperparams.get("batch_size", 16)
-        for epoch in range(hyperparams.get("epochs", 20)):
+        optimizer = training_config.optimizer
+        history = callbacks.History()
+        callbacks = training_config.callbacks + [history]
+        batch_size = training_config.batch_size
+        for epoch in training_config.epochs:
             # TODO: shuffle data
             for i in range(0, len(training_data), batch_size):
                 batch = training_data[i:i + batch_size]
