@@ -5,17 +5,7 @@ from dm_env._environment import TimeStep
 from dm_env.specs import BoundedArray
 from typing import List, Optional, Tuple
 
-from pytest import fixture, mark
-from glob import glob
-import os
-
 import numpy as np
-
-SAVE_DIR = "test_save_dir"
-
-requires_cleanup = mark.usefixtures("cleanup")
-slow = mark.skip(reason="taking too long")
-display= mark.skipif("NO_DISPLAY" in os.environ, reason="no display")
 
 class StubGame(Game):
     """game where each player's score is incremented by the minimum of their actions"""
@@ -79,18 +69,3 @@ class GoodPlayer(Player):
 class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.minimum
-
-@fixture
-def cleanup():
-    yield
-    cleanup_dir(SAVE_DIR)
-
-def cleanup_dir(dir: str):
-    for filename in glob(f"{dir}/*"):
-        if os.path.isdir(filename):
-            cleanup_dir(filename)
-        else:
-            os.remove(filename)
-
-    if os.path.exists(dir):
-        os.rmdir(dir)
