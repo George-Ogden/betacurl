@@ -1,9 +1,3 @@
-from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, Player, RandomPlayer
-from src.sampling import SamplingStrategy, NNSamplingStrategy, RandomSamplingStrategy
-from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.game import Arena, Game, GameSpec
-from src.io import SaveableObject
-
 from tqdm import trange, tqdm
 import numpy as np
 import wandb
@@ -11,47 +5,21 @@ import os
 
 from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
-from dataclasses import dataclass
 from copy import copy
 
-@dataclass
-class CoachConfig:
-    player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
-    """number of games with random sampling"""
-    resume_from_checkpoint: bool = False
-    """continue training from previous checkpoint"""
-    num_games_per_episode: int = 100
-    """number of self-play games per model update"""
-    num_iterations: int = 100
-    """total number of training iterations"""
-    train_buffer_length: int = 20
-    """maximum number of games to store in buffer"""
-    evaluation_games: int = 20
-    """number of games to determine best model"""
-    win_threshold: float = .6
-    """proportion of wins that a new model must win to be considered the best"""
-    save_directory: str = "output"
-    """directory to save logs, model, files, etc. to"""
-    best_checkpoint_path: str = "model-best"
-    """name of best model"""
-    successive_win_requirement: int = 7
-    """number of games won by best model before training terminates"""
-    model_filenames: str = "model-{:06}"
+from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
+from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
+from ...io import SaveableObject
 
-    training_epochs: int = 50
-    """number of epochs to train each model for"""
-    training_patience: int = 5
-    """number of epochs without improvement during training"""
-    validation_split: float = .1
-    """proportion of data to validate on"""
-    batch_size: int = 16
-    """training batch size"""
-    lr: float = 1e-2
-    """model learning rate"""
+from ..player import Player, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from ..game import Game, GameSpec
+from ..arena import Arena
 
+from .config import CoachConfig
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
+    SEPARATE_ATTRIBUTES = ["player"]
     def __init__(
         self,
         game: Game,
@@ -70,6 +38,7 @@ class Coach(SaveableObject):
         self.train_example_history = []
         self.config = copy(config)
         self.player_config = self.config.player_config
+        self.training_config = self.config.training_config
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
@@ -79,15 +48,8 @@ class Coach(SaveableObject):
         self.resume_from_checkpoint = config.resume_from_checkpoint
         assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
         self.learning_patience = config.successive_win_requirement
+        # start training with full patience
         self.patience = self.learning_patience
-
-        self.training_hyperparams = dict(
-            epochs = config.training_epochs,
-            patience = config.training_patience,
-            validation_split = config.validation_split,
-            lr = config.lr,
-            batch_size = config.batch_size,
-        )
 
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
@@ -138,7 +100,7 @@ class Coach(SaveableObject):
 
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 
-            self.player.learn(train_examples, self.game.get_symmetries, **self.training_hyperparams)
+            self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
             wins = self.evaluate()
             random_wins, random_losses = self.benchmark(RandomPlayer)
@@ -192,16 +154,6 @@ class Coach(SaveableObject):
         if wins > self.win_threshold:
             print("Saving new best model")
             self.save(self.best_checkpoint_path)
-
-    def save(self, directory: str):
-        player = self.player
-        self.player = None
-
-        super().save(directory)
-
-        self.player = player
-        player.save(directory)
-
 
     @classmethod
     def load_player(cls, directory: str) -> SamplingEvaluatingPlayer:

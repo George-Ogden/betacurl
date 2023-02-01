@@ -1,8 +1,9 @@
-from src.io import SaveableObject
+import numpy as np
 
 from dm_env.specs import BoundedArray
 from typing import Optional
-import numpy as np
+
+from ..io import SaveableObject
 
 class SamplingStrategy(SaveableObject):
     DEFAULT_FILENAME = "sampler.pickle"

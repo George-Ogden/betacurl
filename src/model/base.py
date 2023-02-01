@@ -1,8 +1,9 @@
-from src.model.config import ModelConfig
 from tensorflow.keras import Model
 
 from abc import ABCMeta, abstractclassmethod
 from typing import Optional
+
+from .config import ModelConfig
 
 class ModelFactory(metaclass=ABCMeta):
     @abstractclassmethod
