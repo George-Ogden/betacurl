@@ -34,6 +34,7 @@ class ModelDecorator(SaveableModel, Learnable):
             "optimizer": training_config.optimizer,
             "loss": training_config.loss,
             "metrics": training_config.metrics,
+            **(training_config.compile_kwargs or {})
         }
 
         train_options = {
@@ -42,9 +43,10 @@ class ModelDecorator(SaveableModel, Learnable):
             "verbose": 0,
             "callbacks": training_config.callbacks,
             "epochs": training_config.epochs,
+            **(training_config.fit_kwargs or {})
         }
 
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         self.model.compile(**compile_options)
-        return self.model.fit(X, Y, **{**train_options, **(training_config.fit_kwargs or {})})
+        return self.model.fit(X, Y, **train_options)
