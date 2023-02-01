@@ -1,7 +1,7 @@
 from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import RandomSamplingStrategy, NNSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.io import TrainingConfig
+from src.model import Learnable, TrainingConfig
 
 from tests.utils import StubGame, SparseStubGame, SAVE_DIR, requires_cleanup, cleanup, cleanup_dir, slow
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
@@ -85,7 +85,7 @@ def test_coach_saves_config():
     assert type(boring_coach.player.evaluator) == EvaluationStrategy
     assert type(boring_coach.game) == StubGame
 
-class LearningCheck:
+class LearningCheck(Learnable):
     times = []
     def learn(self, *args, **kwargs):
         return self.times.append(time.time())

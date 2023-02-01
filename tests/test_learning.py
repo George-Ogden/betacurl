@@ -1,7 +1,7 @@
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.io import ModelDecorator, TrainingConfig
+from src.model import ModelDecorator, TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
 
@@ -20,8 +20,12 @@ result, history = arena.play_game(display=False, training=True, return_history=T
 training_data = [(*other_data, result) for *other_data, reward in history]
 training_data *= 100
 
+class StubModel(ModelDecorator):
+    def learn(self, *args, **kwargs):
+        ...
+
 def test_model_fits():
-    model = ModelDecorator()
+    model = StubModel()
     model.model = keras.Sequential(
         [
             keras.Input(shape=(2,)),
@@ -40,7 +44,7 @@ def test_model_fits():
     assert error.mean() < .5, error.mean()
 
 def test_override_params():
-    model = ModelDecorator()
+    model = StubModel()
     model.model = keras.Sequential(
         [
             keras.Input(shape=(2,)),
