@@ -1,6 +1,6 @@
-from src.curling.constants import CurlingConstants, SimulationConstants
-from src.curling.curling import Curling, StoneThrow, Stone
-from src.curling.enums import StoneColor
-from src.curling.game import SingleEndCurlingGame
+from .constants import CurlingConstants, SimulationConstants
+from .curling import Curling, Stone, StoneThrow
+from .game import SingleEndCurlingGame
+from .enums import StoneColor
 
 CURLING_GAME = SingleEndCurlingGame()

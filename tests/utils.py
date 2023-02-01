@@ -1,21 +1,14 @@
-from src.game import Player
-from src.game import Game, GameSpec
-
 from dm_env._environment import TimeStep
-from dm_env.specs import BoundedArray
-from typing import List, Optional, Tuple
-
-from pytest import fixture, mark
-from glob import glob
+import numpy as np
 import os
 
-import numpy as np
+from typing import List, Optional, Tuple
+from dm_env.specs import BoundedArray
 
-SAVE_DIR = "test_save_dir"
+from src.game import Game, GameSpec, Player
+from src.io import SaveableObject
 
-requires_cleanup = mark.usefixtures("cleanup")
-slow = mark.skip(reason="taking too long")
-display= mark.skipif("NO_DISPLAY" in os.environ, reason="no display")
+from .config import SAVE_DIR
 
 class StubGame(Game):
     """game where each player's score is incremented by the minimum of their actions"""
@@ -80,17 +73,9 @@ class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.minimum
 
-@fixture
-def cleanup():
-    yield
-    cleanup_dir(SAVE_DIR)
+def generic_save_test(object: SaveableObject):
+    object.save(SAVE_DIR)
 
-def cleanup_dir(dir: str):
-    for filename in glob(f"{dir}/*"):
-        if os.path.isdir(filename):
-            cleanup_dir(filename)
-        else:
-            os.remove(filename)
-
-    if os.path.exists(dir):
-        os.rmdir(dir)
+    assert os.path.exists(SAVE_DIR)
+    assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
+    assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
