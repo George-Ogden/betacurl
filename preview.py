@@ -1,4 +1,4 @@
-from src.game import SamplingEvaluatingPlayer, CoachConfig, Arena
+from src.game import Arena, CoachConfig, SamplingEvaluatingPlayer
 from src.curling import CURLING_GAME
 
 import argparse

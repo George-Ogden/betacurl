@@ -1,2 +1,2 @@
-from src.evaluation.base import EvaluationStrategy
-from src.evaluation.nn import NNEvaluationStrategy
+from .base import EvaluationStrategy
+from .nn import NNEvaluationStrategy

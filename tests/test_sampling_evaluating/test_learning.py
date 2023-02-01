@@ -1,14 +1,12 @@
+from copy import deepcopy
+import numpy as np
+
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.io import ModelDecorator
+from src.model import TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
-
-from tensorflow.keras import layers
-from tensorflow import keras
-from copy import deepcopy
-import numpy as np
 
 stub_game = StubGame()
 asymmetric_game = BadSymetryStubGame()
@@ -19,42 +17,6 @@ arena = Arena(game=stub_game, players=[GoodPlayer, BadPlayer])
 result, history = arena.play_game(display=False, training=True, return_history=True)
 training_data = [(*other_data, result) for *other_data, reward in history]
 training_data *= 100
-
-def test_model_fits():
-    model = ModelDecorator()
-    model.model = keras.Sequential(
-        [
-            keras.Input(shape=(2,)),
-            layers.Dense(1)
-        ]
-    )
-
-    input_data = np.random.randn(10_000, 2)
-    output_data = input_data.mean(axis=-1)
-
-    model.fit(input_data, output_data)
-
-    test_data = np.random.randn(100, 2)
-    predictions = model.model.predict(test_data).squeeze(-1)
-    error = (predictions - test_data.mean(axis=-1)) ** 2
-    assert error.mean() < .5, error.mean()
-
-def test_override_params():
-    model = ModelDecorator()
-    model.model = keras.Sequential(
-        [
-            keras.Input(shape=(2,)),
-            layers.Dense(1)
-        ]
-    )
-
-    input_data = np.random.randn(100, 2)
-    output_data = input_data.mean(axis=-1)
-
-    history = model.fit(input_data, output_data, epochs=5, loss="mae", optimizer="SGD")
-    assert history.epoch == list(range(5))
-    assert model.model.optimizer.name.upper() == "SGD"
-    assert model.model.loss == "mae"
 
 def test_sampler_learns():
     sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=1)
@@ -105,10 +67,11 @@ def test_weighted_sampling_improves_on_normal_sampling():
         weighted_player.sampler.model = deepcopy(regular_player.sampler.model)
         assert (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
         
-        weighted_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, epochs=2)
+        training_config = TrainingConfig(epochs=2)
+        weighted_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, training_config=training_config)
         assert not (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
 
-        regular_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, epochs=2)
+        regular_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, training_config=training_config)
 
         arena = Arena(players=[weighted_player.dummy_constructor, regular_player.dummy_constructor], game=stub_game)
         wins, losses = arena.play_games(10)

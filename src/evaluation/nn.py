@@ -1,12 +1,12 @@
-from src.evaluation.base import EvaluationStrategy
-from src.model import ModelFactory, BEST_MODEL_FACTORY
-from src.io import ModelDecorator
-
-import numpy as np
 import tensorflow as tf
+import numpy as np
 
 from dm_env.specs import BoundedArray
 from typing import Callable, List, Tuple
+
+from ..model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+
+from .base import EvaluationStrategy
 
 class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     DEFAULT_MODEL_FILE = "evaluator.h5"
@@ -30,7 +30,12 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
             evaluations = tf.squeeze(evaluations, 0)
         return evaluations.numpy()
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
+    def learn(
+        self,
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ):
         training_data = [(augmented_observation, augmented_reward) for (player, observation, action, reward) in training_history for augmented_observation, augmented_action, augmented_reward in augmentation_function(observation, action, reward)]
         observations, values = zip(*training_data)
-        self.fit(np.array(observations), np.array(values), **hyperparams)
+        self.fit(observations, values, training_config)
