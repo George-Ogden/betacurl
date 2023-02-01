@@ -1,4 +1,4 @@
-from src.curling import Curling, StoneColor, StoneThrow, SimulationConstants, SingleEndCurlingGame
+from src.curling import Curling, SimulationConstants, StoneColor, StoneThrow
 from src.curling.enums import Colors, DisplayTime, LinearTransform
 from src.curling.curling import Canvas
 
