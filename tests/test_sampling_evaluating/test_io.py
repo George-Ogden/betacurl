@@ -4,21 +4,15 @@ from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
 from src.curling import SingleEndCurlingGame
 from src.io import SaveableObject, SaveableModel
 
-from copy import copy, deepcopy
+from copy import deepcopy
 import os
 
-from tests.utils import SAVE_DIR, requires_cleanup, cleanup
+from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import generic_save_test
 
 game = SingleEndCurlingGame()
 observation_spec = game.game_spec.observation_spec
 move_spec = game.game_spec.move_spec
-
-def generic_save_test(object: SaveableObject):
-    object.save(SAVE_DIR)
-
-    assert os.path.exists(SAVE_DIR)
-    assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
-    assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
 
 def generic_model_test(model: SaveableModel):
     generic_save_test(model)
