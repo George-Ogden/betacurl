@@ -141,7 +141,6 @@ class Coach(SaveableObject):
             self.player.learn(train_examples, self.game.get_symmetries, **self.training_hyperparams)
 
             wins = self.evaluate()
-            print(f"{wins}(/{self.num_eval_games}) against current best player")
             wandb.log({"best_win_ratio": wins / self.num_eval_games})
             self.save_model(current_iteration=iteration + 1, wins=wins)
             if self.update_patience(wins):
