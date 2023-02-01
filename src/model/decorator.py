@@ -35,6 +35,18 @@ class ModelDecorator(SaveableModel, Learnable):
         transposed_data = tuple(np.array(data) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
+    def fit(
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
+        X, Y, train_options = self.pre_fit(X, Y, training_config)
+        return self._fit(X, Y, **train_options)
+
+    def _fit(self, X: np.ndarray, Y: np.ndarray, **kwargs: Any) -> callbacks.History:
+        return self.model.fit(X, Y, **kwargs)
+
     def pre_fit(
         self,
         X: np.ndarray,
@@ -65,12 +77,3 @@ class ModelDecorator(SaveableModel, Learnable):
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         return X, Y, train_options
-
-    def fit(
-        self,
-        X: np.ndarray,
-        Y: np.ndarray,
-        training_config: TrainingConfig = TrainingConfig()
-    ) -> callbacks.History:
-        X, Y, train_options = self.pre_fit(X, Y, training_config)
-        return self.model.fit(X, Y, **train_options)
