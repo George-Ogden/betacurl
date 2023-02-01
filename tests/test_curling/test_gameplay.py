@@ -1,6 +1,6 @@
-from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
-
 import pytest
+
+from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
 
 approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
 accurate_constants = SimulationConstants(dt=.02)

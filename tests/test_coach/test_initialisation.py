@@ -1,16 +1,16 @@
-from src.game import Coach, CoachConfig
-from src.sampling import RandomSamplingStrategy, NNSamplingStrategy, SamplingStrategy
-from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.model import Learnable, TrainingConfig
-
-from tests.utils import StubGame, SparseStubGame
-from tests.config import cleanup, requires_cleanup, SAVE_DIR
-
-from copy import copy
 from glob import glob
+from copy import copy
 import numpy as np
 import time
 import os
+
+from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
+from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
+from src.model import Learnable, TrainingConfig
+from src.game import Coach, CoachConfig
+
+from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import StubGame, SparseStubGame
 
 special_cases = dict(
     evaluation_games=4,

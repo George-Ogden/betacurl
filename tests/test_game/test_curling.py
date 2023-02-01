@@ -1,9 +1,9 @@
-from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
-from src.game import Arena, Game, Player, RandomPlayer
 from dm_env._environment import StepType
+import numpy as np
 import pytest
 
-import numpy as np
+from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
+from src.game import Arena, Game, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(dt=.02)
 

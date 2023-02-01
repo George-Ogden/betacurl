@@ -1,3 +1,7 @@
+from copy import copy
+import time
+import os
+
 from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import RandomSamplingStrategy, NNSamplingStrategy
 from src.evaluation import EvaluationStrategy
@@ -5,12 +9,6 @@ from src.model import TrainingConfig
 
 from tests.config import cleanup, cleanup_dir, requires_cleanup, SAVE_DIR
 from tests.utils import StubGame, SparseStubGame
-
-from copy import copy
-from glob import glob
-import numpy as np
-import time
-import os
 
 special_cases = dict(
     evaluation_games=4,

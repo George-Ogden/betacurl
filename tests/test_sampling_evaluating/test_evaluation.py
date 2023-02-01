@@ -1,9 +1,9 @@
-from src.model.constant import ZeroModel, OneModel
+import numpy as np
+
+from src.model.constant import OneModel, ZeroModel
 from src.evaluation import NNEvaluationStrategy
 
 from tests.utils import StubGame
-
-import numpy as np
 
 stub_game = StubGame(6)
 

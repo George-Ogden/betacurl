@@ -1,11 +1,11 @@
+import numpy as np
+import cv2
+
 from src.curling import Curling, SimulationConstants, StoneColor, StoneThrow
 from src.curling.enums import Colors, DisplayTime, LinearTransform
 from src.curling.curling import Canvas
 
 from tests.config import display
-
-import numpy as np
-import cv2
 
 approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
 accurate_constants = SimulationConstants(dt=.02)

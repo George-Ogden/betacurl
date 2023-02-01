@@ -1,14 +1,12 @@
+from copy import deepcopy
+import numpy as np
+
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.model import ModelDecorator, TrainingConfig
+from src.model import TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
-
-from tensorflow.keras import layers
-from tensorflow import keras
-from copy import deepcopy
-import numpy as np
 
 stub_game = StubGame()
 asymmetric_game = BadSymetryStubGame()

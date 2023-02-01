@@ -1,15 +1,15 @@
+from glob import glob
+from copy import copy
+import os
+
 from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import RandomSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
 from src.model import  TrainingConfig
 
-from tests.config import cleanup, requires_cleanup, slow, SAVE_DIR
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
+from tests.config import cleanup, requires_cleanup, slow, SAVE_DIR
 from tests.utils import StubGame, SparseStubGame
-
-from copy import copy
-from glob import glob
-import os
 
 special_cases = dict(
     evaluation_games=4,
