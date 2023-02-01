@@ -4,7 +4,6 @@ from src.model.constant import ZeroModel, OneModel
 
 from tests.utils import StubGame
 
-import tensorflow as tf
 import numpy as np
 
 stub_game = StubGame(6)
