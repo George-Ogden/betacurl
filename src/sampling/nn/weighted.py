@@ -20,7 +20,7 @@ class WeightedNNSamplingStrategy(NNSamplingStrategy):
         observations = self.add_noise_to_observations(observations)
 
         # remove patience and validation splitting
-        training_config.patience = 0
+        training_config.training_patience = 0
         training_config.validation_split = 0
         training_config.fit_kwargs = dict(
             sample_weight = np.array(weights)
