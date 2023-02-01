@@ -7,7 +7,8 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
-from tests.utils import slow, StubGame, SparseStubGame
+from tests.utils import StubGame, SparseStubGame
+from tests.config import slow
 
 class MaximumSamplingStrategy(SamplingStrategy):
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
