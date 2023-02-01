@@ -1,11 +1,14 @@
-from src.game import Player
-from src.game import Game, GameSpec
+from src.io import SaveableObject, SaveableModel
+from src.game import Game, GameSpec, Player
+
+from .config import SAVE_DIR
 
 from dm_env._environment import TimeStep
 from dm_env.specs import BoundedArray
 from typing import List, Optional, Tuple
 
 import numpy as np
+import os
 
 class StubGame(Game):
     """game where each player's score is incremented by the minimum of their actions"""
@@ -69,3 +72,10 @@ class GoodPlayer(Player):
 class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.minimum
+
+def generic_save_test(object: SaveableObject):
+    object.save(SAVE_DIR)
+
+    assert os.path.exists(SAVE_DIR)
+    assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
+    assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
