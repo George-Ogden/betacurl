@@ -62,7 +62,7 @@ def test_override_params():
         input_data,
         output_data,
         training_config=TrainingConfig(
-            epochs=5,
+            training_epochs=5,
             loss="mae",
             optimizer_type="SGD"
         )

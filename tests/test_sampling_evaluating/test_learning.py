@@ -67,7 +67,7 @@ def test_weighted_sampling_improves_on_normal_sampling():
         weighted_player.sampler.model = deepcopy(regular_player.sampler.model)
         assert (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
         
-        training_config = TrainingConfig(epochs=2)
+        training_config = TrainingConfig(training_epochs=2)
         weighted_player.learn(training_data[:100], augmentation_function=stub_game.get_symmetries, training_config=training_config)
         assert not (weighted_player.sampler.model(noisy_observation) == regular_player.sampler.model(noisy_observation)).numpy().all()
 
