@@ -1,11 +1,10 @@
-from .config import ModelConfig
-from .base import ModelFactory
-
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
 from tensorflow import keras
 
 from typing import Optional
 
+from .config import ModelConfig
+from .base import ModelFactory
 
 class ConstantModel(ModelFactory):
     @classmethod

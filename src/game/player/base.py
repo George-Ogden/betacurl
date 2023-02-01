@@ -1,9 +1,10 @@
-from ...io import SaveableObject
-from ..game import GameSpec, Game
-
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+
+from ...io import SaveableObject
+
+from ..game import Game, GameSpec
 
 class Player(SaveableObject, metaclass=ABCMeta):
     DEFAULT_FILENAME = "player.pickle"

@@ -1,11 +1,11 @@
-from .game import Game, GameSpec
-from .player.base import Player
-
-from dm_env._environment import StepType
 import numpy as np
 
 from typing import Callable, Iterable, List, Optional, Tuple, Union
+from dm_env._environment import StepType
 from tqdm import trange
+
+from .game import Game, GameSpec
+from .player.base import Player
 
 class Arena():
     def __init__(self, players: Iterable[Callable[[GameSpec], Player]], game: Game) -> None:

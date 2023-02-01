@@ -1,7 +1,6 @@
 from ...model import TrainingConfig
 from .nn import NNSamplingStrategy
 
-import tensorflow as tf
 import numpy as np
 
 from typing import Callable, List, Tuple

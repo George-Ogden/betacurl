@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ...sampling import SamplingStrategy, NNSamplingStrategy
-from ...model import Learnable, TrainingConfig
-from ..game import GameSpec, Game
-from .config import SamplingEvaluatingPlayerConfig
-from .base import Player
-
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
 
 from copy import copy
 import numpy as np
+
+from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
+from ...sampling import NNSamplingStrategy, SamplingStrategy
+from ...model import Learnable, TrainingConfig
+
+from ..game import Game, GameSpec
+
+from .config import SamplingEvaluatingPlayerConfig
+from .base import Player
 
 class SamplingEvaluatingPlayer(Player, Learnable):
     SEPARATE_ATTRIBUTES = ["evaluator", "sampler"]

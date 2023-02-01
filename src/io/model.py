@@ -1,8 +1,8 @@
-from .io import SaveableObject
-import os
-
 from tensorflow.keras.models import load_model
 from tensorflow import keras
+import os
+
+from .io import SaveableObject
 
 class SaveableModel(SaveableObject):
     model: keras.Model = None

@@ -1,6 +1,6 @@
 from .config import ModelConfig, SimpleLinearModelConfig, TrainingConfig
 from .simple_linear import SimpleLinearModelFactory
-from .decorator import ModelDecorator, Learnable
+from .decorator import Learnable, ModelDecorator
 from .fcnn import FCNNModelFactory
 from .base import ModelFactory
 

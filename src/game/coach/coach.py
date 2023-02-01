@@ -1,11 +1,3 @@
-from ..player import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, Player, RandomPlayer
-from ...sampling import SamplingStrategy, NNSamplingStrategy, RandomSamplingStrategy
-from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ..arena import Arena
-from ..game import Game, GameSpec
-from ...io import SaveableObject
-from .config import CoachConfig
-
 from tqdm import trange, tqdm
 import numpy as np
 import wandb
@@ -15,6 +7,15 @@ from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
 from copy import copy
 
+from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
+from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
+from ...io import SaveableObject
+
+from ..player import Player, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from ..game import Game, GameSpec
+from ..arena import Arena
+
+from .config import CoachConfig
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"

@@ -1,12 +1,12 @@
-from ..curling.curling import Curling, StoneThrow, StoneColor, Stone, SimulationConstants
-from ..game.game import Game, GameSpec
+from copy import copy, deepcopy
+import numpy as np
 
 from dm_env._environment import TimeStep
 from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
-from copy import copy, deepcopy
-import numpy as np
+from ..curling.curling import Curling, SimulationConstants, Stone, StoneColor, StoneThrow
+from ..game.game import Game, GameSpec
 
 class SingleEndCurlingGame(Game):
     def __init__(self, simulation_constants: SimulationConstants = SimulationConstants()):

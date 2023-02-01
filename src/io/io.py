@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import List
 
 import pickle
 import os
+
+from typing import List
 
 class SaveableObject:
     DEFAULT_FILENAME: str = None

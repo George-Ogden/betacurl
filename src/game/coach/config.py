@@ -1,7 +1,8 @@
-from ..player import SamplingEvaluatingPlayerConfig
+from dataclasses import dataclass
+
 from ...model import TrainingConfig
 
-from dataclasses import dataclass
+from ..player import SamplingEvaluatingPlayerConfig
 
 @dataclass
 class CoachConfig:

@@ -1,7 +1,8 @@
-from ..io import SaveableObject
 import numpy as np
 
 from dm_env.specs import BoundedArray
+
+from ..io import SaveableObject
 
 class EvaluationStrategy(SaveableObject):
     DEFAULT_FILENAME = "evaluator.pickle"
