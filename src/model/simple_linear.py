@@ -1,10 +1,10 @@
-from src.model.config import SimpleLinearModelConfig
-from src.model.base import ModelFactory
-
 from tensorflow.keras import layers, Model
 from tensorflow import keras
 
 from typing import Optional
+
+from .config import SimpleLinearModelConfig
+from .base import ModelFactory
 
 class SimpleLinearModelFactory(ModelFactory):
     CONFIG_CLASS = SimpleLinearModelConfig
