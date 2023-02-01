@@ -2,7 +2,7 @@ from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, R
 from src.evaluation import NNEvaluationStrategy, EvaluationStrategy
 from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
 from src.curling import SingleEndCurlingGame
-from src.io import SaveableObject, ModelDecorator
+from src.io import SaveableObject, SaveableModel
 
 from copy import copy, deepcopy
 import os
@@ -20,7 +20,7 @@ def generic_save_test(object: SaveableObject):
     assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
     assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
 
-def generic_model_test(model: ModelDecorator):
+def generic_model_test(model: SaveableModel):
     generic_save_test(model)
 
     assert os.path.exists(os.path.join(SAVE_DIR, model.DEFAULT_MODEL_FILE))
