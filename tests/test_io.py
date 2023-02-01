@@ -1,8 +1,5 @@
-from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, RandomPlayer
-from src.evaluation import NNEvaluationStrategy, EvaluationStrategy
-from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
 from src.curling import SingleEndCurlingGame
-from src.io import SaveableObject, SaveableModel
+from src.io import SaveableObject
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 from tests.utils import generic_save_test

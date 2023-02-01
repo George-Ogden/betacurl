@@ -1,12 +1,12 @@
+import numpy as np
+import cv2
+
 from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 from src.curling.enums import DisplayTime
 from src.curling.curling import Canvas
 
 from tests.config import display, slow
-
-import numpy as np
-import cv2
 
 accurate_constants = SimulationConstants(dt=.02)
 

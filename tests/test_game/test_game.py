@@ -1,12 +1,12 @@
-from src.game import RandomPlayer, GameSpec, Arena
-
-from tests.utils import StubGame, GoodPlayer, BadPlayer
-
 from dm_env._environment import StepType
 from dm_env.specs import BoundedArray
 
 import numpy as np
 import pytest
+
+from src.game import Arena, GameSpec, RandomPlayer
+
+from tests.utils import BadPlayer, GoodPlayer, StubGame
 
 stub_game = StubGame(6)
 random_player = RandomPlayer(stub_game.game_spec)

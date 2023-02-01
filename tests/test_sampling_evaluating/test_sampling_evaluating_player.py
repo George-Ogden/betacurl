@@ -1,12 +1,13 @@
-from src.sampling import RandomSamplingStrategy, SamplingStrategy, NNSamplingStrategy
+from typing import Optional
+import numpy as np
+
+from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
 from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
 from tests.utils import slow, StubGame, SparseStubGame
-from typing import Optional
-import numpy as np
 
 class MaximumSamplingStrategy(SamplingStrategy):
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:

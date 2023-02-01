@@ -1,6 +1,7 @@
-from pytest import fixture, mark
 from glob import glob
 import os
+
+from pytest import fixture, mark
 
 SAVE_DIR = "test_save_dir"
 

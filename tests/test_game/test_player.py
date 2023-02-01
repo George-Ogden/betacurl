@@ -1,6 +1,6 @@
 from src.game import Arena, RandomPlayer
 
-from tests.utils import StubGame, GoodPlayer, BadPlayer
+from tests.utils import BadPlayer, GoodPlayer, StubGame
 
 stub_game = StubGame(6)
 random_player = RandomPlayer(stub_game.game_spec)

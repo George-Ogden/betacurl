@@ -1,14 +1,14 @@
-from src.io import SaveableObject, SaveableModel
-from src.game import Game, GameSpec, Player
-
-from .config import SAVE_DIR
-
 from dm_env._environment import TimeStep
-from dm_env.specs import BoundedArray
-from typing import List, Optional, Tuple
-
 import numpy as np
 import os
+
+from typing import List, Optional, Tuple
+from dm_env.specs import BoundedArray
+
+from src.game import Game, GameSpec, Player
+from src.io import SaveableObject
+
+from .config import SAVE_DIR
 
 class StubGame(Game):
     """game where each player's score is incremented by the minimum of their actions"""

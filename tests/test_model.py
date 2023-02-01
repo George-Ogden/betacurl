@@ -1,8 +1,9 @@
-from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig
-import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow import keras
+import tensorflow as tf
 import numpy as np
+
+from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig
 
 config = SimpleLinearModelConfig(
     output_activation="sigmoid", hidden_size=8

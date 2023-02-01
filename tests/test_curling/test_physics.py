@@ -1,7 +1,7 @@
+import numpy as np
+
 from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
 from src.curling.enums import SimulationState
-
-import numpy as np
 
 approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
 accurate_constants = SimulationConstants(dt=.02)
