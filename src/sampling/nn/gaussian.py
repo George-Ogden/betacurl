@@ -23,6 +23,10 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
     
+    def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
+        # use distribution rather than sampling from noise
+        return observations
+    
     @tf.function
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
         actions = tf.reshape(actions, (actions.shape[0], *self.action_shape, 2))
