@@ -1,4 +1,5 @@
 from ..game import Game, GameSpec
+
 from .base import Player
 
 import numpy as np

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from .constants import CurlingConstants, SimulationConstants
-from .enums import StoneColor, SimulationState, Colors, DisplayTime
-
 import numpy as np
 import cv2
 
-from typing import Tuple, Optional, List, ClassVar
+from typing import ClassVar, List, Optional, Tuple
 from dataclasses import dataclass
+
+from .enums import Colors, DisplayTime, StoneColor, SimulationState
+from .constants import CurlingConstants, SimulationConstants
 
 class Curling:
     constants: CurlingConstants = CurlingConstants()

@@ -1,11 +1,11 @@
-from ...model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ..base import SamplingStrategy
-
 import tensorflow as tf
 import numpy as np
 
 from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
+
+from ...model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ..base import SamplingStrategy
 
 class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
     DEFAULT_MODEL_FILE = "sampler.h5"

@@ -1,10 +1,11 @@
-from .config import TrainingConfig
-from ..io import SaveableModel
-
 from tensorflow.keras import callbacks
 import numpy as np
 
 from abc import abstractmethod, ABCMeta
+
+from ..io import SaveableModel
+
+from .config import TrainingConfig
 
 class Learnable(metaclass=ABCMeta):
     @abstractmethod

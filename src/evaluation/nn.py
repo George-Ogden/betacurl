@@ -1,11 +1,12 @@
-from .base import EvaluationStrategy
-from ..model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-
-import numpy as np
 import tensorflow as tf
+import numpy as np
 
 from dm_env.specs import BoundedArray
 from typing import Callable, List, Tuple
+
+from ..model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+
+from .base import EvaluationStrategy
 
 class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     DEFAULT_MODEL_FILE = "evaluator.h5"
