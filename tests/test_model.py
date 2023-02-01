@@ -70,3 +70,13 @@ def test_override_params():
     assert history.epoch == list(range(5))
     assert model.model.optimizer.name.upper() == "SGD"
     assert model.model.loss == "mae"
+
+def test_dataset_creation():
+    data = [([1., 2.], [3., 4.], 5.), ([11., 12.], [13., 14.], 15.)]
+    dataset = StubModel.create_dataset(data)
+    assert isinstance(dataset, tf.data.Dataset)
+    iterator = iter(dataset)
+    first_item = [data.numpy().tolist() for data in next(iterator)]
+    assert first_item == list(data[0])
+    second_item = [data.numpy().tolist() for data in next(iterator)]
+    assert second_item == list(data[1])
