@@ -1,11 +1,11 @@
-from dm_env.specs import BoundedArray
-from dm_env._environment import TimeStep, StepType
-
-import numpy as np
-from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Optional
-from dataclasses import dataclass
 from copy import deepcopy
+import numpy as np
+
+from dm_env._environment import StepType, TimeStep
+from typing import List, Optional, Tuple
+from abc import ABCMeta, abstractmethod
+from dm_env.specs import BoundedArray
+from dataclasses import dataclass
 
 @dataclass
 class GameSpec:

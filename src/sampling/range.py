@@ -1,7 +1,8 @@
-from src.sampling.base import SamplingStrategy
 import numpy as np
 
 from typing import Optional
+
+from .base import SamplingStrategy
 
 class MinSamplingStrategy(SamplingStrategy):
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:

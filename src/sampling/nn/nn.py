@@ -1,12 +1,11 @@
-from src.sampling.base import SamplingStrategy
-from src.model import ModelFactory, BEST_MODEL_FACTORY
-from src.io import ModelDecorator
-
 import tensorflow as tf
 import numpy as np
 
 from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
+
+from ...model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ..base import SamplingStrategy
 
 class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
     DEFAULT_MODEL_FILE = "sampler.h5"
@@ -56,23 +55,16 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         samples = samples.numpy()
         return samples
 
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
+    def learn(
+        self,
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ):
         training_data = [(augmented_observation, augmented_action) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward) if np.sign(player) == np.sign(reward) else [])]
         observations, actions = zip(*training_data)
 
         observations = self.add_noise_to_observations(observations)
 
-        self.fit(observations, np.array(actions), **hyperparams)
+        self.fit(observations, actions, training_config)
         return
-
-class WeightedNNSamplingStrategy(NNSamplingStrategy):
-    def learn(self, training_history: List[Tuple[int, np.ndarray, np.ndarray, float]], augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]], **hyperparams):
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
-        observations, actions, weights = zip(*training_data)
-
-        observations = self.add_noise_to_observations(observations)
-
-        # increase patience
-        hyperparams["patience"] = hyperparams.get("epochs", 1000)
-        hyperparams["validation_split"] = 0
-        self.fit(observations, np.array(actions), sample_weight=np.array(weights), **hyperparams)

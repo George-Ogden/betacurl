@@ -1,2 +1,2 @@
-from src.io.model import ModelDecorator
-from src.io.io import SaveableObject
+from .model import SaveableModel
+from .io import SaveableObject
