@@ -1,6 +1,5 @@
 from .base import EvaluationStrategy
-from ..model import ModelFactory, BEST_MODEL_FACTORY
-from ..io import ModelDecorator, TrainingConfig
+from ..model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 
 import numpy as np
 import tensorflow as tf

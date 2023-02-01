@@ -2,7 +2,8 @@ from ..game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, Pla
 from ..sampling import SamplingStrategy, NNSamplingStrategy, RandomSamplingStrategy
 from ..evaluation import EvaluationStrategy, NNEvaluationStrategy
 from ..game import Arena, Game, GameSpec
-from ..io import SaveableObject, TrainingConfig
+from ..model import TrainingConfig
+from ..io import SaveableObject
 
 from tqdm import trange, tqdm
 import numpy as np

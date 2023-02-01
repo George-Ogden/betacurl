@@ -1,2 +1,2 @@
-from .model import ModelDecorator, TrainingConfig
+from .model import SaveableModel
 from .io import SaveableObject
