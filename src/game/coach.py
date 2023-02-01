@@ -41,6 +41,7 @@ class CoachConfig:
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
+    SEPARATE_ATTRIBUTES = ["player"]
     def __init__(
         self,
         game: Game,
@@ -175,16 +176,6 @@ class Coach(SaveableObject):
         if wins > self.win_threshold:
             print("Saving new best model")
             self.save(self.best_checkpoint_path)
-
-    def save(self, directory: str):
-        player = self.player
-        self.player = None
-
-        super().save(directory)
-
-        self.player = player
-        player.save(directory)
-
 
     @classmethod
     def load_player(cls, directory: str) -> SamplingEvaluatingPlayer:
