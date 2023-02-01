@@ -53,7 +53,8 @@ class TrainingConfig:
             [
                 callbacks.EarlyStopping(
                     patience=self.patience,
-                    monitor="val_mae"
+                    monitor="val_mae",
+                    restore_best_weights=True
                 )
             ] if self.patience > 0 else []
         )
