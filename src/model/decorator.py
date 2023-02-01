@@ -1,8 +1,9 @@
 from tensorflow.keras import callbacks
+from tensorflow import data
 import numpy as np
 
 from abc import abstractmethod, ABCMeta
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ..io import SaveableModel
 
@@ -28,6 +29,11 @@ class ModelDecorator(SaveableModel, Learnable):
             **(training_config.compile_kwargs or {})
         }
         self.model.compile(**compile_options)
+    
+    @staticmethod
+    def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
+        transposed_data = tuple(np.array(data) for data in zip(*dataset))
+        return data.Dataset.from_tensor_slices(transposed_data)
 
     def pre_fit(
         self,

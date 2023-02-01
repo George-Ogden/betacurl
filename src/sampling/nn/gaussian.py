@@ -1,10 +1,9 @@
 from sklearn.model_selection import train_test_split
 from tensorflow_probability import distributions
+from tensorflow.keras import callbacks
 import tensorflow as tf
 import numpy as np
 
-from wandb.keras import WandbMetricsLogger
-from tensorflow.keras import callbacks
 
 from typing import Callable, List, Tuple
 from dm_env.specs import BoundedArray
@@ -73,6 +72,10 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
         training_data, validation_data = train_test_split(training_data, test_size=training_config.validation_split)
+
+        self.compile_model(training_config)
+        train_dataset = self.create_dataset(training_data)
+        val_dataset = self.create_dataset(validation_data)
         
         optimizer = training_config.optimizer
         history = callbacks.History()
@@ -87,4 +90,3 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             for callback in callbacks:
                 callback.on_epoch_end(epoch, {"loss": loss, "val_loss": validation_loss})
         return history
-
