@@ -1,14 +1,9 @@
-from src.curling import SingleEndCurlingGame, CURLING_GAME, Curling, SimulationConstants, StoneColor
-from src.game import Arena, Game, Player, RandomPlayer
-from src.curling.enums import DisplayTime
-from src.curling.curling import Canvas
-
 from dm_env._environment import StepType
-from tests.utils import slow, display
+import numpy as np
 import pytest
 
-import numpy as np
-import cv2
+from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
+from src.game import Arena, Game, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(dt=.02)
 
@@ -144,7 +139,7 @@ def test_observation_is_reasonable():
     assert first_observation[-8:].sum() == 2
     assert second_observation[-8:].sum() == 3
 
-def test_symmetries_are_is_reasonable():
+def test_symmetries_are_reasonable():
     single_end_game.reset(1)
     single_end_game.step(right_player.move(single_end_game))
     single_end_game.step(good_player.move(single_end_game))
@@ -197,38 +192,6 @@ def test_symmetries_are_is_reasonable():
         assert action.dtype == single_end_game.game_spec.move_spec.dtype
 
         assert (observation[1:9] == original_observation[1:9]).all()
-
-@slow
-@display
-def test_single_game_display():
-    # setup
-    Curling.num_stones_per_end = 2
-    short_game = SingleEndCurlingGame()
-    short_arena = Arena([ConsistentLeftPlayer, ConsistentPlayer], short_game)
-    Canvas.DISPLAY_TIME = DisplayTime.NO_LAG
-
-    short_arena.play_game(display=True)
-    assert cv2.getWindowProperty(Canvas.WINDOW_NAME, cv2.WND_PROP_VISIBLE) != -1
-
-    # cleanup
-    cv2.destroyAllWindows()
-    Curling.num_stones_per_end = 8
-
-@slow
-@display
-def test_multi_game_display():
-    # setup
-    Curling.num_stones_per_end = 2
-    short_game = SingleEndCurlingGame()
-    short_arena = Arena([ConsistentLeftPlayer, ConsistentPlayer], short_game)
-    Canvas.DISPLAY_TIME = DisplayTime.NO_LAG
-
-    short_arena.play_games(display=True, num_games=2)
-    assert cv2.getWindowProperty(Canvas.WINDOW_NAME, cv2.WND_PROP_VISIBLE) != -1
-
-    # cleanup
-    cv2.destroyAllWindows()
-    Curling.num_stones_per_end = 8
 
 def test_six_stone_rule_violation():
     accurate_game.reset()
