@@ -32,7 +32,7 @@ class ModelDecorator(SaveableModel, Learnable):
     
     @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
-        transposed_data = tuple(np.array(data) for data in zip(*dataset))
+        transposed_data = tuple(np.array(data, dtype=np.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
     def fit(
@@ -56,9 +56,9 @@ class ModelDecorator(SaveableModel, Learnable):
             Tuple[np.ndarray, np.ndarray, Dict[str, Any]]: X, Y, kwargs
         """
         if type(X) != np.ndarray:
-            X = np.array(X)
+            X = np.array(X, dtype=np.float32)
         if type(Y) != np.ndarray:
-            Y = np.array(Y)
+            Y = np.array(Y, dtype=np.float32)
 
         self.compile_model(training_config)
 
