@@ -3,13 +3,16 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig
+from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig, BEST_MODEL_FACTORY
 
 config = SimpleLinearModelConfig(
     output_activation="sigmoid", hidden_size=8
 )
 
 class StubModel(ModelDecorator):
+    def __init__(self):
+        self.model = BEST_MODEL_FACTORY.create_model(input_size=1, output_size=1)
+
     def learn(self, *args, **kwargs):
         ...
 
@@ -80,3 +83,23 @@ def test_dataset_creation():
     assert first_item == list(data[0])
     second_item = [data.numpy().tolist() for data in next(iterator)]
     assert second_item == list(data[1])
+
+def test_model_compiles_with_args():
+    model = StubModel()
+    model.compile_model(
+        TrainingConfig(
+            lr=1e-1,
+            optimizer_type="Adam",
+            compile_kwargs=dict(
+                epsilon=1e-3
+            ),
+            metrics=["mae", "mape"],
+            loss="mae"
+        )
+    )
+
+    assert model.model.optimizer.name.upper() == "ADAM"
+    assert model.model.optimizer._learning_rate ==1e-1
+    assert model.model.optimizer.epsilon ==1e-3
+    assert model.model.loss == "mae"
+    assert model.model.metrics == ["mae", "mape"]
