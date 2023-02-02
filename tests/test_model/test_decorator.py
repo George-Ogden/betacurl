@@ -75,12 +75,17 @@ def test_override_params():
     assert model.model.loss == "mae"
 
 def test_dataset_creation():
-    data = [([1., 2.], [3., 4.], 5.), ([11., 12.], [13., 14.], 15.)]
+    data = [([1., 2.], [3., 4.], 5), ([11., 12.], [13., 14.], 15)]
     dataset = StubModel.create_dataset(data)
     assert isinstance(dataset, tf.data.Dataset)
+    assert len(dataset.element_spec) == 3
+    for spec in dataset.element_spec:
+        assert spec.dtype == tf.float32
+
     iterator = iter(dataset)
     first_item = [data.numpy().tolist() for data in next(iterator)]
     assert first_item == list(data[0])
+
     second_item = [data.numpy().tolist() for data in next(iterator)]
     assert second_item == list(data[1])
 
