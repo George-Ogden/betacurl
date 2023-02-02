@@ -16,6 +16,7 @@ class SimpleLinearModelConfig(ModelConfig):
 @dataclass
 class FCNNConfig(SimpleLinearModelConfig):
     dropout: float = .1
+    hidden_layers: int = 2
 
 @dataclass
 class TrainingConfig:
