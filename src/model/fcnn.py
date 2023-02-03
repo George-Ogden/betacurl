@@ -10,8 +10,7 @@ class MultiLayerModelFactory(ModelFactory):
     CONFIG_CLASS = FCNNConfig
     @classmethod
     def create_model(cls, input_size: int, output_size: int, config: Optional[FCNNConfig] = FCNNConfig()) -> Model:
-        assert config.hidden_layers >= 1
-        return keras.Sequential(name="multi_layer_factory",
+        return keras.Sequential(name="multi_layer_model",
             layers=[
                 keras.Input(shape=(input_size,)),
                 layers.BatchNormalization()

@@ -28,14 +28,14 @@ config_dict = dict(
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
-        epochs=10,
+        training_epochs=10,
         batch_size=64,
         lr=1e-1,
-        patience=20
+        training_patience=20
     )
 )
 custom_training_config = copy(config_dict["training_config"])
-custom_training_config.epochs = 5
+custom_training_config.training_epochs = 5
 
 stub_game = StubGame(6)
 sparse_stub_game = SparseStubGame(6)

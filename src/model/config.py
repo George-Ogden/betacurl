@@ -20,11 +20,11 @@ class FCNNConfig(SimpleLinearModelConfig):
 
 @dataclass
 class TrainingConfig:
-    epochs: int = 20
+    training_epochs: int = 20
     """number of epochs to train each model for"""
     batch_size: int = 64
     """training batch size"""
-    patience: int = 7
+    training_patience: int = 7
     """number of epochs without improvement during training (0 to ignore)"""
     lr: float = 1e-2
     """model learning rate"""
@@ -55,8 +55,9 @@ class TrainingConfig:
         ) + (
             [
                 callbacks.EarlyStopping(
-                    patience=self.patience,
-                    monitor="val_mae"
+                    patience=self.training_patience,
+                    monitor="val_mae",
+                    restore_best_weights=True
                 )
-            ] if self.patience > 0 else []
+            ] if self.training_patience > 0 else []
         )
