@@ -5,5 +5,5 @@ scikit-learn
 simple-parsing
 tensorflow==2.11.0
 tensorflow-probability==0.19.0
-tqdm
+git+https://github.com/George-Ogden/tqdm # use my tqdm version until original is patched
 wandb
