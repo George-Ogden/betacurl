@@ -86,7 +86,12 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         history = callbacks.History()
         callback = callbacks.CallbackList(
             training_config.callbacks + [history],
-            model=self.model
+            model=self.model,
+            add_history=False,
+            add_progbar=training_config.verbose != 0,
+            verbose=training_config.verbose,
+            epochs=training_config.training_epochs,
+            steps=len(train_dataset) // training_config.batch_size,
         )
 
         callback.on_train_begin()
