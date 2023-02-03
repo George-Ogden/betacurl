@@ -7,6 +7,7 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
+from tests.config import slow
 
 stub_game = StubGame()
 asymmetric_game = BadSymetryStubGame()
@@ -40,6 +41,7 @@ def test_evaluator_uses_augmentation():
     assert np.abs(evaluator.evaluate(training_data[0][1] * 0 + 1) - 1) < 1
     assert np.abs(evaluator.evaluate(training_data[0][1] * 0 - 1) + 1) < 1
 
+@slow
 def test_weighted_sampling_improves_on_normal_sampling():
     total_wins = 0
     for _ in range(5):
