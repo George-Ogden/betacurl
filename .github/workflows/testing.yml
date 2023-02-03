@@ -23,5 +23,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         python -m pip install pytest pytest-timeout
-    - name: Test with pytest
+    - name: Test with pytest (pull request)
+      if: github.event_name == 'pull_request'
       run: NO_DISPLAY= pytest tests/ --timeout 30
+    - name: Test with pytest (master push)
+      if: github.event_name == 'push'
+      run: DETERMINISTIC= NO_DISPLAY= pytest tests/ --timeout 30
