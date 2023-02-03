@@ -2,7 +2,7 @@ from tensorflow.keras import callbacks, optimizers
 from wandb.keras import WandbCallback
 from tqdm.keras import TqdmCallback
 
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 from dataclasses import dataclass, field
 
 @dataclass
@@ -37,6 +37,7 @@ class TrainingConfig:
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
     optimizer_kwargs: Optional[Dict[str, Any]] = None
+    verbose: ClassVar[int] = 0
 
     @property
     def optimizer(self) -> optimizers.Optimizer:
