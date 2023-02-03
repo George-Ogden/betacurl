@@ -111,3 +111,19 @@ def test_model_compiles_with_args():
     assert model.model.optimizer.epsilon ==1e-3
     assert model.model.loss == "mae"
     assert model.model.compiled_metrics._metrics == ["mae", "mape"]
+
+def test_best_model_restored():
+    model = StubModel()
+    model.model = SimpleLinearModelFactory.create_model(1, 1, SimpleLinearModelConfig(output_activation="sigmoid", hidden_size=1))
+    config = TrainingConfig(
+        training_epochs=100,
+        training_patience=5,
+        fit_kwargs=dict(
+            validation_data = (np.array((.5,)), np.array((0.,)))
+        )
+    )
+    history = model.fit(np.array((.5,)), np.array((1.,)), training_config=config)
+    assert history.epoch == list(range(6))
+    final_loss = model.model.evaluate(np.array((.5,)), np.array((0.,)))[0]
+    assert np.allclose(history.history["val_loss"][0], final_loss)
+    assert history.history["val_loss"][-1] > final_loss
