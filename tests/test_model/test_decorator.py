@@ -5,6 +5,8 @@ import numpy as np
 
 from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig, BEST_MODEL_FACTORY
 
+from tests.config import probabilistic
+
 config = SimpleLinearModelConfig(
     output_activation="sigmoid", hidden_size=8
 )
@@ -30,6 +32,7 @@ def test_without_config():
     output = model(input)
     assert output.shape == (16, 1)
 
+@probabilistic
 def test_model_fits():
     model = StubModel()
     model.model = keras.Sequential(
@@ -47,7 +50,7 @@ def test_model_fits():
     test_data = np.random.randn(100, 2)
     predictions = model.model.predict(test_data).squeeze(-1)
     error = (predictions - test_data.mean(axis=-1)) ** 2
-    assert error.mean() < .5, error.mean()
+    assert error.mean() < .5
 
 def test_override_params():
     model = StubModel()
