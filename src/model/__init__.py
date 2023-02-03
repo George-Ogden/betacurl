@@ -4,4 +4,4 @@ from .decorator import Learnable, ModelDecorator
 from .fcnn import MultiLayerModelFactory
 from .base import ModelFactory
 
-BEST_MODEL_FACTORY = MultiLayerModelFactory()
+BEST_MODEL_FACTORY = SimpleLinearModelFactory()
