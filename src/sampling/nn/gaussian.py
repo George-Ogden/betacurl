@@ -1,8 +1,8 @@
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks, utils
+from copy import copy, deepcopy
 from tensorflow import data
 import tensorflow as tf
-from copy import copy
 import numpy as np
 
 
@@ -49,6 +49,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         log_probs = distribution.log_prob(actions)
         return tf.reduce_sum(log_probs, axis=-1)
 
+    @tf.function
     def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(
             self.model(observations)
@@ -67,7 +68,6 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
 
         return -tf.reduce_mean(loss)
 
-    @tf.function
     def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer):
         with tf.GradientTape() as tape:
             observations, actions, rewards = batch

@@ -65,7 +65,7 @@ class ModelDecorator(SaveableModel, Learnable):
         train_options = {
             "batch_size": training_config.batch_size,
             "validation_split": training_config.validation_split,
-            "verbose": 0,
+            "verbose": training_config.verbose,
             "callbacks": training_config.callbacks,
             "epochs": training_config.training_epochs,
             **(training_config.fit_kwargs or {})
