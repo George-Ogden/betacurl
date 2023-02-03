@@ -76,6 +76,10 @@ class Game(metaclass=ABCMeta):
         return game.step(action, display=False)
 
     def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
+        return Game.no_symmetries(observation, action, reward)
+
+    @staticmethod
+    def no_symmetries(observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
         return [(observation, action, reward)]
 
     def validate_observation(self, observation: np.ndarray)-> np.ndarray:

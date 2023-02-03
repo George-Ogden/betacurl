@@ -1,4 +1,4 @@
-from tensorsflow.keras import callbacks
+from tensorflow.keras import callbacks
 import tensorflow as tf
 import numpy as np
 
@@ -21,6 +21,7 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
 
     @tf.function
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
+        actions = tf.reshape(actions, shape=(-1, *self.action_shape))
         actions *= self.action_range[1] - self.action_range[0]
         actions += self.action_range[0]
         return actions
@@ -48,11 +49,11 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         input = self.add_noise_to_observations(batch)
 
         samples = self.model.predict(input, batch_size=256, verbose=0)
-        samples = tf.reshape(samples, shape=(-1, *self.action_shape))
+        samples = self.postprocess_actions(samples)
+
         if not batched_throughput:
             samples = tf.squeeze(samples, 0)
 
-        samples = self.postprocess_actions(samples)
         samples = samples.numpy()
         return samples
 

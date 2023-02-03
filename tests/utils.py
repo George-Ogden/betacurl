@@ -1,4 +1,5 @@
 from dm_env._environment import TimeStep
+from tensorflow.keras import callbacks
 import numpy as np
 import os
 
@@ -79,3 +80,10 @@ def generic_save_test(object: SaveableObject):
     assert os.path.exists(SAVE_DIR)
     assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
     assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
+
+class EpochCounter(callbacks.Callback):
+    def on_train_begin(self, *args, **kwargs):
+        self.counter = 0
+    
+    def on_epoch_begin(self, *args, **kwargs):
+        self.counter += 1
