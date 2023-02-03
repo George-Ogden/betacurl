@@ -27,7 +27,6 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         # use distribution rather than sampling from noise
         return observations
 
-    @tf.function
     def generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         actions = tf.reshape(raw_actions, (raw_actions.shape[0], *self.action_shape, 2))
         means, log_stds = tf.split(actions, 2, axis=-1)
@@ -37,19 +36,16 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         means += self.action_mean
         stds = tf.exp(log_stds)
         return distributions.Normal(means, stds)
-    
-    @tf.function
+
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
         normal = self.generate_distribution(actions)
         return tf.clip_by_value(normal.sample(), *self.action_range)
 
     @staticmethod
-    @tf.function
     def compute_log_probs(distribution: distributions.Distribution, actions: tf.Tensor) -> tf.Tensor:
         log_probs = distribution.log_prob(actions)
         return tf.reduce_sum(log_probs, axis=-1)
 
-    @tf.function
     def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(
             self.model(observations)
