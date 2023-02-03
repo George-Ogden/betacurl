@@ -66,7 +66,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
 
         return -tf.reduce_mean(loss)
 
-    def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer):
+    def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer) -> np.ndarray:
         with tf.GradientTape() as tape:
             observations, actions, rewards = batch
             loss = self.compute_loss(observations, actions, rewards)
@@ -74,7 +74,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
 
-    def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()):
+    def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()) -> callbacks.History:
         training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
