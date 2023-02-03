@@ -1,8 +1,8 @@
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks, utils
 from tensorflow import data
-from copy import deepcopy
 import tensorflow as tf
+from copy import copy
 import numpy as np
 
 
@@ -66,12 +66,12 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         return loss
 
     def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()):
-        training_config = deepcopy(training_config)
+        training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
         batch_size = training_config.batch_size
-        training_config.metrics = ["val_loss"]
-        
+        training_config.metrics = []
+
         history = callbacks.History()
         callback = callbacks.CallbackList(
             training_config.callbacks + [history],

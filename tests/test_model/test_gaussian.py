@@ -82,6 +82,15 @@ def test_uses_training_config():
         observation_spec=wide_observation_spec
     )
     counter = EpochCounter()
+    config = TrainingConfig(
+        training_epochs=50,
+        batch_size=100,
+        training_patience=50,
+        lr=1e-3,
+        additional_callbacks=[counter],
+        metrics=["accuracy"]
+    )
+
     history = strategy.learn(
         training_history=[(
             np.random.choice([1, -1]),
@@ -89,19 +98,14 @@ def test_uses_training_config():
             np.random.randn(2),
             np.random.randn(),
         )] * 10,
-        training_config=TrainingConfig(
-            epochs=50,
-            batch_size=100,
-            patience=50,
-            lr=1e-3,
-            additional_callbacks=[counter]
-        ),
+        training_config=config,
         augmentation_function=Game.no_symmetries
     )
     assert isinstance(history, callbacks.History)
     assert counter.counter == 50
     assert strategy.model.optimizer._learning_rate == 1e-3
     assert history.epoch == list(range(50))
+    assert config.metrics == ["accuracy"]
 
 @probabilistic
 def test_learns_linear_case():
@@ -120,7 +124,7 @@ def test_learns_linear_case():
         ] * 100,
         augmentation_function=Game.no_symmetries,
         training_config=TrainingConfig(
-            epochs=10,
+            training_epochs=10,
             validation_split=1,
             lr=1e-3
         )
@@ -148,7 +152,7 @@ def test_learns_split_case():
         ] * 100,
         augmentation_function=Game.no_symmetries,
         training_config=TrainingConfig(
-            epochs=10,
+            training_epochs=10,
             validation_split=1,
             lr=1e-3
         )
