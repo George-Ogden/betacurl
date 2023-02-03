@@ -13,6 +13,7 @@ from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from .nn import NNSamplingStrategy
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
+    epsilon = .1
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY):
         super().__init__(action_spec, observation_spec, model_factory, latent_size=0)
         self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
@@ -20,6 +21,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0):
         config = model_factory.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
+        self.target_model = None
     
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
         # use distribution rather than sampling from noise
@@ -51,11 +53,20 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         predicted_distribution = self.generate_distribution(
             self.model(observations)
         )
+        target_distribution = self.generate_distribution(
+            self.target_model(observations)
+        )
 
         log_probs = self.compute_log_probs(predicted_distribution, actions)
-        loss = tf.reduce_mean(log_probs * rewards)
-        return -loss
-    
+        target_log_probs = self.compute_log_probs(target_distribution, actions)
+        ratio = tf.exp(log_probs - target_log_probs)
+
+        loss_1 = rewards * ratio
+        loss_2 = rewards * tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
+        loss = tf.math.minimum(loss_1, loss_2)
+
+        return -tf.reduce_mean(loss)
+
     @tf.function
     def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer):
         with tf.GradientTape() as tape:
@@ -103,6 +114,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
 
+        self.target_model = deepcopy(self.model)
         self.compile_model(training_config)
         dataset = self.create_dataset(training_data)
         
