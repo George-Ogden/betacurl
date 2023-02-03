@@ -1,6 +1,7 @@
-from sklearn.model_selection import train_test_split
 from tensorflow_probability import distributions
-from tensorflow.keras import callbacks
+from tensorflow.keras import callbacks, utils
+from tensorflow import data
+from copy import deepcopy
 import tensorflow as tf
 import numpy as np
 
@@ -64,22 +65,12 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
 
-    def learn(
-        self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
-        training_config: TrainingConfig = TrainingConfig()
-    ) -> callbacks.History:
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
-        training_data, validation_data = train_test_split(training_data, test_size=training_config.validation_split)
-
-        self.compile_model(training_config)
-        train_dataset = self.create_dataset(training_data)
-        val_dataset = self.create_dataset(validation_data)
-        train_dataset.shuffle(len(train_dataset), reshuffle_each_iteration=True)
-        
+    def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()):
+        training_config = deepcopy(training_config)
+        train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
         batch_size = training_config.batch_size
+        training_config.metrics = ["val_loss"]
         
         history = callbacks.History()
         callback = callbacks.CallbackList(
@@ -88,7 +79,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         )
 
         callback.on_train_begin()
-        for epoch in range(training_config.epochs):
+        for epoch in range(training_config.training_epochs):
             callback.on_epoch_begin(epoch)
             loss = 0
             for step, batch in enumerate(train_dataset.batch(batch_size)):
@@ -103,3 +94,16 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
                 break
         callback.on_train_end()
         return history
+
+    def learn(
+        self,
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
+        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
+
+        self.compile_model(training_config)
+        dataset = self.create_dataset(training_data)
+        
+        return self.fit(dataset, training_config)

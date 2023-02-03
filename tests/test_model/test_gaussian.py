@@ -1,17 +1,20 @@
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
-from dm_env.specs import BoundedArray
-from copy import deepcopy
 import tensorflow as tf
 import numpy as np
+
+from dm_env.specs import BoundedArray
+from tensorflow import data
+from unittest import mock
+from copy import deepcopy
 
 from src.model import SimpleLinearModelFactory, TrainingConfig
 from src.game import Game
 
 from src.sampling import GaussianSamplingStrategy
 
-from tests.utils import EpochCounter
 from tests.config import probabilistic
+from tests.utils import EpochCounter
 
 Normal = distributions.Normal
 
@@ -154,3 +157,31 @@ def test_learns_split_case():
     actions = strategy.generate_actions(observation=np.array((0, 0), dtype=float), n=100)
     assert 1 < actions.mean() and actions.mean() < 2
     assert .1 < actions.std() and actions.std() < 2
+
+@mock.patch(
+    "tensorflow.keras.utils.split_dataset",
+    lambda *args, **kwargs: (
+        GaussianSamplingStrategy.create_dataset(
+            [
+                ((0., 0.), (100., 100.), 1.),
+                ((0., 0.), (-100., -100.), -1.)
+            ]
+        ),
+        GaussianSamplingStrategy.create_dataset(
+            [
+                ((0., 0.), (-100., -100.), 1.),
+            ]
+        )
+    )
+)
+def test_best_model_restored():
+    strategy = GaussianSamplingStrategy(action_spec=wide_action_spec, observation_spec=wide_observation_spec, model_factory=SimpleLinearModelFactory)
+    config = TrainingConfig(
+        training_epochs=100,
+        training_patience=5
+    )
+    history = strategy.fit(None, training_config=config)
+    assert history.epoch == list(range(6))
+    final_loss = strategy.compute_loss(np.array(((0.,0.),), dtype=np.float32), np.array(((-100., -100.),), dtype=np.float32), np.array((1.,), dtype=np.float32))
+    assert np.allclose(history.history["val_loss"][0], final_loss)
+    assert history.history["val_loss"][-1] > final_loss
