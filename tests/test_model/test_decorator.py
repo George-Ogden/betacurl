@@ -95,7 +95,7 @@ def test_model_compiles_with_args():
         TrainingConfig(
             lr=1e-1,
             optimizer_type="Adam",
-            compile_kwargs=dict(
+            optimizer_kwargs=dict(
                 epsilon=1e-3
             ),
             metrics=["mae", "mape"],
@@ -107,4 +107,4 @@ def test_model_compiles_with_args():
     assert model.model.optimizer._learning_rate ==1e-1
     assert model.model.optimizer.epsilon ==1e-3
     assert model.model.loss == "mae"
-    assert model.model.metrics == ["mae", "mape"]
+    assert model.model.compiled_metrics._metrics == ["mae", "mape"]
