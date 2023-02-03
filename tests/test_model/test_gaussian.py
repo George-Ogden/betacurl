@@ -11,6 +11,7 @@ from src.game import Game
 from src.sampling import GaussianSamplingStrategy
 
 from tests.utils import EpochCounter
+from tests.config import probabilistic
 
 Normal = distributions.Normal
 
@@ -28,6 +29,7 @@ narrow_skewed_action_spec = BoundedArray(minimum=(99.9,), maximum=(100.,), shape
 skewed_strategy = GaussianSamplingStrategy(action_spec=skewed_action_spec, observation_spec=wide_observation_spec)
 narrow_skewed_strategy = GaussianSamplingStrategy(action_spec=narrow_skewed_action_spec, observation_spec=wide_observation_spec)
 
+@probabilistic
 def test_samples_are_normal():
     means = np.ones(1000)
     log_stds = np.log(np.ones(1000) * 2)
@@ -43,6 +45,7 @@ def test_distribution_is_correct():
     distribution = wide_range_strategy.generate_distribution(np.array(((-1., 2., -2, 3.),)))
     assert np.allclose(distribution.mean(), (-1, -2)) and np.allclose(distribution.stddev(), np.exp((2, 3)))
 
+@probabilistic
 def test_action_skew():
     actions = skewed_strategy.generate_actions(np.random.randn(2), n=100)
     assert 98 < actions.mean() and actions.mean() < 102
@@ -97,6 +100,7 @@ def test_uses_training_config():
     assert strategy.model.optimizer._learning_rate == 1e-3
     assert history.epoch == list(range(50))
 
+@probabilistic
 def test_learns_linear_case():
     strategy = GaussianSamplingStrategy(
         observation_spec=wide_observation_spec,
@@ -124,6 +128,7 @@ def test_learns_linear_case():
         assert np.abs(actions.mean() - i) < 1
         assert actions.std() < 1.
 
+@probabilistic
 def test_learns_split_case():
     strategy = GaussianSamplingStrategy(
         observation_spec=wide_observation_spec,

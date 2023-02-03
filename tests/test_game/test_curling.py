@@ -5,6 +5,8 @@ import pytest
 from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 
+from tests.config import probabilistic
+
 accurate_constants = SimulationConstants(dt=.02)
 
 class ConsistentPlayer(Player):
@@ -99,6 +101,7 @@ def test_valid_observations_are_valid():
 def test_good_player_always_wins():
     assert forced_arena.play_games(5) == (0, 5)
 
+@probabilistic
 def test_random_players_split_wins():
     wins, losses = random_arena.play_games(25)
     assert wins + losses == 25

@@ -8,7 +8,7 @@ from src.evaluation import EvaluationStrategy
 from src.model import  TrainingConfig
 
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
-from tests.config import cleanup, requires_cleanup, slow, SAVE_DIR
+from tests.config import cleanup, probabilistic, requires_cleanup, slow, SAVE_DIR
 from tests.utils import StubGame, SparseStubGame
 
 special_cases = dict(
@@ -67,6 +67,7 @@ def test_reward_transformed_correctly_with_None():
 
 @requires_cleanup
 @slow
+@probabilistic
 def test_model_beats_random_player():
     coach = Coach(
         game=stub_game,
@@ -86,6 +87,7 @@ def test_model_beats_random_player():
     assert wins > 80
 
 @requires_cleanup
+@probabilistic
 def test_benchmark():
     player_config = SamplingEvaluatingPlayerConfig(num_eval_samples=10)
     coach = Coach(

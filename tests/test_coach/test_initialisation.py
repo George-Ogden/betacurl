@@ -54,7 +54,6 @@ boring_coach = Coach(
 )
 
 def test_coach_saves_config():
-
     assert not os.path.exists(SAVE_DIR)
     for k, v in config_dict.items():
         if k in special_cases:
