@@ -14,6 +14,7 @@ from .nn import NNSamplingStrategy
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
     epsilon = .1
+    target_update_frequency = 5
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY):
         super().__init__(action_spec, observation_spec, model_factory, latent_size=0)
         self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
@@ -22,6 +23,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         config = model_factory.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
         self.target_model = None
+        self.train_iterations = 0
     
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
         # use distribution rather than sampling from noise
@@ -115,7 +117,9 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
 
-        self.target_model = deepcopy(self.model)
+        if self.train_iterations % self.target_update_frequency == 0:
+            self.target_model = deepcopy(self.model)
+        
         self.compile_model(training_config)
         dataset = self.create_dataset(training_data)
         
