@@ -67,7 +67,7 @@ class ModelDecorator(SaveableModel, Learnable):
             "validation_split": training_config.validation_split,
             "verbose": 0,
             "callbacks": training_config.callbacks,
-            "epochs": training_config.epochs,
+            "epochs": training_config.training_epochs,
             **(training_config.fit_kwargs or {})
         }
 

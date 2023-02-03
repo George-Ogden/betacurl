@@ -6,8 +6,6 @@ from ..player import SamplingEvaluatingPlayerConfig
 
 @dataclass
 class CoachConfig:
-    player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
-    training_config: TrainingConfig = TrainingConfig()
     resume_from_checkpoint: bool = False
     """continue training from previous checkpoint"""
     num_games_per_episode: int = 100
@@ -27,3 +25,5 @@ class CoachConfig:
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
+    player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+    training_config: TrainingConfig = TrainingConfig()

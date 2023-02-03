@@ -13,11 +13,12 @@ def main(args):
     wandb.config.update(args)
 
     def set_attributes(config):
-        for k, v in asdict(config).items():
-            if is_dataclass(v):
-                set_attributes(v)
-            elif k in args:
-                setattr(config, k, getattr(args, k))
+        for attribute in asdict(config):
+            value = getattr(config, attribute)
+            if is_dataclass(value):
+                set_attributes(value)
+            elif attribute in args:
+                setattr(config, attribute, getattr(args, attribute))
     coach_config = CoachConfig()
     set_attributes(coach_config)
 
@@ -57,12 +58,13 @@ def create_parser() -> argparse.ArgumentParser:
     def add_dataclass(config):
         nonlocal attribute_docs
         attribute_docs |= get_dataclass_attributes_doc(type(config))
-        for k, v in asdict(config).items():
-            if is_dataclass(v):
-                add_dataclass(v)
+        for attribute in asdict(config):
+            value = getattr(config, attribute)
+            if is_dataclass(value):
+                add_dataclass(value)
             else:
-                if len(attribute_docs.get(k, "")) > 0:
-                    add_argument(k, v)
+                if len(attribute_docs.get(attribute, "")) > 0:
+                    add_argument(attribute, value)
     add_dataclass(CoachConfig())
     add_argument("project_name", "test project")
     return parser
