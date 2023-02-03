@@ -36,11 +36,13 @@ class TrainingConfig:
     additional_callbacks: Optional[List[callbacks.Callback]] = None
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
+    optimizer_kwargs: Optional[Dict[str, Any]] = None
 
     @property
     def optimizer(self) -> optimizers.Optimizer:
         return type(optimizers.get(self.optimizer_type))(
-            learning_rate=self.lr
+            learning_rate=self.lr,
+            **(self.optimizer_kwargs or {})
         )
     
     @property
