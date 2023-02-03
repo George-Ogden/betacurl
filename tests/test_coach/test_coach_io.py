@@ -81,6 +81,7 @@ def test_checkpoint_restores_in_training():
         config=CoachConfig(
             resume_from_checkpoint=True,
             num_iterations=4,
+            num_games_per_episode=2,
             **necessary_config
         )
     )
@@ -126,6 +127,7 @@ def test_training_history_restored():
         config=CoachConfig(
             train_buffer_length=25,
             num_iterations=4,
+            num_games_per_episode=2,
             **necessary_config
         )
     )
