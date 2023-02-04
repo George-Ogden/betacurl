@@ -180,12 +180,45 @@ def test_learns_split_case():
 )
 def test_best_model_restored():
     strategy = GaussianSamplingStrategy(action_spec=wide_action_spec, observation_spec=wide_observation_spec, model_factory=SimpleLinearModelFactory)
+    strategy.target_model = deepcopy(strategy.model)
     config = TrainingConfig(
         training_epochs=100,
         training_patience=5
     )
+
     history = strategy.fit(None, training_config=config)
     assert history.epoch == list(range(6))
     final_loss = strategy.compute_loss(np.array(((0.,0.),), dtype=np.float32), np.array(((-100., -100.),), dtype=np.float32), np.array((1.,), dtype=np.float32))
     assert np.allclose(history.history["val_loss"][0], final_loss)
     assert history.history["val_loss"][-1] > final_loss
+
+@mock.patch(
+    "tensorflow.keras.utils.split_dataset",
+    lambda *args, **kwargs: (
+        GaussianSamplingStrategy.create_dataset(
+            [
+                ((0., 0.), (100., 100.), 1.),
+                ((0., 0.), (-100., -100.), -1.)
+            ]
+        ),
+        GaussianSamplingStrategy.create_dataset(
+            [
+                ((0., 0.), (-100., -100.), 1.),
+            ]
+        )
+    )
+)
+def test_epochs_are_separate():
+    strategy = GaussianSamplingStrategy(action_spec=wide_action_spec, observation_spec=wide_observation_spec, model_factory=SimpleLinearModelFactory)
+    strategy.target_model = deepcopy(strategy.model)
+    config = TrainingConfig(
+        training_epochs=100,
+        training_patience=5
+    )
+
+    for i in range(2):
+        history = strategy.fit(None, training_config=config)
+        assert history.epoch == list(range(6))
+        final_loss = strategy.compute_loss(np.array(((0.,0.),), dtype=np.float32), np.array(((-100., -100.),), dtype=np.float32), np.array((1.,), dtype=np.float32))
+        assert np.allclose(history.history["val_loss"][0], final_loss)
+        assert history.history["val_loss"][-1] > final_loss
