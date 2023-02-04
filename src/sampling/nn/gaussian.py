@@ -92,6 +92,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             steps=len(train_dataset) // training_config.batch_size,
         )
 
+        self.model.stop_training = False
         callback.on_train_begin()
         for epoch in range(training_config.training_epochs):
             callback.on_epoch_begin(epoch)

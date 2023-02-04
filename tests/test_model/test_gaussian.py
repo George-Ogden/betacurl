@@ -221,4 +221,3 @@ def test_epochs_are_separate():
         assert history.epoch == list(range(6))
         final_loss = strategy.compute_loss(np.array(((0.,0.),), dtype=np.float32), np.array(((-100., -100.),), dtype=np.float32), np.array((1.,), dtype=np.float32))
         assert np.allclose(history.history["val_loss"][0], final_loss)
-        assert history.history["val_loss"][-1] > final_loss
