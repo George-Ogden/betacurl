@@ -15,6 +15,7 @@ from .nn import NNSamplingStrategy
 class GaussianSamplingStrategy(NNSamplingStrategy):
     epsilon = .1
     target_update_frequency = 5
+    max_grad_norm = .5
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY):
         super().__init__(action_spec, observation_spec, model_factory, latent_size=0)
         self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
@@ -78,18 +79,19 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
+        optimizer.clip_norm = self.max_grad_norm
         batch_size = training_config.batch_size
         training_config.metrics = []
 
         history = callbacks.History()
         callback = callbacks.CallbackList(
-            training_config.callbacks + [history],
+            training_config.callbacks + [history, callbacks.TerminateOnNaN()],
             model=self.model,
             add_history=False,
             add_progbar=training_config.verbose != 0,
             verbose=training_config.verbose,
             epochs=training_config.training_epochs,
-            steps=len(train_dataset) // training_config.batch_size,
+            steps=(len(train_dataset) - 1) // training_config.batch_size + 1,
         )
 
         self.model.stop_training = False
