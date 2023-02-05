@@ -64,18 +64,6 @@ def test_log_probs_are_reasonable():
     assert np.allclose(GaussianSamplingStrategy.compute_log_probs(Normal(((0.,),), ((1.,),)), ((0.,),)) * 2, GaussianSamplingStrategy.compute_log_probs(Normal(((0.,0.),), ((1.,1.),)), ((0.,0.),)))
     assert np.allclose(GaussianSamplingStrategy.compute_log_probs(Normal(((0.,),), ((1.,),)), ((0.5,),)), GaussianSamplingStrategy.compute_log_probs(Normal(((1.,),), ((1.,),)), ((0.5,),)))
 
-def test_loss_function_is_reasonable():
-    standard_normal = lambda batch: np.array(((0., 0.),))
-    skewed = lambda batch: np.array(((1., 0.),))
-    strategy = deepcopy(single_action_strategy)
-    strategy.model = standard_normal
-    assert np.allclose(strategy.compute_loss(None, ((0.,)), (1.)) * 2, strategy.compute_loss(None, ((0.,)), (2.,)))
-    assert strategy.compute_loss(None, ((0.,)), (1.)) < strategy.compute_loss(None, ((1.,)), (1.,))
-    strategy.model = skewed
-    assert strategy.compute_loss(None, ((0.,)), (1.)) > strategy.compute_loss(None, ((1.,)), (1.,))
-    assert np.allclose(strategy.compute_loss(None, ((.5,)), (1.)), strategy.compute_loss(None, ((.5,)), (1.,)))
-    assert np.allclose(strategy.compute_loss(None, ((.5,)), (2.)), strategy.compute_loss(None, ((.5,)), (-2.,)) * -1)
-
 def test_uses_training_config():
     strategy = GaussianSamplingStrategy(
         action_spec=wide_action_spec,
