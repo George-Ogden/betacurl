@@ -1,5 +1,5 @@
 from src.game import Coach, CoachConfig, SamplingEvaluatingPlayerConfig
-from src.sampling import RandomSamplingStrategy
+from src.sampling import GaussianSamplingStrategy
 from src.curling import CURLING_GAME
 import wandb
 
@@ -25,7 +25,7 @@ def main(args):
     coach = Coach(
         game=CURLING_GAME,
         config=coach_config,
-        SamplingStrategyClass=RandomSamplingStrategy,
+        SamplingStrategyClass=GaussianSamplingStrategy,
     )
     coach.learn()
 
