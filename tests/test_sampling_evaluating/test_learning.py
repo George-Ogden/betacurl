@@ -21,9 +21,9 @@ training_data *= 100
 
 @probabilistic
 def test_sampler_learns():
-    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=1)
+    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     sampler.learn(training_data, stub_game.get_symmetries)
-    assert (sampler.generate_actions(training_data[0][0]) > .75 * move_spec.maximum).all()
+    assert (sampler.generate_actions(training_data[0][1]) > .75 * move_spec.maximum).all()
 
 @probabilistic
 def test_evaluator_learns():

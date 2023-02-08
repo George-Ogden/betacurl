@@ -36,7 +36,7 @@ narrow_skewed_strategy = GaussianSamplingStrategy(action_spec=narrow_skewed_acti
 def test_samples_are_normal():
     means = np.ones(1000)
     log_stds = np.log(np.ones(1000) * 2)
-    actions = np.concatenate((means, log_stds), axis=-1).reshape(-1, 4)
+    actions = np.concatenate((means, log_stds), axis=-1, dtype=np.float32).reshape(-1, 4)
     with tf.GradientTape(watch_accessed_variables=False) as tape:
         samples = wide_range_strategy.postprocess_actions(actions)
         mean = float(tf.reduce_mean(samples).numpy())
