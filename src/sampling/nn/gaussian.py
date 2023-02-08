@@ -10,15 +10,19 @@ from typing import Callable, List, Tuple
 from dm_env.specs import BoundedArray
 
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ..config import GaussianNNSamplerConfig
 from .nn import NNSamplingStrategy
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
-    epsilon = .1
-    target_update_frequency = 2
-    max_grad_norm = .5
-    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY):
-        super().__init__(action_spec, observation_spec, model_factory, latent_size=0)
+    CONFIG_CLASS = GaussianNNSamplerConfig
+    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: GaussianNNSamplerConfig = GaussianNNSamplerConfig()):
+        super().__init__(action_spec, observation_spec, model_factory, config)
         self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
+        
+        assert config.clip_ratio > 0
+        self.clip_ratio = config.clip_ratio
+        self.target_update_frequency = config.target_update_frequency
+        self.max_grad_norm = config.max_grad_norm
     
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0):
         config = model_factory.CONFIG_CLASS(output_activation="linear")
@@ -73,7 +77,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         ratio = tf.exp(log_probs - target_log_probs)
 
         loss_1 = rewards * ratio
-        loss_2 = rewards * tf.clip_by_value(ratio, 1 - self.epsilon, 1 + self.epsilon)
+        loss_2 = rewards * tf.clip_by_value(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio)
         loss = tf.math.minimum(loss_1, loss_2)
 
         return -tf.reduce_mean(loss)

@@ -31,9 +31,10 @@ class SamplingEvaluatingPlayer(Player, Learnable):
         self.num_eval_samples = config.num_eval_samples
 
         super().__init__(game_spec)
-
-        latent_variable = {} if config.latent_size is None else dict(latent_size=config.latent_size)
-        self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, **latent_variable)
+        
+        sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config.sampler_config)
+            
+        self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, config=sampler_config)
         self.evaluator: EvaluationStrategy = EvaluationStrategyClass(observation_spec=game_spec.observation_spec)
 
     def train(self) -> SamplingEvaluatingPlayer:
