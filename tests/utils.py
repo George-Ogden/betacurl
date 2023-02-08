@@ -36,7 +36,7 @@ class StubGame(Game):
         self.reset()
 
     def _reset(self) -> TimeStep:
-        self.score = [0, 0]
+        self.score = [0., 0.]
 
     def _get_observation(self)-> np.ndarray:
         return np.array(self.score[0] - self.score[1]).reshape(1)
