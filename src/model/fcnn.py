@@ -13,7 +13,6 @@ class MultiLayerModelFactory(ModelFactory):
         return keras.Sequential(name="multi_layer_model",
             layers=[
                 keras.Input(shape=(input_size,)),
-                layers.BatchNormalization()
             ] + [
                 cls.create_intermediate_layer(config) for _ in range(config.hidden_layers - 1)
             ] + [

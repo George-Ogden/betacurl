@@ -165,5 +165,5 @@ class Coach(SaveableObject):
 
     @staticmethod
     def transform_history_for_training(training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
-        total_reward = 0
+        total_reward = 0.
         return [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
