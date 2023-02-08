@@ -8,6 +8,13 @@ from typing import get_type_hints
 from dataclasses import asdict, is_dataclass
 import argparse
 
+SamplingStrategyClass = GaussianSamplingStrategy
+initial_config = CoachConfig(
+    player_config=SamplingEvaluatingPlayerConfig(
+        sampler_config=SamplingStrategyClass.CONFIG_CLASS()
+    )
+)
+
 def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
     wandb.config.update(args)
@@ -19,13 +26,13 @@ def main(args):
                 set_attributes(value)
             elif attribute in args:
                 setattr(config, attribute, getattr(args, attribute))
-    coach_config = CoachConfig()
+    coach_config = initial_config
     set_attributes(coach_config)
 
     coach = Coach(
         game=CURLING_GAME,
         config=coach_config,
-        SamplingStrategyClass=GaussianSamplingStrategy,
+        SamplingStrategyClass=SamplingStrategyClass,
     )
     coach.learn()
 
@@ -65,7 +72,7 @@ def create_parser() -> argparse.ArgumentParser:
             else:
                 if len(attribute_docs.get(attribute, "")) > 0:
                     add_argument(attribute, value)
-    add_dataclass(CoachConfig())
+    add_dataclass(initial_config)
     add_argument("project_name", "test project")
     return parser
 
