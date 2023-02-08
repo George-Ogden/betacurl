@@ -6,14 +6,18 @@ from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
 from ...model import ModelDecorator, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+
+from ..config import NNSamplerConfig
 from ..base import SamplingStrategy
 
 class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
+    CONFIG_CLASS = NNSamplerConfig
     DEFAULT_MODEL_FILE = "sampler.h5"
-    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, latent_size: int = 4):
-        super().__init__(action_spec, observation_spec)
-        self.latent_size = latent_size
-        self.setup_model(action_spec, observation_spec, model_factory, latent_size)
+    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: NNSamplerConfig = NNSamplerConfig()):
+        super().__init__(action_spec, observation_spec, config)
+        
+        self.latent_size = config.latent_size
+        self.setup_model(action_spec, observation_spec, model_factory, self.latent_size)
 
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size):
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="sigmoid")
