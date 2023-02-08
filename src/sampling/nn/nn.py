@@ -19,7 +19,11 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="sigmoid")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape), config=config)
 
-    @tf.function
+    def preprocess_observations(self, observations: tf.Tensor) -> tf.Tensor:
+        observations -= self.observation_range[0]
+        observations /= np.diff(self.observation_range, axis=0)
+        return observations * 2 - 1
+
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
         actions = tf.reshape(actions, shape=(-1, *self.action_shape))
         actions *= self.action_range[1] - self.action_range[0]
@@ -46,6 +50,7 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
             n = 1
 
         batch = np.tile(observation, (n, 1))
+        batch = self.preprocess_observations(batch)
         input = self.add_noise_to_observations(batch)
 
         samples = self.model.predict(input, batch_size=256, verbose=0)

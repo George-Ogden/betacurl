@@ -14,7 +14,7 @@ from .nn import NNSamplingStrategy
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
     epsilon = .1
-    target_update_frequency = 5
+    target_update_frequency = 2
     max_grad_norm = .5
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY):
         super().__init__(action_spec, observation_spec, model_factory, latent_size=0)
@@ -38,11 +38,11 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         
         means += self.action_mean
         stds = tf.exp(log_stds)
-        return distributions.Normal(means, stds)
+        return distributions.TruncatedNormal(means, stds, *self.action_range)
 
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
-        normal = self.generate_distribution(actions)
-        return tf.clip_by_value(normal.sample(), *self.action_range)
+        distribution = self.generate_distribution(actions)
+        return distribution.sample()
 
     @staticmethod
     def compute_log_probs(distribution: distributions.Distribution, actions: tf.Tensor) -> tf.Tensor:
@@ -51,10 +51,21 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
 
     def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(
-            self.model(observations)
+            self.model(
+                self.preprocess_observations(
+                    observations
+                )
+            )
         )
-        target_distribution = self.generate_distribution(
-            self.target_model(observations)
+        target_distribution = (
+            distributions.Uniform(
+                *self.action_range
+            ) if self.target_model is None else
+            self.generate_distribution(
+                self.target_model(
+                    self.preprocess_observations(observations)
+                )
+            )
         )
 
         log_probs = self.compute_log_probs(predicted_distribution, actions)
@@ -120,7 +131,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
 
-        if self.train_iterations % self.target_update_frequency == 0:
+        if self.train_iterations % self.target_update_frequency == 1:
             self.target_model = deepcopy(self.model)
         
         self.compile_model(training_config)
