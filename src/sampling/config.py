@@ -20,5 +20,4 @@ class GaussianNNSamplerConfig(NNSamplerConfig):
     latent_size: ClassVar[int] = 0
     clip_ratio: float = .1
     """PPO clip ratio"""
-    target_update_frequency: int = 2
     max_grad_norm: float = .5
