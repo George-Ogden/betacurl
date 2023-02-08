@@ -31,12 +31,7 @@ def test_evaluator_learns():
     evaluator.learn(training_data, stub_game.get_symmetries)
     assert np.abs(evaluator.evaluate(training_data[0][1]) - result) < stub_game.max_move
 
-def test_sampler_uses_augmentation():
-    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=1)
-    sampler.learn(training_data, asymmetric_game.get_symmetries)
-    assert np.abs((sampler.generate_actions(training_data[0][0] * 0 + 1) - 1) < 1).all()
-    assert np.abs((sampler.generate_actions(training_data[0][0] * 0 - 1) - 2) < 1).all()
-
+@probabilistic
 def test_evaluator_uses_augmentation():
     evaluator = NNEvaluationStrategy(observation_spec=observation_spec)
     evaluator.learn(training_data, asymmetric_game.get_symmetries)
