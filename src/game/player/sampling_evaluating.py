@@ -31,7 +31,7 @@ class SamplingEvaluatingPlayer(Player, Learnable):
         self.num_eval_samples = config.num_eval_samples
 
         super().__init__(game_spec)
-        
+
         sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config.sampler_config)
             
         self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, config=sampler_config)
