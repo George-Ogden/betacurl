@@ -107,10 +107,8 @@ def test_gaussian_config():
         observation_spec=observation_spec,
         config=GaussianNNSamplerConfig(
             clip_ratio=.2,
-            max_grad_norm=1.,
-            target_update_frequency=10
+            max_grad_norm=1.
         )
     )
     assert strategy.clip_ratio == .2
     assert strategy.max_grad_norm == 1.
-    assert strategy.target_update_frequency == 10
