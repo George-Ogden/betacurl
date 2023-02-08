@@ -4,10 +4,10 @@ import numpy as np
 import time
 import os
 
-from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
+from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import Learnable, TrainingConfig
-from src.game import Coach, CoachConfig
+from src.game import Coach, CoachConfig, SamplingEvaluatingPlayerConfig
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 from tests.utils import StubGame, SparseStubGame
@@ -171,3 +171,18 @@ def test_coach_uses_training_config_with_sampler():
     assert model._train_counter == 10
     assert modified_model._train_counter == 5
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
+
+@requires_cleanup
+def test_instantiation_from_incorrect_config():
+    coach = Coach(
+        game=stub_game,
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            player_config=SamplingEvaluatingPlayerConfig(
+                sampler_config=SamplerConfig()
+            ),
+            **necessary_config
+        )
+    )
+    assert hasattr(coach.player.sampler, "latent_size")

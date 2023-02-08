@@ -1,7 +1,7 @@
 import numpy as np
 
+from src.sampling import GaussianNNSamplerConfig, GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
-from src.sampling import GaussianSamplingStrategy, NNSamplingStrategy, RandomSamplingStrategy
 from src.model.constant import ZeroModel, OneModel
 
 from tests.utils import StubGame
@@ -90,3 +90,27 @@ def test_gaussian_sampling_strategy():
 
 def test_gaussian_sampling_strategy_batch():
     sampling_batch_strategy_test(gaussian_strategy)
+
+def test_nn_config():
+    strategy = NNSamplingStrategy(
+        action_spec=move_spec,
+        observation_spec=observation_spec,
+        config=NNSamplerConfig(
+            latent_size=11
+        )
+    )
+    assert strategy.model.input_shape == (None, 12)
+
+def test_gaussian_config():
+    strategy = GaussianSamplingStrategy(
+        action_spec=move_spec,
+        observation_spec=observation_spec,
+        config=GaussianNNSamplerConfig(
+            clip_ratio=.2,
+            max_grad_norm=1.,
+            target_update_frequency=10
+        )
+    )
+    assert strategy.clip_ratio == .2
+    assert strategy.max_grad_norm == 1.
+    assert strategy.target_update_frequency == 10

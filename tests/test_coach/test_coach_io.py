@@ -3,7 +3,7 @@ import time
 import os
 
 from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
-from src.sampling import RandomSamplingStrategy, NNSamplingStrategy
+from src.sampling import NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy
 from src.model import TrainingConfig
 
@@ -107,7 +107,9 @@ def test_latent_variable_stored_and_saved():
         EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
             player_config=SamplingEvaluatingPlayerConfig(
-                latent_size=100
+                sampler_config=NNSamplerConfig(
+                    latent_size=100
+                )
             ),
             **necessary_config
         )
