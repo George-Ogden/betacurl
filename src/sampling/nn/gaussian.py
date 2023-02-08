@@ -21,13 +21,11 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         
         assert config.clip_ratio > 0
         self.clip_ratio = config.clip_ratio
-        self.target_update_frequency = config.target_update_frequency
         self.max_grad_norm = config.max_grad_norm
     
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0):
         config = model_factory.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
-        self.target_model = None
         self.train_iterations = 0
     
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
@@ -135,8 +133,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     ) -> callbacks.History:
         training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
 
-        if self.train_iterations % self.target_update_frequency == 1:
-            self.target_model = deepcopy(self.model)
+        self.target_model = deepcopy(self.model)
         
         self.compile_model(training_config)
         dataset = self.create_dataset(training_data)
