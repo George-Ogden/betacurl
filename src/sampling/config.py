@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import ClassVar, Iterable
+from typing import ClassVar, List
+import typing
 
 
 @dataclass
 class SamplerConfig:
-    def keys(self) -> Iterable[str]:
-        return self.__dataclass_fields__.keys()
+    def keys(self) -> List[str]:
+        return list(filter(lambda key: typing.get_origin(self.__annotations__[key]) is not ClassVar, self.__dataclass_fields__.keys()))
 
     def __getitem__(self, key):
         return getattr(self, key)
