@@ -3,7 +3,7 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import MultiLayerModelFactory, ModelFactory, SimpleLinearModelFactory, BEST_MODEL_FACTORY
+from src.model import MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
 
 def generic_factory_test(Factory: ModelFactory):
     model = Factory.create_model(
@@ -32,8 +32,8 @@ def generic_factory_test(Factory: ModelFactory):
     assert (0 <= output).all() and (output <= 1).all()
     return model
 
-def test_simple_linear_factory():
-    generic_factory_test(SimpleLinearModelFactory)
+def test_mlp_factory():
+    generic_factory_test(MLPModelFactory)
 
 def test_multi_layer_factory():
     generic_factory_test(MultiLayerModelFactory)

@@ -3,11 +3,11 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import ModelDecorator, SimpleLinearModelFactory, SimpleLinearModelConfig, TrainingConfig, BEST_MODEL_FACTORY
+from src.model import ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
 
 from tests.config import probabilistic
 
-config = SimpleLinearModelConfig(
+config = MLPModelConfig(
     output_activation="sigmoid", hidden_size=8
 )
 
@@ -19,7 +19,7 @@ class StubModel(ModelDecorator):
         ...
 
 def test_forward():
-    model = SimpleLinearModelFactory.create_model(input_size=2, output_size=1, config=config)
+    model = MLPModelFactory.create_model(input_size=2, output_size=1, config=config)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)
@@ -27,7 +27,7 @@ def test_forward():
     assert tf.reduce_all(output < 1)
 
 def test_without_config():
-    model = SimpleLinearModelFactory.create_model(input_size=2, output_size=1)
+    model = MLPModelFactory.create_model(input_size=2, output_size=1)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)
@@ -114,7 +114,7 @@ def test_model_compiles_with_args():
 
 def test_best_model_restored():
     model = StubModel()
-    model.model = SimpleLinearModelFactory.create_model(1, 1, SimpleLinearModelConfig(output_activation="sigmoid", hidden_size=1))
+    model.model = MLPModelFactory.create_model(1, 1, MLPModelConfig(output_activation="sigmoid", hidden_size=1))
     config = TrainingConfig(
         training_epochs=100,
         training_patience=5,

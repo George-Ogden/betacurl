@@ -8,7 +8,7 @@ from tensorflow import data
 from unittest import mock
 from copy import deepcopy
 
-from src.model import SimpleLinearModelFactory, TrainingConfig
+from src.model import MLPModelFactory, TrainingConfig
 from src.game import Game
 
 from src.sampling import GaussianSamplingStrategy
@@ -20,11 +20,11 @@ Normal = distributions.Normal
 
 single_action_spec = BoundedArray(minimum=(-100,), maximum=(100,), shape=(1,), dtype=np.float32)
 single_observation_spec = BoundedArray(minimum=(-100,), maximum=(100,), shape=(1,), dtype=np.float32)
-single_action_strategy = GaussianSamplingStrategy(action_spec=single_action_spec, observation_spec=single_observation_spec, model_factory=SimpleLinearModelFactory)
+single_action_strategy = GaussianSamplingStrategy(action_spec=single_action_spec, observation_spec=single_observation_spec, model_factory=MLPModelFactory)
 
 wide_action_spec = BoundedArray(minimum=(-100,-100), maximum=(100, 100), shape=(2,), dtype=np.float32)
 wide_observation_spec = BoundedArray(minimum=(-100,-100), maximum=(100, 100), shape=(2,), dtype=np.float32)
-wide_range_strategy = GaussianSamplingStrategy(action_spec=wide_action_spec, observation_spec=wide_observation_spec, model_factory=SimpleLinearModelFactory)
+wide_range_strategy = GaussianSamplingStrategy(action_spec=wide_action_spec, observation_spec=wide_observation_spec, model_factory=MLPModelFactory)
 
 skewed_action_spec = BoundedArray(minimum=(0.,), maximum=(200.,), shape=(1,), dtype=np.float32)
 narrow_skewed_action_spec = BoundedArray(minimum=(99.9,), maximum=(100.,), shape=(1,), dtype=np.float32)
