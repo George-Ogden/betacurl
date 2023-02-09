@@ -11,12 +11,12 @@ from .constants import CurlingConstants, SimulationConstants
 
 class Curling:
     constants: CurlingConstants = CurlingConstants()
-    starting_button_distance: np.floating = np.array(38.405) # distance to button from where stone is released
     pitch_length: np.floating = np.array(45.720)
     pitch_width: np.floating = np.array(4.750)
     hog_line_position: np.floating = np.array(11.888) # distance from back line to hog line
     tee_line_position: np.floating = np.array(5.487) # distance from back line to tee line
     button_position = np.array((0., -tee_line_position))
+    starting_button_distance: np.floating = pitch_length - tee_line_position - hog_line_position # distance to button from where stone is released
     target_radii: np.ndarray = np.array((0.152, 0.610, 1.219, 1.829)) # radii of rings in the circle
     house_radius: np.floating = np.array((1.996)) # distance from centre of stone to button
     vertical_lines: np.ndarray = np.array((-.457, 0, .457)) # positioning of vertical lines
@@ -74,7 +74,7 @@ class Curling:
             velocity=stone_throw.velocity,
             angle=stone_throw.angle,
             spin=stone_throw.spin,
-            position=(0, -self.pitch_length+self.hog_line_position),
+            position=(0, self.button_position[1]-self.starting_button_distance),
             curling_constants=self.constants
         )
 
@@ -168,7 +168,6 @@ class Stone:
     coefficient_of_friction: np.floating = np.array(.2) # coefficient of friction between stones
     acceleration = np.array((0., 0.)) # xy acceleration of the stone
     velocity = np.array((0.01, 2.2)) # xy velocity of the stone
-    position = np.array((0., -Curling.starting_button_distance)) # xy position of the stone
     def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: CurlingConstants = Curling.constants):
         """create a moving stone (equivalent to throwing)
 
