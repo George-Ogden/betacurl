@@ -2,7 +2,7 @@ from dm_env._environment import StepType
 import numpy as np
 import pytest
 
-from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
+from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, Stone, StoneColor, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(dt=.02)
@@ -250,12 +250,13 @@ def test_six_stone_rule_violation_edge_case():
 
 def test_in_house_evaluation():
     single_end_game.reset()
-    single_end_game.step(action=np.array((1.41, 0, 0)))
+    single_end_game.step(action=np.array((1.42, 0, 0)))
     assert single_end_game.evaluate_position() == -single_end_game.stone_to_play
 
 def test_out_of_house_evaluation():
     single_end_game.reset()
-    single_end_game.step(action=np.array((1.3, 0, 0)))
+    single_end_game.curling.stones.append(Stone(StoneColor.RED, position=(0, -Curling.tee_line_position - Curling.target_radii[-1] - Stone.outer_radius * 2)))
+    single_end_game.curling.stones.append(Stone(StoneColor.RED, position=(0, -Curling.tee_line_position + Curling.target_radii[-1] + Stone.outer_radius * 2)))
     assert single_end_game.evaluate_position() == 0
 
 def test_drawn_game_where_player_1_starts():
