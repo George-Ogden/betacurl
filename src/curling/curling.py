@@ -276,7 +276,7 @@ class Stone:
 @dataclass
 class StoneThrow:
     bounds: ClassVar[np.ndarray] = np.array([
-        (2, 4),
+        (1.3, 2.),
         (-.1, .1),
         (-4, 4)
     ]).astype(float)
@@ -284,3 +284,5 @@ class StoneThrow:
     velocity: float
     angle: float
     spin: float
+    def __post_init__(self):
+        self.velocity **= 2
