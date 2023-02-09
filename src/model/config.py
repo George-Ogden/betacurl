@@ -10,11 +10,11 @@ class ModelConfig:
     output_activation:  str = "sigmoid"
 
 @dataclass
-class SimpleLinearModelConfig(ModelConfig):
+class MLPModelConfig(ModelConfig):
     hidden_size: int = 128
 
 @dataclass
-class FCNNConfig(SimpleLinearModelConfig):
+class FCNNConfig(MLPModelConfig):
     dropout: float = .1
     hidden_layers: int = 3
 

@@ -3,13 +3,13 @@ from tensorflow import keras
 
 from typing import Optional
 
-from .config import SimpleLinearModelConfig
+from .config import MLPModelConfig
 from .base import ModelFactory
 
-class SimpleLinearModelFactory(ModelFactory):
-    CONFIG_CLASS = SimpleLinearModelConfig
+class MLPModelFactory(ModelFactory):
+    CONFIG_CLASS = MLPModelConfig
     @classmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[SimpleLinearModelConfig] = SimpleLinearModelConfig()) -> Model:
+    def create_model(cls, input_size: int, output_size: int, config: Optional[MLPModelConfig] = MLPModelConfig()) -> Model:
         return keras.Sequential(name="simple_linear",
             layers=[
                 keras.Input(shape=(input_size,)),
