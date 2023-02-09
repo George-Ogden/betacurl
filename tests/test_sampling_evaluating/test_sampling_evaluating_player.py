@@ -41,8 +41,8 @@ distinguishable_arena = Arena(players=[clear_distinction, RandomPlayer],game=sin
 def test_in_bounds_evaluator():
     single_end_game.reset()
     evaluator = InBoundsEvaluator(single_end_game.game_spec.observation_spec)
-    assert evaluator.evaluate(single_end_game.sample(np.array([2.25, 0, 0])).observation)\
-         != evaluator.evaluate(single_end_game.sample(np.array([4, 0, 0])).observation)
+    assert evaluator.evaluate(single_end_game.sample(np.array([1.41, 0, 0])).observation)\
+         != evaluator.evaluate(single_end_game.sample(np.array([2, 0, 0])).observation)
 
 def test_training_and_evaluation_matter():
     single_end_game.reset()
