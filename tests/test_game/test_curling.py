@@ -2,26 +2,26 @@ from dm_env._environment import StepType
 import numpy as np
 import pytest
 
-from src.curling import SimulationConstants, SingleEndCurlingGame, CURLING_GAME
+from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, Stone, StoneColor, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(dt=.02)
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, 0, 0))
+        return np.array((1.41, 0, 0))
 
 class ConsistentLeftPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, 5e-2, 0))
+        return np.array((1.41, 5e-2, 0))
 
 class ConsistentRightPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, -5e-2, 0))
+        return np.array((1.41, -5e-2, 0))
 
 class OutOfBoundsPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((3, 1e-1, 0))
+        return np.array((2, 1e-1, 0))
 
 single_end_game = SingleEndCurlingGame()
 accurate_game = SingleEndCurlingGame(accurate_constants)
@@ -35,6 +35,7 @@ out_of_bounds_player = OutOfBoundsPlayer(single_end_game.game_spec)
 
 random_arena = Arena([RandomPlayer, RandomPlayer], single_end_game)
 forced_arena = Arena([ConsistentLeftPlayer, ConsistentPlayer], single_end_game)
+
 
 def validate_mask(observation: np.ndarray):
     positions = single_end_game.get_positions(observation)
@@ -159,7 +160,7 @@ def test_symmetries_are_reasonable():
 
         reward_delta = reward / original_reward
         position_delta = np.nan_to_num(original_action[1] / action[1], 1)
-        assert original_action[0] == action[0] and np.allclose(original_action[1], action[1] * position_delta) and np.allclose(original_action[2], action[2] * position_delta)
+        assert np.allclose(original_action[0], action[0]) and np.allclose(original_action[1], action[1] * position_delta) and np.allclose(original_action[2], action[2] * position_delta)
 
         positions = single_end_game.get_positions(observation)
         original_positions = single_end_game.get_positions(original_observation)
@@ -195,10 +196,10 @@ def test_symmetries_are_reasonable():
 
 def test_six_stone_rule_violation():
     accurate_game.reset()
-    accurate_game.step(action=np.array((2.1, 0, 0)))
+    accurate_game.step(action=np.array((1.35, 0, 0)))
     position = accurate_game.curling.stones[0].position.copy()
     color = accurate_game.curling.stones[0].color
-    accurate_game.step(action=np.array((3, 0, 0)))
+    accurate_game.step(action=np.array((2., 0, 0)))
     assert len(accurate_game.curling.stones) == 1
     assert (accurate_game.curling.stones[0].position == position).all()
     assert accurate_game.curling.stones[0].color == color
@@ -206,26 +207,26 @@ def test_six_stone_rule_violation():
 def test_six_stone_rule_non_violation():
     accurate_game.reset()
     for i in range(6):
-        accurate_game.step(action=np.array((2.15, 0, 0)))
-    accurate_game.step(action=np.array((4, 7e-3, 0)))
+        accurate_game.step(action=np.array((1.35, 0, 0)))
+    accurate_game.step(action=np.array((2., 7e-3, 0)))
     assert len(accurate_game.curling.stones) < 6
 
 def test_six_stone_rule_in_house_non_violation():
     accurate_game.reset()
-    accurate_game.step(action=np.array((2.22, 0, 0)))
+    accurate_game.step(action=np.array((1.41, 0, 0)))
     position = accurate_game.curling.stones[0].position.copy()
     color = accurate_game.curling.stones[0].color
-    accurate_game.step(action=np.array((3, 0, 0)))
+    accurate_game.step(action=np.array((2., 0, 0)))
     assert len(accurate_game.curling.stones) == 0 or\
         ((accurate_game.curling.stones[0].position != position).all() and\
         accurate_game.curling.stones[0].color != color)
 
 def test_six_stone_rule_in_house_non_violation_both_out():
     accurate_game.reset()
-    accurate_game.step(action=np.array((2.22, 0, 0)))
+    accurate_game.step(action=np.array((1.41, 0, 0)))
     position = accurate_game.curling.stones[0].position.copy()
     color = accurate_game.curling.stones[0].color
-    accurate_game.step(action=np.array((4, 0.005, 0)))
+    accurate_game.step(action=np.array((2., 0.005, 0)))
     assert len(accurate_game.curling.stones) == 0 or\
         ((accurate_game.curling.stones[0].position != position).all() and\
         accurate_game.curling.stones[0].color != color)
@@ -233,28 +234,29 @@ def test_six_stone_rule_in_house_non_violation_both_out():
 def test_six_stone_rule_non_violation_edge_case():
     accurate_game.reset()
     for i in range(5):
-        accurate_game.step(action=np.array((2.15, 0, 0)))
-    accurate_game.step(action=np.array((4, 7e-3, 0)))
+        accurate_game.step(action=np.array((1.35, 0, 0)))
+    accurate_game.step(action=np.array((2., 7e-3, 0)))
     assert len(accurate_game.curling.stones) < 5
 
 def test_six_stone_rule_violation_edge_case():
     accurate_game.reset()
     for i in range(4):
-        accurate_game.step(action=np.array((2.15, 0, 0)))
+        accurate_game.step(action=np.array((1.35, 0, 0)))
     positions = [stone.position.copy() for stone in accurate_game.curling.stones]
-    accurate_game.step(action=np.array((4, 7e-3, 0)))
+    accurate_game.step(action=np.array((2., 7e-3, 0)))
     assert len(accurate_game.curling.stones) == 4
     for position, stone in zip(positions, accurate_game.curling.stones):
         assert (stone.position == position).all()
 
 def test_in_house_evaluation():
     single_end_game.reset()
-    single_end_game.step(action=np.array((2.25, 0, 0)))
+    single_end_game.step(action=np.array((1.42, 0, 0)))
     assert single_end_game.evaluate_position() == -single_end_game.stone_to_play
 
 def test_out_of_house_evaluation():
     single_end_game.reset()
-    single_end_game.step(action=np.array((2, 0, 0)))
+    single_end_game.curling.stones.append(Stone(StoneColor.RED, position=(0, -Curling.tee_line_position - Curling.target_radii[-1] - Stone.outer_radius * 2)))
+    single_end_game.curling.stones.append(Stone(StoneColor.RED, position=(0, -Curling.tee_line_position + Curling.target_radii[-1] + Stone.outer_radius * 2)))
     assert single_end_game.evaluate_position() == 0
 
 def test_drawn_game_where_player_1_starts():
