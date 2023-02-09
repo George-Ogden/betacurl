@@ -19,9 +19,10 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         self.latent_size = config.latent_size
         self.setup_model(action_spec, observation_spec, model_factory, self.latent_size)
 
-    def setup_model(self, action_spec, observation_spec, model_factory, latent_size):
+    def setup_model(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory, latent_size: int = 0) -> tf.keras.Model:
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="sigmoid")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape), config=config)
+        return self.model
 
     def preprocess_observations(self, observations: tf.Tensor) -> tf.Tensor:
         observations -= self.observation_range[0]

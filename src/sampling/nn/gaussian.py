@@ -10,12 +10,12 @@ from typing import Callable, List, Tuple
 from dm_env.specs import BoundedArray
 
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ..config import GaussianNNSamplerConfig
+from ..config import GaussianSamplerConfig
 from .nn import NNSamplingStrategy
 
 class GaussianSamplingStrategy(NNSamplingStrategy):
-    CONFIG_CLASS = GaussianNNSamplerConfig
-    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: GaussianNNSamplerConfig = GaussianNNSamplerConfig()):
+    CONFIG_CLASS = GaussianSamplerConfig
+    def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: GaussianSamplerConfig = GaussianSamplerConfig()):
         super().__init__(action_spec, observation_spec, model_factory, config)
         self.action_mean = (self.action_range[0] + self.action_range[1]) / 2
         
@@ -23,10 +23,10 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         self.clip_ratio = config.clip_ratio
         self.max_grad_norm = config.max_grad_norm
     
-    def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0):
+    def setup_model(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory, latent_size: int = 0)  -> tf.keras.Model:
         config = model_factory.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
-        self.train_iterations = 0
+        return self.model
     
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
         # use distribution rather than sampling from noise
