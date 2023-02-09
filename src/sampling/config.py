@@ -17,8 +17,12 @@ class NNSamplerConfig(SamplerConfig):
     """size of additional noise vector used to produce variation"""
 
 @dataclass
-class GaussianNNSamplerConfig(NNSamplerConfig):
+class GaussianSamplerConfig(NNSamplerConfig):
     latent_size: ClassVar[int] = 0
     clip_ratio: float = .1
     """PPO clip ratio"""
     max_grad_norm: float = .5
+
+@dataclass
+class SharedTorsoSamplerConfig(GaussianSamplerConfig):
+    feature_dim: int = 32

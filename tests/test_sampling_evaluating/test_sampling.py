@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.sampling import GaussianNNSamplerConfig, GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
+from src.sampling import GaussianSamplerConfig, GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
 from src.model.constant import ZeroModel, OneModel
 
@@ -105,7 +105,7 @@ def test_gaussian_config():
     strategy = GaussianSamplingStrategy(
         action_spec=move_spec,
         observation_spec=observation_spec,
-        config=GaussianNNSamplerConfig(
+        config=GaussianSamplerConfig(
             clip_ratio=.2,
             max_grad_norm=1.
         )
