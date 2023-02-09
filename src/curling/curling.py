@@ -74,7 +74,7 @@ class Curling:
             velocity=stone_throw.velocity,
             angle=stone_throw.angle,
             spin=stone_throw.spin,
-            position=(0, -self.starting_button_distance -self.tee_line_position),
+            position=(0, -self.pitch_length+self.hog_line_position),
             curling_constants=self.constants
         )
 
