@@ -7,6 +7,7 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
+from tests.test_sampling_evaluating.test_evaluation import evaluation_strategy_test, evaluation_batch_strategy_test
 from tests.test_sampling_evaluating.test_sampling import sampling_batch_strategy_test, sampling_strategy_test
 from tests.utils import StubGame, SparseStubGame
 from tests.config import probabilistic, slow
@@ -38,3 +39,9 @@ def test_sampling():
 
 def test_batch_sampling():
     sampling_batch_strategy_test(strategy)
+
+def test_evaluation():
+    evaluation_strategy_test(strategy)
+
+def test_batch_evaluation():
+    evaluation_batch_strategy_test(strategy)
