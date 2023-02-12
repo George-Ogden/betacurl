@@ -18,6 +18,7 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     def setup_model(self, observation_spec: BoundedArray, model_factory: ModelFactory) -> tf.keras.Model:
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape), output_size=1, config=config)
+        return self.model
 
     def evaluate(self, observations: np.ndarray) -> float:
         batched_throughput = False
