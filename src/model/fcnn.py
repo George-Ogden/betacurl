@@ -7,10 +7,11 @@ from .config import FCNNConfig
 from .base import ModelFactory
 
 class MultiLayerModelFactory(ModelFactory):
+    NAME = "multi_layer_model"
     CONFIG_CLASS = FCNNConfig
     @classmethod
     def create_model(cls, input_size: int, output_size: int, config: Optional[FCNNConfig] = FCNNConfig()) -> Model:
-        return keras.Sequential(name="multi_layer_model",
+        return keras.Sequential(name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
             ] + [
