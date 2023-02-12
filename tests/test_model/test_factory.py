@@ -3,7 +3,7 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
+from src.model import DenseModelFactory, MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
 
 def generic_factory_test(Factory: ModelFactory):
     model = Factory.create_model(
@@ -60,3 +60,15 @@ def test_config_applied_to_multi_layer_model():
             assert layer.rate == .2
 
     assert len(long_model.layers) > len(short_model.layers)
+
+def test_general_distinctness():
+    name1 = ModelFactory.get_name()
+    name2 = ModelFactory.get_name()
+    assert name1 != name2
+
+def test_model_uniqueness():
+    names = set()
+    for Model in MLPModelFactory, MultiLayerModelFactory, DenseModelFactory:
+        for _ in range(10):
+            names.add(Model.get_name())
+    assert len(names) == 30
