@@ -7,6 +7,7 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
+from tests.test_sampling_evaluating.test_sampling import sampling_batch_strategy_test, sampling_strategy_test
 from tests.utils import StubGame, SparseStubGame
 from tests.config import probabilistic, slow
 
@@ -24,23 +25,16 @@ class InBoundsEvaluator(EvaluationStrategy):
 stub_game = StubGame()
 move_spec = stub_game.game_spec.move_spec
 observation_spec = stub_game.game_spec.observation_spec
-sparse_stub_game = SparseStubGame(2)
-single_end_game = SingleEndCurlingGame()
-clear_distinction = lambda game_spec: SamplingEvaluatingPlayer(
-    game_spec,
-    SamplingStrategyClass=RandomSamplingStrategy,
-    EvaluationStrategyClass=InBoundsEvaluator,
-    config=SamplingEvaluatingPlayerConfig(
-        num_train_samples=10,
-        num_eval_samples=100,
-        epsilon=1
-    )
-)
-player = clear_distinction(single_end_game.game_spec)
 
-distinguishable_arena = Arena(players=[clear_distinction, RandomPlayer],game=single_end_game)
+strategy = SharedTorsoSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
 
 def test_construction():
     sampler = SharedTorsoSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     outputs = sampler.model(np.expand_dims(stub_game.get_observation(), 0))
     assert len(outputs) == 2
+
+def test_sampling():
+    sampling_strategy_test(strategy)
+
+def test_batch_sampling():
+    sampling_batch_strategy_test(strategy)
