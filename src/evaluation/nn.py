@@ -19,6 +19,9 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
         self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape), output_size=1, config=config)
         return self.model
+    
+    def postprocess_values(self, values: tf.Tensor) -> tf.Tensor:
+        return values
 
     def evaluate(self, observations: np.ndarray) -> float:
         batched_throughput = False
@@ -29,6 +32,7 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
         input = observations.reshape(-1, np.product(self.observation_shape))
 
         evaluations = self.model.predict(input, batch_size=256, verbose=0)
+        evaluations = self.postprocess_values(evaluations)
 
         evaluations = tf.squeeze(evaluations, -1)
         if not batched_throughput:

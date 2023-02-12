@@ -30,6 +30,10 @@ class SharedTorsoSamplingStrategy(GaussianSamplingStrategy, NNEvaluationStrategy
     def postprocess_actions(self, samples: tf.Tensor) -> tf.Tensor:
         actions, values = samples
         return super().postprocess_actions(actions)
+    
+    def postprocess_values(self, samples: tf.Tensor) -> tf.Tensor:
+        actions, values = samples
+        return super().postprocess_values(values)
 
     def learn(
         self,
