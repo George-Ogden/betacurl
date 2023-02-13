@@ -1,5 +1,5 @@
-from src.game import Coach, CoachConfig, SamplingEvaluatingPlayerConfig
-from src.sampling import GaussianSamplingStrategy
+from src.game import CoachConfig, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
+from src.sampling import SharedTorsoSamplerConfig
 from src.curling import CURLING_GAME
 import wandb
 
@@ -8,10 +8,9 @@ from typing import get_type_hints
 from dataclasses import asdict, is_dataclass
 import argparse
 
-SamplingStrategyClass = GaussianSamplingStrategy
 initial_config = CoachConfig(
     player_config=SamplingEvaluatingPlayerConfig(
-        sampler_config=SamplingStrategyClass.CONFIG_CLASS()
+        sampler_config=SharedTorsoSamplerConfig()
     )
 )
 
@@ -29,10 +28,9 @@ def main(args):
     coach_config = initial_config
     set_attributes(coach_config)
 
-    coach = Coach(
+    coach = SharedTorsoCoach(
         game=CURLING_GAME,
-        config=coach_config,
-        SamplingStrategyClass=SamplingStrategyClass,
+        config=coach_config
     )
     coach.learn()
 

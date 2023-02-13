@@ -103,7 +103,7 @@ class Coach(SaveableObject):
             print(f"Starting iteration {iteration}")
             train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
-            for i in trange(self.num_games_per_episode, desc="Self play"):
+            for i in trange(self.num_games_per_episode, desc="Playing episode"):
                 result, game_history = train_arena.play_game(starting_player=i % 2, return_history=True, training=True)
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
