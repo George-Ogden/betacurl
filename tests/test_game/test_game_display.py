@@ -12,15 +12,15 @@ accurate_constants = SimulationConstants(dt=.02)
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, 0, 0))
+        return np.array((1.41, 0, 0))
 
 class ConsistentLeftPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, 5e-2, 0))
+        return np.array((1.41, 5e-2, 0))
 
 class ConsistentRightPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
-        return np.array((2.25, -5e-2, 0))
+        return np.array((1.41, -5e-2, 0))
 
 class OutOfBoundsPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
