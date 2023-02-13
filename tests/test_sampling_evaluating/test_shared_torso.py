@@ -1,7 +1,7 @@
 from typing import Optional
 import numpy as np
 
-from src.sampling import SamplingStrategy, SharedTorsoSamplingStrategy
+from src.sampling import SamplingStrategy, SharedTorsoSamplingEvaluatingStrategy
 from src.evaluation import EvaluationStrategy
 
 from tests.test_sampling_evaluating.test_evaluation import evaluation_strategy_test, evaluation_batch_strategy_test
@@ -24,10 +24,10 @@ stub_game = StubGame()
 move_spec = stub_game.game_spec.move_spec
 observation_spec = stub_game.game_spec.observation_spec
 
-strategy = SharedTorsoSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
+strategy = SharedTorsoSamplingEvaluatingStrategy(action_spec=move_spec, observation_spec=observation_spec)
 
 def test_construction():
-    sampler = SharedTorsoSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
+    sampler = SharedTorsoSamplingEvaluatingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     outputs = sampler.model(np.expand_dims(stub_game.get_observation(), 0))
     assert len(outputs) == 2
 

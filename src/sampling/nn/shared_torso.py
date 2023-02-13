@@ -10,7 +10,7 @@ from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
 from ..config import SharedTorsoSamplerConfig
 from .gaussian import GaussianSamplingStrategy
 
-class SharedTorsoSamplingStrategy(GaussianSamplingStrategy, NNEvaluationStrategy):
+class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluationStrategy):
     CONFIG_CLASS = SharedTorsoSamplerConfig
     DEFAULT_MODEL_FILE = "model.h5"
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: SharedTorsoSamplerConfig = SharedTorsoSamplerConfig()):

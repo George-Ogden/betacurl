@@ -4,7 +4,7 @@ import numpy as np
 
 from typing import Callable, List, Optional, Tuple, Union
 
-from ...sampling import SamplerConfig, SharedTorsoSamplingStrategy
+from ...sampling import SamplerConfig, SharedTorsoSamplingEvaluatingStrategy
 from ...model import TrainingConfig
 
 from ..game import GameSpec
@@ -31,8 +31,8 @@ class SharedTorsoSamplingEvaluatingPlayer(SamplingEvaluatingPlayer):
         EvaluationStrategyClass = None,
         config = Union[SamplerConfig, dict]
     ):
-        config = SharedTorsoSamplingStrategy.CONFIG_CLASS(**config)
-        self.sampler_evaluator = SharedTorsoSamplingStrategy(
+        config = SharedTorsoSamplingEvaluatingStrategy.CONFIG_CLASS(**config)
+        self.sampler_evaluator = SharedTorsoSamplingEvaluatingStrategy(
             action_spec=game_spec.move_spec,
             observation_spec=game_spec.observation_spec,
             config=config
