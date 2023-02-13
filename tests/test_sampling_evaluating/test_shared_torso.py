@@ -1,15 +1,12 @@
 from typing import Optional
 import numpy as np
 
-from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy, SharedTorsoSamplingStrategy
-from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
-from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.curling import SingleEndCurlingGame
-from src.game import Arena, RandomPlayer
+from src.sampling import SamplingStrategy, SharedTorsoSamplingStrategy
+from src.evaluation import EvaluationStrategy
 
 from tests.test_sampling_evaluating.test_evaluation import evaluation_strategy_test, evaluation_batch_strategy_test
 from tests.test_sampling_evaluating.test_sampling import sampling_batch_strategy_test, sampling_strategy_test
-from tests.utils import StubGame, SparseStubGame
+from tests.utils import StubGame
 from tests.config import probabilistic, slow
 
 class MaximumSamplingStrategy(SamplingStrategy):

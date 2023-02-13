@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
-from dm_env.specs import BoundedArray
-from numpy.typing import ArrayLike
-
-from copy import copy
 import numpy as np
+
+from typing import Callable, List, Optional, Tuple, Union
 
 from ...sampling import SamplerConfig, SharedTorsoSamplingStrategy
 from ...model import TrainingConfig
@@ -14,7 +11,6 @@ from ..game import GameSpec
 
 from .sampling_evaluating import SamplingEvaluatingPlayer
 from .config import SamplingEvaluatingPlayerConfig
-from .base import Player
 
 class SharedTorsoSamplingEvaluatingPlayer(SamplingEvaluatingPlayer):
     SEPARATE_ATTRIBUTES = ["sampler_evaluator"]
