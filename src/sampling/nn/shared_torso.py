@@ -60,7 +60,7 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
             actions=actions,
             advantages=advantages
         )
-        
+
         value_loss = losses.mean_squared_error(rewards, tf.squeeze(predicted_values, axis=-1))
 
         log_ratio = self.compute_log_probs(predicted_distribution, actions) - self.compute_log_probs(target_distribution, actions)
