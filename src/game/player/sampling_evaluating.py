@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
 
 from copy import copy
 import numpy as np
 
+from ...sampling import NNSamplingStrategy, SamplerConfig, SamplingStrategy
 from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ...sampling import NNSamplingStrategy, SamplingStrategy
 from ...model import Learnable, TrainingConfig
 
 from ..game import Game, GameSpec
@@ -36,17 +36,17 @@ class SamplingEvaluatingPlayer(Player, Learnable):
             game_spec=game_spec,
             SamplingStrategyClass=SamplingStrategyClass,
             EvaluationStrategyClass=EvaluationStrategyClass,
-            config=config
+            config=config.sampler_config
         )
 
     def setup_sampler_evaluator(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy],
-        EvaluationStrategyClass: Optional[SamplingEvaluatingPlayerConfig]=SamplingEvaluatingPlayerConfig(), 
-        config = Optional[SamplingEvaluatingPlayerConfig]
+        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
+        config = Union[SamplerConfig, dict]
     ):
-        sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config.sampler_config)
+        sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config)
             
         self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, config=sampler_config)
         self.evaluator: EvaluationStrategy = EvaluationStrategyClass(observation_spec=game_spec.observation_spec)

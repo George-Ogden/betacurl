@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
 
 from copy import copy
 import numpy as np
 
-from ...sampling import SharedTorsoSamplingStrategy
+from ...sampling import SamplerConfig, SharedTorsoSamplingStrategy
 from ...model import TrainingConfig
 
 from ..game import GameSpec
@@ -25,17 +25,15 @@ class SharedTorsoSamplingEvaluatingPlayer(SamplingEvaluatingPlayer):
     ):
         super().__init__(
             game_spec=game_spec,
-            SamplingStrategyClass=None,
-            EvaluationStrategyClass=None,
-            config=config
+            config=config.sampler_config
             )
     
     def setup_sampler_evaluator(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass,
-        EvaluationStrategyClass,
-        config=SamplingEvaluatingPlayerConfig
+        SamplingStrategyClass = None,
+        EvaluationStrategyClass = None,
+        config = Union[SamplerConfig, dict]
     ):
         self.sampler_evaluator = SharedTorsoSamplingStrategy(
             action_spec=game_spec.move_spec,
