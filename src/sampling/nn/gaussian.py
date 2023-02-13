@@ -100,7 +100,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
-        optimizer.clip_norm = self.max_grad_norm
+        optimizer.clipnorm = self.max_grad_norm
         batch_size = training_config.batch_size
         training_config.metrics = []
 
