@@ -70,12 +70,20 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             )
         )
 
+        return self.ppo_clip_loss(
+            predicted_distribution=predicted_distribution,
+            target_distribution=target_distribution,
+            actions=actions,
+            advantages=rewards
+        )
+
+    def ppo_clip_loss(self, predicted_distribution: distributions.Distribution, target_distribution: distributions.Distribution, actions: tf.Tensor, advantages: tf.Tensor) -> tf.Tensor:
         log_probs = self.compute_log_probs(predicted_distribution, actions)
         target_log_probs = self.compute_log_probs(target_distribution, actions)
         ratio = tf.exp(log_probs - target_log_probs)
 
-        loss_1 = rewards * ratio
-        loss_2 = rewards * tf.clip_by_value(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio)
+        loss_1 = advantages * ratio
+        loss_2 = advantages * tf.clip_by_value(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio)
         loss = tf.math.minimum(loss_1, loss_2)
 
         return -tf.reduce_mean(loss)
@@ -120,6 +128,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             for step, batch in enumerate(val_dataset.batch(batch_size)):
                 val_loss += self.compute_loss(*batch)
             callback.on_epoch_end(epoch, {"loss": loss / len(train_dataset), "val_loss": val_loss / len(val_dataset)})
+            print("Loss:",loss, val_loss, )
             if self.model.stop_training:
                 break
         callback.on_train_end()

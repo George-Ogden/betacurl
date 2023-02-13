@@ -26,3 +26,4 @@ class GaussianSamplerConfig(NNSamplerConfig):
 @dataclass
 class SharedTorsoSamplerConfig(GaussianSamplerConfig):
     feature_dim: int = 32
+    vf_coefficient: float = .5
