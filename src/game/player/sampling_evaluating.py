@@ -32,16 +32,30 @@ class SamplingEvaluatingPlayer(Player, Learnable):
 
         super().__init__(game_spec)
 
+        self.setup_sampler_evaluator(
+            game_spec=game_spec,
+            SamplingStrategyClass=SamplingStrategyClass,
+            EvaluationStrategyClass=EvaluationStrategyClass,
+            config=config
+        )
+
+    def setup_sampler_evaluator(
+        self,
+        game_spec: GameSpec,
+        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy],
+        EvaluationStrategyClass: Optional[SamplingEvaluatingPlayerConfig]=SamplingEvaluatingPlayerConfig(), 
+        config = Optional[SamplingEvaluatingPlayerConfig]
+    ):
         sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config.sampler_config)
             
         self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, config=sampler_config)
         self.evaluator: EvaluationStrategy = EvaluationStrategyClass(observation_spec=game_spec.observation_spec)
 
-    def train(self) -> SamplingEvaluatingPlayer:
+    def train(self) -> "Self":
         self.num_samples = self.num_train_samples
         return super().train()
 
-    def eval(self) -> SamplingEvaluatingPlayer:
+    def eval(self) -> "Self":
         self.num_samples = self.num_eval_samples
         return super().eval()
 
