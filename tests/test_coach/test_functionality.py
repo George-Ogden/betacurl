@@ -2,7 +2,7 @@ from glob import glob
 from copy import copy
 import os
 
-from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
 from src.sampling import RandomSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
 from src.model import  TrainingConfig
@@ -245,3 +245,28 @@ def test_logs_format(capsys):
     output = capsys.readouterr()
     assert not "{" in output
     assert not "}" in output
+
+@probabilistic
+@requires_cleanup
+def test_shared_model_learns():
+    max_move = SparseStubGame.max_move
+    SparseStubGame.max_move = 1
+    game = SparseStubGame(2)
+    coach = SharedTorsoCoach(
+        game=game,
+        config=CoachConfig(
+            save_directory=SAVE_DIR,
+            resume_from_checkpoint=False,
+            num_games_per_episode=4,
+            num_iterations=3,
+        )
+    )
+
+    coach.learn()
+
+    arena = Arena(game=game, players=[coach.best_player.dummy_constructor, RandomPlayer])
+    wins, losses = arena.play_games(10)
+    assert wins >= 8
+
+    # cleanup
+    SparseStubGame.max_move = max_move
