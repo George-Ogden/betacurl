@@ -25,7 +25,7 @@ class SharedTorsoSamplingEvaluatingPlayer(SamplingEvaluatingPlayer):
     ):
         super().__init__(
             game_spec=game_spec,
-            config=config.sampler_config
+            config=config
             )
     
     def setup_sampler_evaluator(
@@ -35,11 +35,18 @@ class SharedTorsoSamplingEvaluatingPlayer(SamplingEvaluatingPlayer):
         EvaluationStrategyClass = None,
         config = Union[SamplerConfig, dict]
     ):
+        config = SharedTorsoSamplingStrategy.CONFIG_CLASS(**config)
         self.sampler_evaluator = SharedTorsoSamplingStrategy(
             action_spec=game_spec.move_spec,
             observation_spec=game_spec.observation_spec,
             config=config
         )
+
+    def evaluate(self, observations: np.ndarray) -> Union[float, np.ndarray]:
+        return self.sampler_evaluator.evaluate(observations)
+
+    def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
+        return self.sampler_evaluator.generate_actions(observation, n)
 
     def learn(
         self,
