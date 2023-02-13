@@ -22,7 +22,7 @@ class SingleEndCurlingGame(Game):
                 shape=(len(StoneThrow.bounds), )
             ),
             observation_spec=BoundedArray(
-                minimum=(min(StoneColor.RED, StoneColor.YELLOW),) + (0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
+                minimum=(min(StoneColor.RED, StoneColor.YELLOW),) + (0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length / 2) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
                 maximum=(max(StoneColor.RED, StoneColor.YELLOW),) + (1,) * self.num_stones_per_end + (self.curling.pitch_width / 2, 0) * self.num_stones_per_end + (1,) * self.num_stones_per_end,
                 dtype=np.float32,
                 shape = (1 + self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
