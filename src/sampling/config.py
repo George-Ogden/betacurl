@@ -6,7 +6,7 @@ import typing
 @dataclass
 class SamplerConfig:
     def keys(self) -> List[str]:
-        return list(filter(lambda key: typing.get_origin(self.__annotations__[key]) is not ClassVar, self.__dataclass_fields__.keys()))
+        return self.__match_args__
 
     def __getitem__(self, key):
         return getattr(self, key)

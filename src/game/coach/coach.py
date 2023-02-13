@@ -28,7 +28,7 @@ class Coach(SaveableObject):
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
-        self.player = SamplingEvaluatingPlayer(
+        self.setup_player(
             game_spec=game.game_spec,
             SamplingStrategyClass=SamplingStrategyClass,
             EvaluationStrategyClass=EvaluationStrategyClass,
@@ -54,6 +54,20 @@ class Coach(SaveableObject):
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
         self.model_filename = config.model_filenames
+
+    def setup_player(
+        self,
+        game_spec: GameSpec,
+        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
+        config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+    ):
+        self.player = SamplingEvaluatingPlayer(
+            game_spec=game_spec,
+            SamplingStrategyClass=SamplingStrategyClass,
+            EvaluationStrategyClass=EvaluationStrategyClass,
+            config=config
+        )
 
     @property
     def best_checkpoint_path(self) -> str:

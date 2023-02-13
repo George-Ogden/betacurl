@@ -23,7 +23,7 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     def postprocess_values(self, values: tf.Tensor) -> tf.Tensor:
         return values
 
-    def evaluate(self, observations: np.ndarray) -> float:
+    def evaluate(self, observations: np.ndarray) -> np.ndarray:
         batched_throughput = False
         if observations.shape != self.observation_shape:
             assert observations.shape[1:] == self.observation_shape

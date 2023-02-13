@@ -128,7 +128,6 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             for step, batch in enumerate(val_dataset.batch(batch_size)):
                 val_loss += self.compute_loss(*batch)
             callback.on_epoch_end(epoch, {"loss": loss / len(train_dataset), "val_loss": val_loss / len(val_dataset)})
-            print("Loss:",loss, val_loss, )
             if self.model.stop_training:
                 break
         callback.on_train_end()

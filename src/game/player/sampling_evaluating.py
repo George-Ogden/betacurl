@@ -59,8 +59,14 @@ class SamplingEvaluatingPlayer(Player, Learnable):
         self.num_samples = self.num_eval_samples
         return super().eval()
 
+    def evaluate(self, observations: np.ndarray) -> Union[float, np.ndarray]:
+        return self.evaluator.evaluate(observations)
+    
+    def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
+        return self.sampler.generate_actions(observation, n)
+
     def move(self, game: Game) -> np.ndarray:
-        potential_actions = self.sampler.generate_actions(observation=game.get_observation(), n=self.num_samples)
+        potential_actions = self.generate_actions(observation=game.get_observation(), n=self.num_samples)
         if self.is_training and np.random.random() < self.epsilon:
             return potential_actions[np.random.randint(len(potential_actions))]
         return self.get_best_move_from_samples(game, potential_actions)
@@ -70,7 +76,7 @@ class SamplingEvaluatingPlayer(Player, Learnable):
         next_observations = np.stack([time_step.observation for time_step in next_time_steps], axis=0)
         rewards = np.array([time_step.reward for time_step in next_time_steps], dtype=np.float32)
         if np.isnan(rewards).any():
-            rewards[np.isnan(rewards)] = self.evaluator.evaluate(next_observations[np.isnan(rewards)])
+            rewards[np.isnan(rewards)] = self.evaluate(next_observations[np.isnan(rewards)])
         best_action = potential_actions[(rewards * game.player_delta).argmax()]
         return best_action
 
