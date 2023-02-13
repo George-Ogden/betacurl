@@ -1,12 +1,11 @@
-from tensorflow.keras import callbacks, layers, losses
+from tensorflow.keras import losses
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
 from ...evaluation import NNEvaluationStrategy
-from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
 
 from ..config import SharedTorsoSamplerConfig
 from .gaussian import GaussianSamplingStrategy
