@@ -26,18 +26,18 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
 
     def preprocess_observations(self, observations: tf.Tensor) -> tf.Tensor:
         observations -= self.observation_range[0]
-        observations /= np.diff(self.observation_range, axis=0)
+        observations /= np.diff(self.observation_range, axis=0).squeeze(0)
         return observations * 2 - 1
 
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
         actions = tf.reshape(actions, shape=(-1, *self.action_shape))
-        actions *= self.action_range[1] - self.action_range[0]
+        actions *= np.diff(self.action_range, axis=0).squeeze(0)
         actions += self.action_range[0]
         return actions
 
     def normalise_outputs(self, actions: np.ndarray) -> np.ndarray:
         actions -= self.action_range[0]
-        actions /= self.action_range[1] - self.action_range[0]
+        actions /= np.diff(self.action_range, axis=0).squeeze(0)
         return actions
 
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 1.) -> np.ndarray:
