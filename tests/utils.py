@@ -87,3 +87,13 @@ class EpochCounter(callbacks.Callback):
     
     def on_epoch_begin(self, *args, **kwargs):
         self.counter += 1
+
+def find_hidden_size(layers):
+    for layer in layers:
+        if hasattr(layer, "units"):
+            if layer.units == 63:
+                return True
+        elif hasattr(layer, "layers"):
+            if find_hidden_size(layer.layers):
+                return True
+    return False

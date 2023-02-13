@@ -5,24 +5,17 @@ import numpy as np
 
 from src.model import DenseModelFactory, MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
 
+from tests.utils import find_hidden_size
+
 def generic_factory_test(Factory: ModelFactory):
     model = Factory.create_model(
         input_size=2,
         output_size=3,
         config=Factory.CONFIG_CLASS(
             output_activation="sigmoid",
-            hidden_size=32
+            hidden_size=63
         )
     )
-    def find_hidden_size(layers):
-        for layer in layers:
-            if hasattr(layer, "units"):
-                if layer.units == 32:
-                    return True
-            elif hasattr(layer, "layers"):
-                if find_hidden_size(layer.layers):
-                    return True
-        return False
     assert find_hidden_size(model.layers)
 
     assert isinstance(model, keras.Model)
