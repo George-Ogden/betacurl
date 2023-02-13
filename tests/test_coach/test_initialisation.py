@@ -216,7 +216,8 @@ def test_shared_coach_saves_separate_attributes():
                     clip_ratio=.2,
                     max_grad_norm=1.5,
                     feature_dim=63,
-                    vf_coefficient=3.
+                    target_kl=.15,
+                    vf_coef=3.
                 )
             )
         )
@@ -226,5 +227,6 @@ def test_shared_coach_saves_separate_attributes():
     assert sampler_evaluator.clip_ratio == .2
     assert sampler_evaluator.max_grad_norm == 1.5
     assert sampler_evaluator.vf_coef == 3.
+    assert sampler_evaluator.target_kl == .15
     
     assert find_hidden_size(sampler_evaluator.model.layers)

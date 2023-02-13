@@ -16,7 +16,8 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
     def __init__(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory = BEST_MODEL_FACTORY, config: SharedTorsoSamplerConfig = SharedTorsoSamplerConfig()):
         super().__init__(action_spec=action_spec, observation_spec=observation_spec, config=config, model_factory=model_factory)
         # value function coefficient for loss calculation
-        self.vf_coef = config.vf_coefficient
+        self.vf_coef = config.vf_coef
+        self.target_kl = config.target_kl
 
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0) -> tf.keras.Model:
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
@@ -62,5 +63,10 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         
         value_loss = losses.mean_squared_error(rewards, tf.squeeze(predicted_values, axis=-1))
 
-        return value_loss * 0+  policy_loss
+        log_ratio = self.compute_log_probs(predicted_distribution, actions) - self.compute_log_probs(target_distribution, actions)
+        approx_kl_div = tf.reduce_mean((tf.exp(log_ratio) - 1) - log_ratio)
+
+        if approx_kl_div > 1.5 * self.target_kl:
+            self.model.stop_training = True
+
         return policy_loss + self.vf_coef * value_loss
