@@ -72,6 +72,8 @@ class SamplingEvaluatingPlayer(Player, Learnable):
         return self.get_best_move_from_samples(game, potential_actions)
 
     def get_best_move_from_samples(self, game: Game, potential_actions: Iterable[ArrayLike]) -> np.ndarray:
+        if len(potential_actions) == 1:
+            return potential_actions[0]
         next_time_steps = [game.sample(action) for action in potential_actions]
         next_observations = np.stack([time_step.observation for time_step in next_time_steps], axis=0)
         rewards = np.array([time_step.reward for time_step in next_time_steps], dtype=np.float32)
