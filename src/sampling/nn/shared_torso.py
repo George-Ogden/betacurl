@@ -37,33 +37,33 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         actions, values = samples
         return super().postprocess_values(values)
 
-    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
+    def calculate_advantage(self, player: int, observation: np.ndarray, reward: float) -> float:
+        target_policy, target_values = self.target_model(
+            self.preprocess_observations(
+                np.expand_dims(observation, 0)
+            )
+        )
+        return reward - tf.squeeze(target_values, axis=[0, -1])
+    
+    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
         predicted_policy, predicted_values = self.model(
             self.preprocess_observations(
                 observations
             )
         )
         
-        target_policy, target_values = self.target_model(
-            self.preprocess_observations(
-                observations
-            )
-        )
-        
         predicted_distribution = self.generate_distribution(predicted_policy)
-        target_distribution = self.generate_distribution(target_policy)
-        advantages = rewards - tf.squeeze(target_values, axis=-1)
+        log_probs = self.compute_log_probs(predicted_distribution, actions)
 
         policy_loss = self.ppo_clip_loss(
-            predicted_distribution=predicted_distribution,
-            target_distribution=target_distribution,
-            actions=actions,
-            advantages=advantages
+            log_probs=log_probs,
+            target_log_probs=target_log_probs,
+            advantages=advantage
         )
 
         value_loss = losses.mean_squared_error(rewards, tf.squeeze(predicted_values, axis=-1))
 
-        log_ratio = self.compute_log_probs(predicted_distribution, actions) - self.compute_log_probs(target_distribution, actions)
+        log_ratio = log_probs - target_log_probs
         approx_kl_div = tf.reduce_mean((tf.exp(log_ratio) - 1) - log_ratio)
 
         if approx_kl_div > 1.5 * self.target_kl:

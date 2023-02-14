@@ -51,7 +51,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         log_probs = distribution.log_prob(actions)
         return tf.reduce_sum(log_probs, axis=-1)
 
-    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor) -> tf.Tensor:
+    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(
             self.model(
                 self.preprocess_observations(
@@ -59,27 +59,19 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
                 )
             )
         )
-        target_distribution = (
-            distributions.Uniform(
-                *self.action_range
-            ) if self.target_model is None else
-            self.generate_distribution(
-                self.target_model(
-                    self.preprocess_observations(observations)
-                )
-            )
-        )
-
+        
         return self.ppo_clip_loss(
-            predicted_distribution=predicted_distribution,
-            target_distribution=target_distribution,
-            actions=actions,
-            advantages=rewards
+            log_probs=self.compute_log_probs(predicted_distribution, actions),
+            target_log_probs=target_log_probs,
+            advantages=advantage
         )
 
-    def ppo_clip_loss(self, predicted_distribution: distributions.Distribution, target_distribution: distributions.Distribution, actions: tf.Tensor, advantages: tf.Tensor) -> tf.Tensor:
-        log_probs = self.compute_log_probs(predicted_distribution, actions)
-        target_log_probs = self.compute_log_probs(target_distribution, actions)
+    def ppo_clip_loss(
+        self,
+        log_probs: tf.Tensor,
+        target_log_probs: tf.Tensor,
+        advantages: tf.Tensor
+    ) -> tf.Tensor:
         ratio = tf.exp(log_probs - target_log_probs)
 
         loss_1 = advantages * ratio
@@ -106,7 +98,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
 
         history = callbacks.History()
         callback = callbacks.CallbackList(
-            training_config.callbacks + [history, callbacks.TerminateOnNaN()],
+            training_config.callbacks + [history],
             model=self.model,
             add_history=False,
             add_progbar=training_config.verbose != 0,
@@ -133,15 +125,43 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         callback.on_train_end()
         return history
 
+    def calculate_advantage(
+        self,
+        player: int,
+        observation: np.ndarray,
+        reward: float
+    ) -> float:
+        return np.sign(player) * reward
+
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
         augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
-
         self.target_model = deepcopy(self.model)
+
+        training_data = [
+            (augmented_observation,
+            augmented_action,
+            reward,
+            self.calculate_advantage(
+                player,
+                augmented_observation,
+                augmented_action,
+                augmented_reward
+            ),
+            self.compute_log_probs(
+                self.generate_distribution(
+                    self.target_model(
+                        self.preprocess_observations(
+                            augmented_observation
+                        )
+                    )
+                )
+            )
+        ) for (player, observation, action, reward) in training_history 
+            for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
         
         self.compile_model(training_config)
         dataset = self.create_dataset(training_data)
