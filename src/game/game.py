@@ -53,6 +53,10 @@ class Game(metaclass=ABCMeta):
         ...
 
     def reset(self, starting_player: Optional[int]=None) -> TimeStep:
+        """
+        Args:
+            starting_player (Optional[int], optional): 0 or 1 (or decided randomly if None). Defaults to None.
+        """
         self.pre_reset(starting_player)
         self._reset()
         return self.post_reset()
@@ -60,6 +64,7 @@ class Game(metaclass=ABCMeta):
     def pre_reset(self, starting_player: Optional[int]=None):
         if starting_player is None:
             starting_player = np.random.choice([0, 1])
+        assert starting_player in (0, 1)
         self.to_play = starting_player
         self.current_round = 0
 
