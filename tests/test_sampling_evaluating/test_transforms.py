@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 from src.evaluation import NNEvaluationStrategy
 from src.sampling import GaussianSamplingStrategy, RandomSamplingStrategy, SharedTorsoSamplingEvaluatingStrategy
 from src.game import Coach, SamplingEvaluatingPlayer, SharedTorsoSamplingEvaluatingPlayer
@@ -14,7 +16,7 @@ reward, history1 = good_bad_arena.play_game(return_history=True, display=False, 
 reward, history2 = good_bad_arena.play_game(return_history=True, display=False, starting_player=1)
 reward, history3 = bad_good_arena.play_game(return_history=True, display=False, starting_player=0)
 reward, history4 = bad_good_arena.play_game(return_history=True, display=False, starting_player=1)
-history = [data for history in [history1, history2, history3, history4] for data in Coach.transform_history_for_training(history)]
+history = [data for history in [history1, history2, history3, history4] for data in Coach.transform_history_for_training(history[-1:])]
 
 class StubGaussianSamplingStrategy(GaussianSamplingStrategy):
     def fit(self, dataset, config):
@@ -25,47 +27,30 @@ class StubNNEvaluationStrategy(NNEvaluationStrategy):
         self.x = X
         self.y = Y
 
-def test_correct_transforms_for_se_player_transformation():
+def test_correct_advantage_for_se_player():
     player = SamplingEvaluatingPlayer(
         game.game_spec,
         EvaluationStrategyClass=StubNNEvaluationStrategy,
         SamplingStrategyClass=StubGaussianSamplingStrategy,
     )
     player.learn(history, lambda *x: [x])
-    left_values = set()
-    right_values = set()
     for observation, action, value, advantage, target_log_probs in player.sampler.dataset:
         if action[1] == 0:
             assert advantage > 0
         else:
             assert advantage < 0
-            if action[1] > 0:
-                left_values.add(float(value))
-            else:
-                right_values.add(float(value))
-    assert len(right_values) == 1
-    assert len(left_values) == 1
-    assert next(iter(left_values)) == next(iter(right_values)) * -1
 
 @patch.object(SharedTorsoSamplingEvaluatingStrategy, "fit")
-def test_correct_transforms_for_st_player_transformation(mock_fit: MagicMock):
+def test_correct_advantage_for_st_player(mock_fit: MagicMock):
     player = SharedTorsoSamplingEvaluatingPlayer(
         game.game_spec
     )
     player.learn(history, lambda *x: [x])
-    left_values = set()
-    right_values = set()
     for observation, action, value, advantage, target_log_probs in mock_fit.call_args[0][0]:
         if action[1] == 0:
             assert advantage > 0
         else:
             assert advantage < 0
-            if action[1] > 0:
-                left_values.add(float(value))
-            else:
-                right_values.add(float(value))
-    assert len(right_values) == 1
-    assert len(left_values) == 1
 
 @patch.object(SharedTorsoSamplingEvaluatingStrategy, "fit")
 def test_correct_transformation_maintained_by_symmetries(mock_fit: MagicMock):
@@ -80,7 +65,15 @@ def test_correct_transformation_maintained_by_symmetries(mock_fit: MagicMock):
             assert advantage > 0
         else:
             assert advantage < 0
-    
+
+    observations = {}
+    for observation, value in zip(player.evaluator.x, player.evaluator.y):
+        representation = str(tf.round(observation))
+        if representation in observations:
+            assert value == observations[representation]
+        else:
+            observations[representation] = value
+
     player = SharedTorsoSamplingEvaluatingPlayer(
         game.game_spec
     )

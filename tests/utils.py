@@ -62,9 +62,9 @@ class SparseStubGame(StubGame):
 
 class BadSymetryStubGame(StubGame):
     def get_symmetries(
-        self, observation: np.ndarray, action: np.ndarray, reward: float
-    ) -> List[Tuple[np.ndarray, np.ndarray, float]]:
-        return [(observation * 0 + 1, action * 0 + 1, 1), (observation * 0 - 1, action * 0 + 2, -1)]
+        self, player: int, observation: np.ndarray, action: np.ndarray, reward: float
+    ) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return [(player, observation * 0 + 1, action * 0 + 1, 1), (player, observation * 0 - 1, action * 0 + 2, -1)]
 
 class GoodPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
