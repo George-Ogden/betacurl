@@ -17,9 +17,9 @@ class MaximumSamplingStrategy(SamplingStrategy):
 class InBoundsEvaluator(EvaluationStrategy):
     def evaluate(self, observations: np.ndarray) -> float:
         if observations.ndim == 1:
-            return -observations[-8:].sum() * observations[0]
+            return single_end_game.get_mask(observations).sum() * single_end_game.stone_to_play
         else:
-            return -observations[:, -8:].sum(axis=-1) * observations[:, 0]
+            return np.array([single_end_game.get_mask(observation).sum() for observation in observations]) * single_end_game.stone_to_play
 
 stub_game = StubGame()
 sparse_stub_game = SparseStubGame(2)
@@ -60,7 +60,7 @@ def test_training_and_evaluation_matter():
     assert player.is_training
 
     for i in range(10):
-        if (single_end_game.sample(player.move(single_end_game)).observation[-8] == 0).all():
+        if single_end_game.get_mask(single_end_game.sample(player.move(single_end_game)).observation)[0] == 0:
             break
     else:
         assert False, "always in bounds while training"

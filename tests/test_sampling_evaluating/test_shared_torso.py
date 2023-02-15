@@ -9,17 +9,6 @@ from tests.test_sampling_evaluating.test_sampling import sampling_batch_strategy
 from tests.utils import StubGame
 from tests.config import probabilistic, slow
 
-class MaximumSamplingStrategy(SamplingStrategy):
-    def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
-        return (super().generate_actions(observation, n) + 1) * self.action_range[1]
-
-class InBoundsEvaluator(EvaluationStrategy):
-    def evaluate(self, observations: np.ndarray) -> float:
-        if observations.ndim == 1:
-            return -observations[-8:].sum() * observations[0]
-        else:
-            return -observations[:, -8:].sum(axis=-1) * observations[:, 0]
-
 stub_game = StubGame()
 move_spec = stub_game.game_spec.move_spec
 observation_spec = stub_game.game_spec.observation_spec
