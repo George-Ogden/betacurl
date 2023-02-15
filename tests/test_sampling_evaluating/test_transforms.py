@@ -10,9 +10,11 @@ from unittest.mock import patch, MagicMock
 game = SingleEndCurlingGame()
 good_bad_arena = Arena([ConsistentPlayer, ConsistentLeftPlayer], game)
 bad_good_arena = Arena([ConsistentRightPlayer, ConsistentPlayer], game)
-reward, history1 = good_bad_arena.play_game(return_history=True, display=False)
-reward, history2 = bad_good_arena.play_game(return_history=True, display=False)
-history = Coach.transform_history_for_training(history1) + Coach.transform_history_for_training(history2)
+reward, history1 = good_bad_arena.play_game(return_history=True, display=False, starting_player=0)
+reward, history2 = good_bad_arena.play_game(return_history=True, display=False, starting_player=1)
+reward, history3 = bad_good_arena.play_game(return_history=True, display=False, starting_player=0)
+reward, history4 = bad_good_arena.play_game(return_history=True, display=False, starting_player=1)
+history = [data for history in [history1, history2, history3, history4] for data in Coach.transform_history_for_training(history)]
 
 class StubGaussianSamplingStrategy(GaussianSamplingStrategy):
     def fit(self, dataset, config):
