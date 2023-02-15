@@ -121,7 +121,7 @@ class SingleEndCurlingGame(Game):
         # flip along x
         symmetries = [(observation, action, reward), (*self.flip_x(observation.copy(), action.copy()), reward)]
         # change who played
-        symmetries += [self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries]
+        symmetries.extend([self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries])
         return symmetries
 
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -150,4 +150,4 @@ class SingleEndCurlingGame(Game):
         mask[:self.num_stones_per_end // 2] = yellow_mask
         mask[self.num_stones_per_end // 2:] = red_mask
 
-        return observation, action, -reward
+        return observation, action, reward

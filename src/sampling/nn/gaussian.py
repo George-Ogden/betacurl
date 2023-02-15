@@ -51,7 +51,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         log_probs = distribution.log_prob(actions)
         return tf.reduce_sum(log_probs, axis=-1)
 
-    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
+    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, values: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(
             self.model(
                 self.preprocess_observations(
@@ -82,8 +82,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
 
     def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer) -> np.ndarray:
         with tf.GradientTape() as tape:
-            observations, actions, rewards = batch
-            loss = self.compute_loss(observations, actions, rewards)
+            loss = self.compute_loss(*batch)
         grads = tape.gradient(loss, self.model.trainable_variables)
         optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
@@ -125,13 +124,28 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         callback.on_train_end()
         return history
 
-    def calculate_advantage(
+    def compute_advantages_and_target_log_probs(
         self,
-        player: int,
-        observation: np.ndarray,
-        reward: float
-    ) -> float:
-        return np.sign(player) * reward
+        players: tf.Tensor,
+        observations: tf.Tensor,
+        actions: tf.Tensor,
+        rewards: tf.Tensor
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
+        advantages = tf.sign(players) * rewards
+
+        target_distribution = self.generate_distribution(
+            self.target_model(
+                self.preprocess_observations(
+                    observations
+                )
+            )
+        )
+    
+        target_log_probs = self.compute_log_probs(
+            target_distribution,
+            actions
+        )
+        return advantages, target_log_probs
 
     def learn(
         self,
@@ -142,28 +156,18 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         self.target_model = deepcopy(self.model)
 
         training_data = [
-            (augmented_observation,
+            (player,
+            augmented_observation,
             augmented_action,
-            reward,
-            self.calculate_advantage(
-                player,
-                augmented_observation,
-                augmented_action,
-                augmented_reward
-            ),
-            self.compute_log_probs(
-                self.generate_distribution(
-                    self.target_model(
-                        self.preprocess_observations(
-                            augmented_observation
-                        )
-                    )
-                )
-            )
+            augmented_reward
         ) for (player, observation, action, reward) in training_history 
             for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
+        primary_dataset = self.create_dataset(training_data).batch(training_config.batch_size)
         
+        batched_transform = [(observation, action, reward) + self.compute_advantages_and_target_log_probs(player, observation, action, reward) for player, observation, action, reward in primary_dataset]
+        flattened_transform = [np.concatenate(data, axis=0) for data in zip(*batched_transform)]
+        secondary_dataset = self.create_dataset(zip(*flattened_transform))
+                
         self.compile_model(training_config)
-        dataset = self.create_dataset(training_data)
         
-        return self.fit(dataset, training_config)
+        return self.fit(secondary_dataset, training_config)

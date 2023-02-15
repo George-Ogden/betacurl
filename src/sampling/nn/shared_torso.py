@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 from dm_env.specs import BoundedArray
+from typing import Tuple
 
 from ...evaluation import NNEvaluationStrategy
 from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
@@ -37,13 +38,22 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         actions, values = samples
         return super().postprocess_values(values)
 
-    def calculate_advantage(self, player: int, observation: np.ndarray, reward: float) -> float:
+    def compute_advantages_and_target_log_probs(
+        self,
+        players: tf.Tensor,
+        observations: tf.Tensor,
+        actions: tf.Tensor,
+        reward: tf.Tensor
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         target_policy, target_values = self.target_model(
             self.preprocess_observations(
-                np.expand_dims(observation, 0)
+                observations
             )
         )
-        return reward - tf.squeeze(target_values, axis=[0, -1])
+        target_distribution = self.generate_distribution(target_policy)
+
+        advantages = reward - tf.squeeze(target_values, axis=-1)
+        return advantages * tf.sign(players), self.compute_log_probs(target_distribution, actions)
     
     def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
         predicted_policy, predicted_values = self.model(
@@ -63,10 +73,11 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
 
         value_loss = losses.mean_squared_error(rewards, tf.squeeze(predicted_values, axis=-1))
 
-        log_ratio = log_probs - target_log_probs
-        approx_kl_div = tf.reduce_mean((tf.exp(log_ratio) - 1) - log_ratio)
+        if self.target_kl is not None:
+            log_ratio = log_probs - target_log_probs
+            approx_kl_div = tf.reduce_mean((tf.exp(log_ratio) - 1) - log_ratio)
 
-        if approx_kl_div > 1.5 * self.target_kl:
-            self.model.stop_training = True
+            if approx_kl_div > 1.5 * self.target_kl:
+                self.model.stop_training = True
 
         return policy_loss + self.vf_coef * value_loss
