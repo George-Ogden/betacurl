@@ -153,9 +153,10 @@ def test_symmetries_are_reasonable():
     original_action = right_player.move(single_end_game)
     original_reward = 2
 
-    symmetries = single_end_game.get_symmetries(original_observation, original_action, original_reward)
+    symmetries = single_end_game.get_symmetries(1, original_observation, original_action, original_reward)
 
-    for observation, action, reward in symmetries:
+    for player, observation, action, reward in symmetries:
+        player_delta = player
         validate_mask(observation)
 
         mask = single_end_game.get_mask(observation)
