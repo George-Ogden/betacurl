@@ -22,10 +22,10 @@ class SingleEndCurlingGame(Game):
                 shape=(len(StoneThrow.bounds), )
             ),
             observation_spec=BoundedArray(
-                minimum=(min(StoneColor.RED, StoneColor.YELLOW),) + (0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length / 2) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
-                maximum=(max(StoneColor.RED, StoneColor.YELLOW),) + (1,) * self.num_stones_per_end + (self.curling.pitch_width / 2, 0) * self.num_stones_per_end + (1,) * self.num_stones_per_end,
+                minimum=(0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length / 2) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
+                maximum=(1,) * self.num_stones_per_end + (self.curling.pitch_width / 2, 0) * self.num_stones_per_end + (1,) * self.num_stones_per_end,
                 dtype=np.float32,
-                shape = (1 + self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
+                shape = (self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
             )
         )
         self.simulation_constants = simulation_constants
@@ -38,13 +38,12 @@ class SingleEndCurlingGame(Game):
     def _get_observation(self)-> np.ndarray:
         """
         Returns:
-            np.ndarray: concatenation of (stone_to_play (1), round_encoding (max_round), stone_positions (max_round * 2), stone_mask (max_round))
+            np.ndarray: concatenation of (round_encoding (max_round), stone_positions (max_round * 2), stone_mask (max_round))
         """
         round_encoding = np.zeros(self.num_stones_per_end, dtype=bool) # number of rounds remaining
         if self.current_round != self.max_round:
             round_encoding[self.max_round - self.current_round - 1] = 1
 
-        metadata = np.concatenate(((self.stone_to_play,), round_encoding)) # next stone, rounds to play
         red_stones = list(filter(lambda stone: stone.color == StoneColor.RED, self.curling.stones))
         yellow_stones = list(filter(lambda stone: stone.color == StoneColor.YELLOW, self.curling.stones))
 
@@ -56,7 +55,7 @@ class SingleEndCurlingGame(Game):
         yellow_mask = self.get_stone_mask(yellow_stones)
         stone_mask = np.concatenate((red_mask, yellow_mask)) # masks where positions are used
 
-        return np.concatenate((metadata, position, stone_mask))
+        return np.concatenate((round_encoding, position, stone_mask))
 
     def get_stone_positions(self, stones: List[Stone]) -> np.ndarray:
         positions = np.concatenate([stone.position for stone in stones]) if len(stones) > 0 else np.zeros(())
@@ -129,15 +128,16 @@ class SingleEndCurlingGame(Game):
         action[[1, 2]] *= -1
         return observation, action
 
+    def get_round_encoding(self, observation: np.ndarray) -> np.ndarray:
+        return observation[:self.num_stones_per_end]
+
     def get_positions(self, observation: np.ndarray) -> np.ndarray:
-        return observation[1 + self.num_stones_per_end:1 + self.num_stones_per_end * 3]
+        return observation[self.num_stones_per_end:self.num_stones_per_end * 3]
 
     def get_mask(self, observation: np.ndarray) -> np.ndarray:
-        return observation[1 + self.num_stones_per_end * 3:]
+        return observation[self.num_stones_per_end * 3:]
 
     def flip_order(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[int ,np.ndarray, np.ndarray, float]:
-        observation[0] *= -1
-
         positions = self.get_positions(observation)
         red_stones = positions[:self.num_stones_per_end].copy()
         yellow_stones = positions[self.num_stones_per_end:].copy()
