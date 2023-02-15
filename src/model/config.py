@@ -51,6 +51,7 @@ class TrainingConfig:
         return [
             WandbCallback(),
             TqdmCallback(desc="Training"),
+            callbacks.TerminateOnNaN(),
         ] + (
             self.additional_callbacks or []
         ) + (
