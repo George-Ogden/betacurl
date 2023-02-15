@@ -36,6 +36,13 @@ class Coach(SaveableObject):
         )
 
         self.train_example_history = []
+        self.set_config(config)
+
+        self.save_directory = config.save_directory
+        self.best_model_file = config.best_checkpoint_path
+        self.model_filename = config.model_filenames
+
+    def set_config(self, config: CoachConfig):
         self.config = copy(config)
         self.player_config = self.config.player_config
         self.training_config = self.config.training_config
@@ -50,10 +57,6 @@ class Coach(SaveableObject):
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
-
-        self.save_directory = config.save_directory
-        self.best_model_file = config.best_checkpoint_path
-        self.model_filename = config.model_filenames
 
     def setup_player(
         self,
@@ -86,7 +89,9 @@ class Coach(SaveableObject):
         if last_iteration is not None:
             coach = self.load(self.get_checkpoint_path(last_iteration))
             for k, v in vars(coach).items():
-                setattr(self, k, v)
+                if k != "config":
+                    setattr(self, k, v)
+                self.set_config(self.config)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
