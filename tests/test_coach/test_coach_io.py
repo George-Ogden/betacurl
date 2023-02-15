@@ -5,7 +5,7 @@ from copy import copy
 import time
 import os
 
-from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
 from src.sampling import GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
@@ -201,6 +201,47 @@ def test_with_gaussian_strategy(capsys):
             )
         )
     )
+    coach.learn()
+    
+    assert coach.num_iterations == 3
+    assert coach.num_games_per_episode == 2
+    assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
+    
+    output = capsys.readouterr()
+    assert "starting iteration 2" in output.out.lower()
+    assert not "starting iteration 1" in output.out.lower()
+
+@requires_cleanup
+def test_with_st_coach(capsys):
+    coach = SharedTorsoCoach(
+        game=stub_game,
+        config=CoachConfig(
+            **necessary_config,
+            num_games_per_episode=1,
+            num_iterations=2,
+            player_config=SamplingEvaluatingPlayerConfig(
+                num_eval_samples=1,
+                num_train_samples=1
+            )
+        )
+    )
+    coach.learn()
+    capsys.readouterr()
+
+    coach = SharedTorsoCoach(
+        game=stub_game,
+        config=CoachConfig(
+            **necessary_config,
+            num_games_per_episode=2,
+            num_iterations=3,
+            resume_from_checkpoint=True,
+            player_config=SamplingEvaluatingPlayerConfig(
+                num_eval_samples=1,
+                num_train_samples=1
+            )
+        )
+    )
+    assert isinstance(coach, SharedTorsoCoach)
     coach.learn()
     
     assert coach.num_iterations == 3
