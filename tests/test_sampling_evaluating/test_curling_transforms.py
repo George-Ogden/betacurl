@@ -23,7 +23,7 @@ class StubNNEvaluationStrategy(NNEvaluationStrategy):
         self.x = X
         self.y = Y
 
-def test_correct_for_se_player_transformation():
+def test_correct_transforms_for_se_player_transformation():
     player = SamplingEvaluatingPlayer(
         game.game_spec,
         EvaluationStrategyClass=StubNNEvaluationStrategy,
@@ -37,7 +37,7 @@ def test_correct_for_se_player_transformation():
             assert advantage < 0
 
 @patch.object(SharedTorsoSamplingEvaluatingStrategy, "fit")
-def test_correct_for_st_player_transformation(mock_fit: MagicMock):
+def test_correct_transforms_for_st_player_transformation(mock_fit: MagicMock):
     player = SharedTorsoSamplingEvaluatingPlayer(
         game.game_spec
     )
