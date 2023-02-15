@@ -30,11 +30,20 @@ def test_correct_transforms_for_se_player_transformation():
         SamplingStrategyClass=StubGaussianSamplingStrategy,
     )
     player.learn(history, lambda *x: [x])
+    left_values = set()
+    right_values = set()
     for observation, action, value, advantage, target_log_probs in player.sampler.dataset:
         if action[1] == 0:
             assert advantage > 0
         else:
             assert advantage < 0
+            if action[1] > 0:
+                left_values.add(float(value))
+            else:
+                right_values.add(float(value))
+    assert len(right_values) == 1
+    assert len(left_values) == 1
+    assert next(iter(left_values)) == next(iter(right_values)) * -1
 
 @patch.object(SharedTorsoSamplingEvaluatingStrategy, "fit")
 def test_correct_transforms_for_st_player_transformation(mock_fit: MagicMock):
@@ -42,11 +51,19 @@ def test_correct_transforms_for_st_player_transformation(mock_fit: MagicMock):
         game.game_spec
     )
     player.learn(history, lambda *x: [x])
+    left_values = set()
+    right_values = set()
     for observation, action, value, advantage, target_log_probs in mock_fit.call_args[0][0]:
         if action[1] == 0:
             assert advantage > 0
         else:
             assert advantage < 0
+            if action[1] > 0:
+                left_values.add(float(value))
+            else:
+                right_values.add(float(value))
+    assert len(right_values) == 1
+    assert len(left_values) == 1
 
 @patch.object(SharedTorsoSamplingEvaluatingStrategy, "fit")
 def test_correct_transformation_maintained_by_symmetries(mock_fit: MagicMock):
