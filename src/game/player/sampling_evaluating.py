@@ -85,7 +85,7 @@ class SamplingEvaluatingPlayer(Player, Learnable):
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ):
         if isinstance(self.evaluator, Learnable):

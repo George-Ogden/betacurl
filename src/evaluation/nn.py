@@ -42,9 +42,9 @@ class NNEvaluationStrategy(EvaluationStrategy, ModelDecorator):
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
-        training_data = [(augmented_observation, augmented_reward) for (player, observation, action, reward) in training_history for augmented_observation, augmented_action, augmented_reward in augmentation_function(observation, action, reward)]
+        training_data = [(augmented_observation, augmented_reward) for (player, observation, action, reward) in training_history for augmented_player, augmented_observation, augmented_action, augmented_reward in augmentation_function(player, observation, action, reward)]
         observations, values = zip(*training_data)
         return self.fit(observations, values, training_config)
