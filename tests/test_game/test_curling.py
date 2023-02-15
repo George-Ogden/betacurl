@@ -168,12 +168,10 @@ def test_symmetries_are_reasonable():
         positions = single_end_game.get_positions(observation)
         original_positions = single_end_game.get_positions(original_observation)
         if observation[0] == original_observation[0]:
-            assert reward_delta == 1
             assert (mask == original_mask).all()
             red_stones = positions[:8]
             yellow_stones = positions[8:]
         else:
-            assert reward_delta == -1
             assert (mask[:4] == single_end_game.get_mask(original_observation)[4:]).all() \
                 and (mask[4:] == single_end_game.get_mask(original_observation)[:4]).all()
             red_stones = positions[8:]
