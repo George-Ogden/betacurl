@@ -80,12 +80,12 @@ class Game(metaclass=ABCMeta):
         game = deepcopy(self)
         return game.step(action, display=False)
 
-    def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
-        return Game.no_symmetries(observation, action, reward)
+    def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return Game.no_symmetries(player, observation, action, reward)
 
     @staticmethod
-    def no_symmetries(observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
-        return [(observation, action, reward)]
+    def no_symmetries(player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return [(player, observation, action, reward)]
 
     def validate_observation(self, observation: np.ndarray)-> np.ndarray:
         assert observation.shape == self.game_spec.observation_spec.shape

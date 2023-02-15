@@ -70,10 +70,10 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
-        training_data = [(augmented_observation, augmented_action) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward) if np.sign(player) == np.sign(reward) else [])]
+        training_data = [(augmented_observation, augmented_action) for (player, observation, action, reward) in training_history for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward) if np.sign(player) == np.sign(reward) else [])]
         observations, actions = zip(*training_data)
 
         observations = self.add_noise_to_observations(observations)

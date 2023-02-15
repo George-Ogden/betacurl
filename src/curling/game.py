@@ -115,13 +115,13 @@ class SingleEndCurlingGame(Game):
     def stone_to_play(self) -> StoneColor:
         return StoneColor._value2member_map_[self.player_delta]
 
-    def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
+    def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         observation = self.validate_observation(observation)
         action = self.validate_action(action)
         # flip along x
-        symmetries = [(observation, action, reward), (*self.flip_x(observation.copy(), action.copy()), reward)]
+        symmetries = [(player, observation, action, reward), (player, *self.flip_x(observation.copy(), action.copy()), reward)]
         # change who played
-        symmetries.extend([self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries])
+        symmetries.extend([self.flip_order(int(player), observation.copy(), action.copy(), float(reward)) for player, observation, action, reward in symmetries])
         return symmetries
 
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -135,7 +135,7 @@ class SingleEndCurlingGame(Game):
     def get_mask(self, observation: np.ndarray) -> np.ndarray:
         return observation[1 + self.num_stones_per_end * 3:]
 
-    def flip_order(self, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[np.ndarray, np.ndarray, float]:
+    def flip_order(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[int ,np.ndarray, np.ndarray, float]:
         observation[0] *= -1
 
         positions = self.get_positions(observation)
@@ -150,4 +150,4 @@ class SingleEndCurlingGame(Game):
         mask[:self.num_stones_per_end // 2] = yellow_mask
         mask[self.num_stones_per_end // 2:] = red_mask
 
-        return observation, action, reward
+        return -player, observation, action, -reward

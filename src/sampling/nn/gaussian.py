@@ -150,18 +150,18 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
         self.target_model = deepcopy(self.model)
 
         training_data = [
-            (player,
+            (augmented_player,
             augmented_observation,
             augmented_action,
             augmented_reward
         ) for (player, observation, action, reward) in training_history 
-            for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
+            for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
         primary_dataset = self.create_dataset(training_data).batch(training_config.batch_size)
         
         batched_transform = [(observation, action, reward) + self.compute_advantages_and_target_log_probs(player, observation, action, reward) for player, observation, action, reward in primary_dataset]
