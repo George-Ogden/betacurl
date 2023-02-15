@@ -1,6 +1,6 @@
 from tensorflow_probability import distributions
-from tensorflow.keras import callbacks, utils
-from copy import copy, deepcopy
+from tensorflow.keras import callbacks, models, utils
+from copy import copy
 from tensorflow import data
 import tensorflow as tf
 import numpy as np
@@ -153,7 +153,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
-        self.target_model = deepcopy(self.model)
+        self.target_model = models.clone_model(self.model)
 
         training_data = [
             (augmented_player,
