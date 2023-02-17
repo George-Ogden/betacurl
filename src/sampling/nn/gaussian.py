@@ -137,7 +137,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
             self.target_model(
                 self.preprocess_observations(
                     observations
-                )
+                ), training=False
             )
         )
     
