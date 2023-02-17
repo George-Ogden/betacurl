@@ -3,7 +3,7 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import DenseModelFactory, MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
+from src.model import DenseModelFactory, LSTMModelFactory, MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
 
 from tests.utils import find_hidden_size
 
@@ -65,3 +65,20 @@ def test_model_uniqueness():
         for _ in range(10):
             names.add(Model.get_name())
     assert len(names) == 30
+
+def test_lstm_factory():
+    # run test without GPU
+    tf.config.experimental.set_visible_devices([], "GPU")
+
+    model = LSTMModelFactory.create_model(
+        input_size=2,
+        output_size=3,
+        config=LSTMModelFactory.CONFIG_CLASS(
+            output_activation="tanh",
+        )
+    )
+
+    assert isinstance(model, keras.Model)
+    batch = np.random.randn(5, 10, 2)
+    sequence = model.predict(batch)
+    assert sequence.shape == (5, 10, 3)
