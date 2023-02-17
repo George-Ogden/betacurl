@@ -98,6 +98,7 @@ def test_learns_linear_case():
         action_spec=BoundedArray(minimum=(0.,0.), maximum=(2., 2.), shape=(2,), dtype=np.float32),
         model_factory=MLPModelFactory
     )
+<<<<<<< HEAD
 
     for i in range(3):
         actions = strategy.generate_actions(observation=np.array((i, i), dtype=float), n=100)
@@ -118,6 +119,22 @@ def test_learns_linear_case():
                 validation_split=.1,
                 lr=1e-2
             )
+=======
+    strategy.learn(
+        training_history=[
+            (
+                1.,
+                np.array((i, i), dtype=float),
+                np.array((j, j), dtype=float),
+                np.array(1. if i == j else -.5, dtype=float)
+            ) for i in range(3) for j in range(3)
+        ] * 100,
+        augmentation_function=Game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=10,
+            validation_split=1,
+            lr=1e-3
+>>>>>>> 0284cb2 (relaxed test difficulty)
         )
 
     for i in range(3):
