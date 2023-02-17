@@ -28,7 +28,7 @@ class Coach(SaveableObject):
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
-        self.player = SamplingEvaluatingPlayer(
+        self.setup_player(
             game_spec=game.game_spec,
             SamplingStrategyClass=SamplingStrategyClass,
             EvaluationStrategyClass=EvaluationStrategyClass,
@@ -36,6 +36,13 @@ class Coach(SaveableObject):
         )
 
         self.train_example_history = []
+        self.set_config(config)
+
+        self.save_directory = config.save_directory
+        self.best_model_file = config.best_checkpoint_path
+        self.model_filename = config.model_filenames
+
+    def set_config(self, config: CoachConfig):
         self.config = copy(config)
         self.player_config = self.config.player_config
         self.training_config = self.config.training_config
@@ -51,9 +58,19 @@ class Coach(SaveableObject):
         # start training with full patience
         self.patience = self.learning_patience
 
-        self.save_directory = config.save_directory
-        self.best_model_file = config.best_checkpoint_path
-        self.model_filename = config.model_filenames
+    def setup_player(
+        self,
+        game_spec: GameSpec,
+        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
+        config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+    ):
+        self.player = SamplingEvaluatingPlayer(
+            game_spec=game_spec,
+            SamplingStrategyClass=SamplingStrategyClass,
+            EvaluationStrategyClass=EvaluationStrategyClass,
+            config=config
+        )
 
     @property
     def best_checkpoint_path(self) -> str:
@@ -72,7 +89,9 @@ class Coach(SaveableObject):
         if last_iteration is not None:
             coach = self.load(self.get_checkpoint_path(last_iteration))
             for k, v in vars(coach).items():
-                setattr(self, k, v)
+                if k != "config":
+                    setattr(self, k, v)
+                self.set_config(self.config)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
@@ -89,7 +108,7 @@ class Coach(SaveableObject):
             print(f"Starting iteration {iteration}")
             train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
-            for i in trange(self.num_games_per_episode, desc="Self play"):
+            for i in trange(self.num_games_per_episode, desc="Playing episode"):
                 result, game_history = train_arena.play_game(starting_player=i % 2, return_history=True, training=True)
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
@@ -165,5 +184,5 @@ class Coach(SaveableObject):
 
     @staticmethod
     def transform_history_for_training(training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
-        total_reward = 0
+        total_reward = 0.
         return [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]

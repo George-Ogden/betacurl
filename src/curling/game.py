@@ -22,7 +22,7 @@ class SingleEndCurlingGame(Game):
                 shape=(len(StoneThrow.bounds), )
             ),
             observation_spec=BoundedArray(
-                minimum=(min(StoneColor.RED, StoneColor.YELLOW),) + (0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
+                minimum=(min(StoneColor.RED, StoneColor.YELLOW),) + (0,) * self.num_stones_per_end + (-self.curling.pitch_width / 2, -self.curling.pitch_length / 2) * self.num_stones_per_end + (0,) * self.num_stones_per_end,
                 maximum=(max(StoneColor.RED, StoneColor.YELLOW),) + (1,) * self.num_stones_per_end + (self.curling.pitch_width / 2, 0) * self.num_stones_per_end + (1,) * self.num_stones_per_end,
                 dtype=np.float32,
                 shape = (1 + self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
@@ -115,13 +115,13 @@ class SingleEndCurlingGame(Game):
     def stone_to_play(self) -> StoneColor:
         return StoneColor._value2member_map_[self.player_delta]
 
-    def get_symmetries(self, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[np.ndarray, np.ndarray, float]]:
+    def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         observation = self.validate_observation(observation)
         action = self.validate_action(action)
         # flip along x
-        symmetries = [(observation, action, reward), (*self.flip_x(observation.copy(), action.copy()), reward)]
+        symmetries = [(player, observation, action, reward), (player, *self.flip_x(observation.copy(), action.copy()), reward)]
         # change who played
-        symmetries += [self.flip_order(observation.copy(), action.copy(), float(reward)) for observation, action, reward in symmetries]
+        symmetries.extend([self.flip_order(int(player), observation.copy(), action.copy(), float(reward)) for player, observation, action, reward in symmetries])
         return symmetries
 
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -129,13 +129,16 @@ class SingleEndCurlingGame(Game):
         action[[1, 2]] *= -1
         return observation, action
 
+    def get_round_encoding(self, observation: np.ndarray) -> np.ndarray:
+        return observation[1:1 + self.num_stones_per_end]
+
     def get_positions(self, observation: np.ndarray) -> np.ndarray:
         return observation[1 + self.num_stones_per_end:1 + self.num_stones_per_end * 3]
 
     def get_mask(self, observation: np.ndarray) -> np.ndarray:
         return observation[1 + self.num_stones_per_end * 3:]
 
-    def flip_order(self, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[np.ndarray, np.ndarray, float]:
+    def flip_order(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[int ,np.ndarray, np.ndarray, float]:
         observation[0] *= -1
 
         positions = self.get_positions(observation)
@@ -150,4 +153,4 @@ class SingleEndCurlingGame(Game):
         mask[:self.num_stones_per_end // 2] = yellow_mask
         mask[self.num_stones_per_end // 2:] = red_mask
 
-        return observation, action, -reward
+        return -player, observation, action, -reward

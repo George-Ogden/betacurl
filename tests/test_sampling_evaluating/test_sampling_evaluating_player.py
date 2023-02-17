@@ -8,7 +8,7 @@ from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
 from tests.utils import StubGame, SparseStubGame
-from tests.config import slow
+from tests.config import probabilistic, slow
 
 class MaximumSamplingStrategy(SamplingStrategy):
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
@@ -17,9 +17,9 @@ class MaximumSamplingStrategy(SamplingStrategy):
 class InBoundsEvaluator(EvaluationStrategy):
     def evaluate(self, observations: np.ndarray) -> float:
         if observations.ndim == 1:
-            return -observations[-8:].sum() * observations[0]
+            return single_end_game.get_mask(observations).sum() * single_end_game.stone_to_play
         else:
-            return -observations[:, -8:].sum(axis=-1) * observations[:, 0]
+            return np.array([single_end_game.get_mask(observation).sum() for observation in observations]) * single_end_game.stone_to_play
 
 stub_game = StubGame()
 sparse_stub_game = SparseStubGame(2)
@@ -44,6 +44,7 @@ def test_in_bounds_evaluator():
     assert evaluator.evaluate(single_end_game.sample(np.array([1.41, 0, 0])).observation)\
          != evaluator.evaluate(single_end_game.sample(np.array([2, 0, 0])).observation)
 
+@probabilistic
 def test_training_and_evaluation_matter():
     single_end_game.reset()
     player.train()
@@ -59,7 +60,7 @@ def test_training_and_evaluation_matter():
     assert player.is_training
 
     for i in range(10):
-        if (single_end_game.sample(player.move(single_end_game)).observation[-8] == 0).all():
+        if single_end_game.get_mask(single_end_game.sample(player.move(single_end_game)).observation)[0] == 0:
             break
     else:
         assert False, "always in bounds while training"
@@ -77,6 +78,7 @@ def test_sampler_is_used():
     move = maxmimum_mover.move(single_end_game)
     assert (move == single_end_game.game_spec.move_spec.maximum).all()
 
+@probabilistic
 def test_evaluator_is_used():
     single_end_game.reset()
     maxmimum_mover = SamplingEvaluatingPlayer(
@@ -99,6 +101,7 @@ def test_evaluator_is_used():
     assert len(single_end_game.curling.stones) != 0
 
 @slow
+@probabilistic
 def test_arena_training_happens():
     results = distinguishable_arena.play_games(10, training=False)
     assert results[0] >= 8
@@ -110,6 +113,7 @@ def test_eval_train_are_same_class():
     assert type(player.train()) == type(player)
     assert type(player.eval()) == type(player)
 
+@probabilistic
 def test_picks_best_move():
     player = SamplingEvaluatingPlayer(
         stub_game.game_spec,

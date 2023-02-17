@@ -4,13 +4,13 @@ import numpy as np
 import time
 import os
 
-from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
+from src.game import Coach, CoachConfig, SamplingEvaluatingPlayerConfig, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
+from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplerConfig, SharedTorsoSamplerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import Learnable, TrainingConfig
-from src.game import Coach, CoachConfig
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
-from tests.utils import StubGame, SparseStubGame
+from tests.utils import find_hidden_size, StubGame, SparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
@@ -54,7 +54,6 @@ boring_coach = Coach(
 )
 
 def test_coach_saves_config():
-
     assert not os.path.exists(SAVE_DIR)
     for k, v in config_dict.items():
         if k in special_cases:
@@ -65,9 +64,6 @@ def test_coach_saves_config():
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
     assert boring_coach.learning_patience == 4
-
-    # assert boring_coach.training_hyperparams["patience"] == 20
-    # assert boring_coach.training_hyperparams["epochs"] == 10
 
     assert type(boring_coach.player.sampler) == RandomSamplingStrategy
     assert type(boring_coach.player.evaluator) == EvaluationStrategy
@@ -172,3 +168,65 @@ def test_coach_uses_training_config_with_sampler():
     assert model._train_counter == 10
     assert modified_model._train_counter == 5
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
+
+@requires_cleanup
+def test_instantiation_from_incorrect_config():
+    coach = Coach(
+        game=stub_game,
+        SamplingStrategyClass=NNSamplingStrategy,
+        EvaluationStrategyClass=EvaluationStrategy,
+        config=CoachConfig(
+            player_config=SamplingEvaluatingPlayerConfig(
+                sampler_config=SamplerConfig()
+            ),
+            **necessary_config
+        )
+    )
+    assert hasattr(coach.player.sampler, "latent_size")
+
+def test_shared_coach_saves_config():
+    coach = SharedTorsoCoach(
+        game=stub_game,
+        config=CoachConfig(
+            **config_dict
+        )
+    )
+
+    assert not os.path.exists(SAVE_DIR)
+    for k, v in config_dict.items():
+        if k in special_cases:
+            continue
+        assert getattr(coach, k) == v
+
+    # special cases
+    assert coach.win_threshold == 2
+    assert coach.num_eval_games == 4
+    assert coach.learning_patience == 4
+
+    assert type(coach.player) == SharedTorsoSamplingEvaluatingPlayer
+    assert type(coach.game) == StubGame
+
+def test_shared_coach_saves_separate_attributes():
+    coach = SharedTorsoCoach(
+        game=stub_game,
+        config=CoachConfig(
+            **necessary_config,
+            player_config=SamplingEvaluatingPlayerConfig(
+                sampler_config=SharedTorsoSamplerConfig(
+                    clip_ratio=.2,
+                    max_grad_norm=1.5,
+                    feature_dim=63,
+                    target_kl=.15,
+                    vf_coef=3.
+                )
+            )
+        )
+    )
+
+    sampler_evaluator = coach.player.sampler_evaluator
+    assert sampler_evaluator.clip_ratio == .2
+    assert sampler_evaluator.max_grad_norm == 1.5
+    assert sampler_evaluator.vf_coef == 3.
+    assert sampler_evaluator.target_kl == .15
+    
+    assert find_hidden_size(sampler_evaluator.model.layers)

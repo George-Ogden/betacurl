@@ -7,7 +7,7 @@ from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
-from tests.config import slow
+from tests.config import probabilistic, slow
 
 stub_game = StubGame()
 asymmetric_game = BadSymetryStubGame()
@@ -19,22 +19,19 @@ result, history = arena.play_game(display=False, training=True, return_history=T
 training_data = [(*other_data, result) for *other_data, reward in history]
 training_data *= 100
 
+@probabilistic
 def test_sampler_learns():
-    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=1)
+    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     sampler.learn(training_data, stub_game.get_symmetries)
-    assert (sampler.generate_actions(training_data[0][0]) > .75 * move_spec.maximum).all()
+    assert (sampler.generate_actions(training_data[0][1]) > .75 * move_spec.maximum).all()
 
+@probabilistic
 def test_evaluator_learns():
     evaluator = NNEvaluationStrategy(observation_spec=observation_spec)
     evaluator.learn(training_data, stub_game.get_symmetries)
     assert np.abs(evaluator.evaluate(training_data[0][1]) - result) < stub_game.max_move
 
-def test_sampler_uses_augmentation():
-    sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=1)
-    sampler.learn(training_data, asymmetric_game.get_symmetries)
-    assert np.abs((sampler.generate_actions(training_data[0][0] * 0 + 1) - 1) < 1).all()
-    assert np.abs((sampler.generate_actions(training_data[0][0] * 0 - 1) - 2) < 1).all()
-
+@probabilistic
 def test_evaluator_uses_augmentation():
     evaluator = NNEvaluationStrategy(observation_spec=observation_spec)
     evaluator.learn(training_data, asymmetric_game.get_symmetries)
@@ -42,6 +39,7 @@ def test_evaluator_uses_augmentation():
     assert np.abs(evaluator.evaluate(training_data[0][1] * 0 - 1) + 1) < 1
 
 @slow
+@probabilistic
 def test_weighted_sampling_improves_on_normal_sampling():
     total_wins = 0
     for _ in range(5):

@@ -1,7 +1,8 @@
-from .config import ModelConfig, SimpleLinearModelConfig, TrainingConfig
-from .simple_linear import SimpleLinearModelFactory
+from .config import ModelConfig, MLPModelConfig, TrainingConfig
 from .decorator import Learnable, ModelDecorator
-from .fcnn import FCNNModelFactory
+from .fcnn import MultiLayerModelFactory
+from .dense import DenseModelFactory
+from .mlp import MLPModelFactory
 from .base import ModelFactory
 
-BEST_MODEL_FACTORY = FCNNModelFactory
+BEST_MODEL_FACTORY = MultiLayerModelFactory()
