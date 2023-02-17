@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class ModelConfig:
-    output_activation:  str = "sigmoid"
+    output_activation: str = "sigmoid"
 
 @dataclass
 class MLPModelConfig(ModelConfig):
