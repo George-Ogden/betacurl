@@ -99,7 +99,8 @@ def test_uses_training_config():
 def test_learns_linear_case():
     strategy = GaussianSamplingStrategy(
         observation_spec=wide_observation_spec,
-        action_spec=BoundedArray(minimum=(0.,0.), maximum=(2., 2.), shape=(2,), dtype=np.float32)
+        action_spec=BoundedArray(minimum=(0.,0.), maximum=(2., 2.), shape=(2,), dtype=np.float32),
+        model_factory=MLPModelFactory
     )
     strategy.learn(
         training_history=[
@@ -107,7 +108,7 @@ def test_learns_linear_case():
                 1.,
                 np.array((i, i), dtype=float),
                 np.array((j, j), dtype=float),
-                np.array(1. if i == j else -.1, dtype=float)
+                np.array(1. if i == j else -.5, dtype=float)
             ) for i in range(3) for j in range(3)
         ] * 100,
         augmentation_function=Game.no_symmetries,
