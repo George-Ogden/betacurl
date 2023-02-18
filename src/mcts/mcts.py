@@ -3,14 +3,15 @@ import numpy as np
 
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 from copy import deepcopy
 
 from src.game import Game
 
 @dataclass
 class ActionInformation:
-    next_state: str
+    action: np.ndarray
+    next_state: bytes
     reward: float = 0 # assume deterministic reward
     num_visits: int = 0
     termination: bool = False
@@ -31,6 +32,10 @@ class MCTS(metaclass=ABCMeta):
         self.action_spec = game.game_spec.move_spec
         self.node_information: Dict[bytes, NodeInformation] = {}
 
+    @staticmethod
+    def encode(state: np.ndarray) -> bytes:
+        return state.tobytes()
+
     @abstractmethod
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         ...
@@ -38,6 +43,26 @@ class MCTS(metaclass=ABCMeta):
     @abstractmethod
     def select_random_action(self) -> np.ndarray:
         ...
+    
+    def get_actions(self, observation: np.ndarray) -> List[ActionInformation]:
+        return list(self.node_information[self.encode(observation)].action_information.values())
+    
+    @abstractmethod
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+        ...
+
+    def get_action_probs(self, game: Optional[Game] = None, temperature: float = 0) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Tuple of (actions, probs) (probs sub to 1)
+        """
+        if not game:
+            game = self.game
+        actions, probs = self._get_action_probs(game, temperature)
+        probs = np.array(probs, dtype=float)
+        if probs.sum() != 0:
+            probs /= probs.sum()
+        return np.array(actions), probs
     
     def rollout(self, game: Game):
         action = self.select_random_action()
@@ -50,7 +75,7 @@ class MCTS(metaclass=ABCMeta):
         if not game:
             game = self.game
         observation = game.get_observation()
-        state = observation.tobytes()
+        state = self.encode(observation)
         if not state in self.node_information:
             # game will be modified in rollout
             returns = self.rollout(deepcopy(game))
@@ -64,7 +89,7 @@ class MCTS(metaclass=ABCMeta):
 
         node_information = self.node_information[state]
         action = self.select_action(observation)
-        action_representation = action.tobytes()
+        action_representation = self.encode(action)
         if action_representation in node_information.action_information:
             action_information = node_information.action_information[action_representation]
             next_state = action_information.next_state
@@ -78,7 +103,8 @@ class MCTS(metaclass=ABCMeta):
             game = deepcopy(game)
             timestep = game.step(action)
             action_information = ActionInformation(
-                next_state=timestep.observation.tobytes(),
+                action=action,
+                next_state=self.encode(timestep.observation),
                 reward=timestep.reward,
                 termination=timestep.step_type == StepType.LAST,
                 num_visits=0
