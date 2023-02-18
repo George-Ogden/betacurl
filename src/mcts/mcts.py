@@ -39,10 +39,6 @@ class MCTS(metaclass=ABCMeta):
     @abstractmethod
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         ...
-
-    @abstractmethod
-    def select_random_action(self) -> np.ndarray:
-        ...
     
     def get_actions(self, observation: np.ndarray) -> List[ActionInformation]:
         return list(self.node_information[self.encode(observation)].action_information.values())
@@ -65,7 +61,7 @@ class MCTS(metaclass=ABCMeta):
         return np.array(actions), probs
     
     def rollout(self, game: Game):
-        action = self.select_random_action()
+        action = game.get_random_move()
         timestep = game.step(action)
         if timestep.step_type == StepType.LAST:
             return timestep.reward

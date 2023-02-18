@@ -110,3 +110,6 @@ class Game(metaclass=ABCMeta):
     @property
     def player_delta(self) -> int:
         return self.player_deltas[self.to_play]
+
+    def get_random_move(self):
+        return np.random.uniform(low=self.game_spec.move_spec.minimum, high=self.game_spec.move_spec.maximum)

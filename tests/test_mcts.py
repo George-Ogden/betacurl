@@ -32,15 +32,17 @@ class MDPStubGame(StubGame):
     def _get_observation(self)-> np.ndarray:
         return np.array((self.score[0] - self.score[1], self.current_round))
 
+class MDPStubGameDeterministic(MDPStubGame):
+    def get_random_move(self):
+        return (self.game_spec.move_spec.minimum + self.game_spec.move_spec.maximum) / 2
+
 game = MDPStubGame(6)
+deterministic_game = MDPStubGameDeterministic(6)
 
 move_spec = game.game_spec.move_spec
 
 class SimpleMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
-        return np.tile(game.max_move / 2, move_spec.shape)
-    
-    def select_random_action(self) -> np.ndarray:
         return np.tile(game.max_move / 2, move_spec.shape)
 
     def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -48,9 +50,6 @@ class SimpleMCTS(MCTS):
 
 class RandomMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
-        return np.random.rand(*move_spec.shape)
-    
-    def select_random_action(self) -> np.ndarray:
         return np.random.rand(*move_spec.shape)
 
     def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -79,8 +78,8 @@ def test_immutability():
             assert (tree.node_information[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
 
 def test_predetermined_search():
-    game.reset()
-    tree = SimpleMCTS(game)
+    deterministic_game.reset()
+    tree = SimpleMCTS(deterministic_game)
     for i in range(10):
         assert tree.search() == 0.
 
@@ -88,8 +87,8 @@ def test_search_expectation():
     game.reset()
     tree = RandomMCTS(game)
     searches = np.array([tree.search() for i in range(1000)])
-    assert np.abs(searches.mean()) < .1
-    assert .4 < searches.std() < .7
+    assert np.abs(searches.mean()) < 10
+    assert 4 < searches.std() < 7
 
 @probabilistic
 def test_high_actions_selected():
@@ -131,9 +130,10 @@ def test_high_actions_selected():
         game.validate_action(action)
 
 def test_game_persists():
+    game = deterministic_game
     game.reset()
     tree = SimpleMCTS(game)
-    for i in range(4):
+    for i in range(6):
         for _ in range(30):
             tree.search(game)
         actions, probs = tree.get_action_probs(temperature=0)
