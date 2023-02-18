@@ -67,9 +67,6 @@ def test_model_uniqueness():
     assert len(names) == 30
 
 def test_lstm_factory():
-    # run test without GPU
-    tf.config.experimental.set_visible_devices([], "GPU")
-
     model = LSTMModelFactory.create_model(
         input_size=2,
         output_size=3,
