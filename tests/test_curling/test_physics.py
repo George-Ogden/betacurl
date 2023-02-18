@@ -384,3 +384,14 @@ def test_time_frame_is_reasonable():
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
         time += accurate_constants.dt
     assert 20 <= time <= 30
+
+def test_close_interaction():
+    curling = get_short_curling(True)
+    curling.stones.append(Stone(StoneColor.YELLOW, (0, -curling.tee_line_position - Stone.outer_radius * (2 + 1e-5))))
+    curling.throw(stone_throw=StoneThrow(
+        color=curling.next_stone_colour,
+        velocity=2.00,
+        spin=0,
+        angle=.0
+    ))
+    assert len(curling.stones) > 1
