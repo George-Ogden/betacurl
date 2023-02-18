@@ -1,4 +1,4 @@
-from .player import Player, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
-from .coach import Coach, CoachConfig
+from .player import Player, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoSamplingEvaluatingPlayer
+from .coach import Coach, CoachConfig, SharedTorsoCoach
 from .game import Game, GameSpec
 from .arena import Arena

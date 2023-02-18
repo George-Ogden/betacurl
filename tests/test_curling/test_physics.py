@@ -22,6 +22,10 @@ def get_short_curling(stone_on_button=False):
         )
     return short_curling
 
+def test_distances():
+    assert (Curling.button_position == np.array((0, -np.abs(Curling.tee_line_position)))).all()
+    assert np.allclose(np.abs(Curling.button_position[1]) + np.abs(Curling.hog_line_position) + np.abs(Curling.starting_button_distance), Curling.pitch_length)
+
 def test_energy_decrease():
     curling = Curling(StoneColor.RED)
     curling.stones.append(
@@ -30,7 +34,7 @@ def test_energy_decrease():
                 StoneColor.RED,
                 spin=1.5,
                 angle=-.02,
-                velocity=2.1
+                velocity=1.4
             )
         )
     )
@@ -50,7 +54,7 @@ def test_reasonable_throw_default():
         StoneColor.RED,
         spin=1.5,
         angle=-.02,
-        velocity=2.25
+        velocity=1.41
     ), constants=approx_constants)
     assert len(curling.stones) == 1
     assert np.linalg.norm(curling.stones[0].position - curling.button_position) < curling.target_radii[-1]
@@ -61,7 +65,7 @@ def test_reasonable_throw_accurate():
         StoneColor.RED,
         spin=1.5,
         angle=-.02,
-        velocity=2.25
+        velocity=1.41
     ), constants=accurate_constants)
     assert len(curling.stones) == 1
     assert np.linalg.norm(curling.stones[0].position - curling.button_position) < curling.target_radii[-1]
@@ -72,7 +76,7 @@ def test_straight_throw():
         StoneColor.RED,
         spin=0,
         angle=0,
-        velocity=2.25
+        velocity=1.41
     ), constants=approx_constants)
     assert len(curling.stones) == 1
     assert np.linalg.norm(curling.stones[0].position - curling.button_position) < curling.target_radii[-1]
@@ -84,14 +88,14 @@ def test_gentle_collision():
         StoneColor.RED,
         spin=0,
         angle=0,
-        velocity=2.1
+        velocity=1.4
     ), constants=approx_constants)
     position = curling.stones[0].position.copy()
     curling.throw(StoneThrow(
         StoneColor.YELLOW,
         spin=0,
         angle=0,
-        velocity=2.1
+        velocity=1.4
     ), constants=approx_constants)
     assert len(curling.stones) == 2
     assert np.linalg.norm(curling.stones[0].position - position) < curling.target_radii[1]
@@ -104,14 +108,14 @@ def test_hard_slightly_offcenter_collision():
         StoneColor.RED,
         spin=0,
         angle=0,
-        velocity=2.25
+        velocity=1.41
     ), constants=approx_constants)
     stone = curling.stones[0]
     curling.throw(StoneThrow(
         StoneColor.YELLOW,
         spin=0,
-        angle=1.5e-3,
-        velocity=4
+        angle=2e-3,
+        velocity=2.
     ), constants=accurate_constants)
     assert len(curling.stones) == 0
     assert np.linalg.norm(stone.velocity) > 1
@@ -120,8 +124,8 @@ def test_negative_angle_moves_right():
     curling = Curling(StoneColor.RED)
     curling.throw(StoneThrow(
         StoneColor.RED,
-        angle=-.01,
-        velocity=2.25,
+        angle=-.02,
+        velocity=1.41,
         spin=0
     ), constants=approx_constants)
     assert len(curling.stones) == 1
@@ -132,8 +136,8 @@ def test_positive_angle_moves_left():
     curling = Curling(StoneColor.RED)
     curling.throw(StoneThrow(
         StoneColor.RED,
-        angle=.01,
-        velocity=2.25,
+        angle=.02,
+        velocity=1.41,
         spin=0
     ), constants=approx_constants)
     assert len(curling.stones) == 1
@@ -145,8 +149,8 @@ def test_positive_spin_moves_left():
     curling.throw(StoneThrow(
         StoneColor.RED,
         angle=0,
-        velocity=2.25,
-        spin=2
+        velocity=1.41,
+        spin=2.5
     ), constants=approx_constants)
     assert len(curling.stones) == 1
     assert curling.stones[0].position[0] < -curling.target_radii[0]
@@ -156,8 +160,8 @@ def test_negative_spin_moves_right():
     curling.throw(StoneThrow(
         StoneColor.RED,
         angle=0,
-        velocity=2.25,
-        spin=-2
+        velocity=1.41,
+        spin=-2.5
     ), constants=approx_constants)
     assert len(curling.stones) == 1
     assert curling.stones[0].position[0] > curling.target_radii[0]
@@ -170,7 +174,7 @@ def test_slow_head_on_collision():
                 StoneColor.RED,
                 spin=0,
                 angle=0,
-                velocity=1.2
+                velocity=1.1
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -190,7 +194,7 @@ def test_slow_off_centre_collision():
                 StoneColor.RED,
                 spin=0,
                 angle=0.03,
-                velocity=1.2
+                velocity=1.1
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -226,7 +230,7 @@ def test_dual_collision():
                 StoneColor.RED,
                 spin=0,
                 angle=0,
-                velocity=1.5
+                velocity=1.2
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -267,7 +271,7 @@ def test_single_collision_multiple_stones():
                 StoneColor.RED,
                 spin=0,
                 angle=0.05,
-                velocity=1.5
+                velocity=1.2
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -329,7 +333,7 @@ def test_angle_causes_no_spin():
             StoneColor.RED,
             spin=0,
             angle=0.01,
-            velocity=2.25
+            velocity=1.41
         )
     )
 
@@ -343,7 +347,7 @@ def test_left_collision_causes_negative_spin():
                 StoneColor.RED,
                 spin=0,
                 angle=0.04,
-                velocity=1.25
+                velocity=1.1
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -360,7 +364,7 @@ def test_right_collision_causes_positive_spin():
                 StoneColor.RED,
                 spin=0,
                 angle=-0.04,
-                velocity=1.25
+                velocity=1.1
         ))
     )
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
@@ -377,7 +381,7 @@ def test_time_frame_is_reasonable():
                 StoneColor.RED,
                 spin=1.5,
                 angle=-.02,
-                velocity=2.1
+                velocity=1.4
         ))
     )
     time = 0

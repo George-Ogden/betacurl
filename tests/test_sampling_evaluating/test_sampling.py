@@ -1,7 +1,7 @@
 import numpy as np
 
+from src.sampling import GaussianSamplerConfig, GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
-from src.sampling import RandomSamplingStrategy, NNSamplingStrategy
 from src.model.constant import ZeroModel, OneModel
 
 from tests.utils import StubGame
@@ -17,6 +17,7 @@ random_strategy = RandomSamplingStrategy(action_spec=move_spec, observation_spec
 nn_strategy = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
 zero_strategy = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, model_factory=ZeroModel)
 one_strategy = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, model_factory=OneModel)
+gaussian_strategy = GaussianSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
 
 def validate_actions(actions, action_spec):
     assert (actions >= action_spec.minimum).all()
@@ -83,3 +84,31 @@ def test_batch_minimum_sampling_strategy():
     assert len(actions) == 22
     assert actions.shape[1:] == move_spec.shape
     assert (actions == np.array([move_spec.minimum for _ in range(22)])).all()
+
+def test_gaussian_sampling_strategy():
+    sampling_strategy_test(gaussian_strategy)
+
+def test_gaussian_sampling_strategy_batch():
+    sampling_batch_strategy_test(gaussian_strategy)
+
+def test_nn_config():
+    strategy = NNSamplingStrategy(
+        action_spec=move_spec,
+        observation_spec=observation_spec,
+        config=NNSamplerConfig(
+            latent_size=11
+        )
+    )
+    assert strategy.model.input_shape == (None, 12)
+
+def test_gaussian_config():
+    strategy = GaussianSamplingStrategy(
+        action_spec=move_spec,
+        observation_spec=observation_spec,
+        config=GaussianSamplerConfig(
+            clip_ratio=.2,
+            max_grad_norm=1.
+        )
+    )
+    assert strategy.clip_ratio == .2
+    assert strategy.max_grad_norm == 1.

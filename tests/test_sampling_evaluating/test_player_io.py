@@ -2,8 +2,8 @@ from copy import deepcopy
 import os
 
 from src.game import RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from src.sampling import NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.sampling import NNSamplingStrategy, RandomSamplingStrategy
 from src.io import SaveableModel, SaveableObject
 from src.curling import SingleEndCurlingGame
 
@@ -84,7 +84,11 @@ def test_nn_sampler_saves_no_side_effects():
 
 @requires_cleanup
 def test_nn_sampler_loads_same():
-    old_sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec, latent_size=10)
+    old_sampler = NNSamplingStrategy(
+        action_spec=move_spec, 
+        observation_spec=observation_spec,
+        config=NNSamplerConfig(latent_size=10)
+    )
     new_sampler: NNSamplingStrategy = save_load(old_sampler)
     assert new_sampler.latent_size == 10
     assert new_sampler.model.get_config() == old_sampler.model.get_config()

@@ -1,8 +1,9 @@
 from tensorflow.keras import callbacks
+from tensorflow import data
 import numpy as np
 
 from abc import abstractmethod, ABCMeta
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ..io import SaveableModel
 
@@ -28,6 +29,20 @@ class ModelDecorator(SaveableModel, Learnable):
             **(training_config.compile_kwargs or {})
         }
         self.model.compile(**compile_options)
+    
+    @staticmethod
+    def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
+        transposed_data = tuple(np.array(data, dtype=np.float32) for data in zip(*dataset))
+        return data.Dataset.from_tensor_slices(transposed_data)
+
+    def fit(
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> callbacks.History:
+        X, Y, train_options = self.pre_fit(X, Y, training_config)
+        return self.model.fit(X, Y, **train_options)
 
     def pre_fit(
         self,
@@ -41,16 +56,16 @@ class ModelDecorator(SaveableModel, Learnable):
             Tuple[np.ndarray, np.ndarray, Dict[str, Any]]: X, Y, kwargs
         """
         if type(X) != np.ndarray:
-            X = np.array(X)
+            X = np.array(X, dtype=np.float32)
         if type(Y) != np.ndarray:
-            Y = np.array(Y)
+            Y = np.array(Y, dtype=np.float32)
 
         self.compile_model(training_config)
 
         train_options = {
             "batch_size": training_config.batch_size,
             "validation_split": training_config.validation_split,
-            "verbose": 0,
+            "verbose": training_config.verbose,
             "callbacks": training_config.callbacks,
             "epochs": training_config.training_epochs,
             **(training_config.fit_kwargs or {})
@@ -59,12 +74,3 @@ class ModelDecorator(SaveableModel, Learnable):
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         return X, Y, train_options
-
-    def fit(
-        self,
-        X: np.ndarray,
-        Y: np.ndarray,
-        training_config: TrainingConfig = TrainingConfig()
-    ) -> callbacks.History:
-        X, Y, train_options = self.pre_fit(X, Y, training_config)
-        return self.model.fit(X, Y, **train_options)

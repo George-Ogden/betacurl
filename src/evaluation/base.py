@@ -1,6 +1,7 @@
 import numpy as np
 
 from dm_env.specs import BoundedArray
+from typing import Union
 
 from ..io import SaveableObject
 
@@ -10,7 +11,7 @@ class EvaluationStrategy(SaveableObject):
         self.observation_shape = observation_spec.shape
         self.observation_range = np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
 
-    def evaluate(self, observations: np.ndarray) -> float:
+    def evaluate(self, observations: np.ndarray) -> Union[float, np.ndarray]:
         if observations.ndim == 1:
             return 0.
         else:

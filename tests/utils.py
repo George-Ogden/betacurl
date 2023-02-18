@@ -1,4 +1,5 @@
 from dm_env._environment import TimeStep
+from tensorflow.keras import callbacks
 import numpy as np
 import os
 
@@ -35,7 +36,7 @@ class StubGame(Game):
         self.reset()
 
     def _reset(self) -> TimeStep:
-        self.score = [0, 0]
+        self.score = [0., 0.]
 
     def _get_observation(self)-> np.ndarray:
         return np.array(self.score[0] - self.score[1]).reshape(1)
@@ -61,9 +62,9 @@ class SparseStubGame(StubGame):
 
 class BadSymetryStubGame(StubGame):
     def get_symmetries(
-        self, observation: np.ndarray, action: np.ndarray, reward: float
-    ) -> List[Tuple[np.ndarray, np.ndarray, float]]:
-        return [(observation * 0 + 1, action * 0 + 1, 1), (observation * 0 - 1, action * 0 + 2, -1)]
+        self, player: int, observation: np.ndarray, action: np.ndarray, reward: float
+    ) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return [(player, observation * 0 + 1, action * 0 + 1, 1), (player, observation * 0 - 1, action * 0 + 2, -1)]
 
 class GoodPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
@@ -79,3 +80,20 @@ def generic_save_test(object: SaveableObject):
     assert os.path.exists(SAVE_DIR)
     assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
     assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
+
+class EpochCounter(callbacks.Callback):
+    def on_train_begin(self, *args, **kwargs):
+        self.counter = 0
+    
+    def on_epoch_begin(self, *args, **kwargs):
+        self.counter += 1
+
+def find_hidden_size(layers):
+    for layer in layers:
+        if hasattr(layer, "units"):
+            if layer.units == 63:
+                return True
+        elif hasattr(layer, "layers"):
+            if find_hidden_size(layer.layers):
+                return True
+    return False

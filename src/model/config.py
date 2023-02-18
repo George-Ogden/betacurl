@@ -2,7 +2,7 @@ from tensorflow.keras import callbacks, optimizers
 from wandb.keras import WandbCallback
 from tqdm.keras import TqdmCallback
 
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 from dataclasses import dataclass, field
 
 @dataclass
@@ -10,12 +10,13 @@ class ModelConfig:
     output_activation:  str = "sigmoid"
 
 @dataclass
-class SimpleLinearModelConfig(ModelConfig):
+class MLPModelConfig(ModelConfig):
     hidden_size: int = 128
 
 @dataclass
-class FCNNConfig(SimpleLinearModelConfig):
+class FCNNConfig(MLPModelConfig):
     dropout: float = .1
+    hidden_layers: int = 3
 
 @dataclass
 class TrainingConfig:
@@ -35,11 +36,14 @@ class TrainingConfig:
     additional_callbacks: Optional[List[callbacks.Callback]] = None
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
+    optimizer_kwargs: Optional[Dict[str, Any]] = None
+    verbose: ClassVar[int] = 0
 
     @property
     def optimizer(self) -> optimizers.Optimizer:
         return type(optimizers.get(self.optimizer_type))(
-            learning_rate=self.lr
+            learning_rate=self.lr,
+            **(self.optimizer_kwargs or {})
         )
     
     @property
@@ -47,13 +51,14 @@ class TrainingConfig:
         return [
             WandbCallback(),
             TqdmCallback(desc="Training"),
+            callbacks.TerminateOnNaN(),
         ] + (
             self.additional_callbacks or []
         ) + (
             [
                 callbacks.EarlyStopping(
                     patience=self.training_patience,
-                    monitor="val_mae",
+                    monitor="val_" + (self.metrics[0] if len(self.metrics) > 0 else "loss"),
                     restore_best_weights=True
                 )
             ] if self.training_patience > 0 else []
