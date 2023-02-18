@@ -151,3 +151,13 @@ class SingleEndCurlingGame(Game):
         mask[self.num_stones_per_end // 2:] = red_mask
 
         return -player, observation, action, -reward
+
+    def get_random_move(self):
+        return np.clip(
+            np.random.normal(
+                loc=StoneThrow.random_parameters[:, 0],
+                scale=StoneThrow.random_parameters[:, 1]
+            ),
+            a_min=StoneThrow.bounds[:,0],
+            a_max=StoneThrow.bounds[:,1]
+        )
