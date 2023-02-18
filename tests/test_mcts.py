@@ -1,10 +1,13 @@
-from dm_env.specs import BoundedArray
 from copy import deepcopy
 import numpy as np
 
-from src.game import GameSpec
+from dm_env.specs import BoundedArray
+from typing import Tuple
+
+from src.game import Game, GameSpec
 from src.mcts import MCTS
 
+from tests.config import probabilistic
 from tests.utils import StubGame
 
 class MDPStubGame(StubGame):
@@ -40,12 +43,25 @@ class SimpleMCTS(MCTS):
     def select_random_action(self) -> np.ndarray:
         return np.tile(game.max_move / 2, move_spec.shape)
 
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+        return [self.select_action(None)], [1.]
+
 class RandomMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         return np.random.rand(*move_spec.shape)
     
     def select_random_action(self) -> np.ndarray:
         return np.random.rand(*move_spec.shape)
+
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+        actions = self.get_actions(game.get_observation())
+        values = np.array([(action.reward + self.node_information[action.next_state].expected_return) * self.game.player_delta for action in actions])
+        if temperature == 0:
+            probs = np.zeros(len(actions))
+            probs[values.argmax()] = 1
+        else:
+            probs = np.exp(values / temperature)
+        return [action.action for action in actions], probs
 
 def test_immutability():
     game.reset()
@@ -74,3 +90,53 @@ def test_search_expectation():
     searches = np.array([tree.search() for i in range(1000)])
     assert np.abs(searches.mean()) < .1
     assert .4 < searches.std() < .7
+
+@probabilistic
+def test_high_actions_selected():
+    game.reset(0)
+    tree = RandomMCTS(game)
+    
+    for i in range(30):
+        tree.search(game)
+    actions, probs = tree.get_action_probs()
+    
+    for action in actions:
+        game.validate_action(action)
+    
+    assert probs.sum() == 1
+    assert ((0 <= probs) & (probs <= 1)).all()
+
+    initial_order = np.argsort(np.min(actions, axis=-1))
+    final_order = np.argsort(probs)
+    n = len(initial_order)
+    r_s = 1 - 6 * np.linalg.norm(initial_order - final_order) / (n * (n ** 2 - 1))
+    assert r_s > 0.5
+    
+    game.step(actions[probs.argmax()])
+    
+    for i in range(30):
+        tree.search(game)
+    actions, probs = tree.get_action_probs()
+    
+    assert probs.sum() == 1
+    assert ((0 <= probs) & (probs <= 1)).all()
+    
+    initial_order = np.argsort(np.min(actions, axis=-1))
+    final_order = np.argsort(probs)
+    n = len(initial_order)
+    r_s = 1 - 6 * np.linalg.norm(initial_order - final_order) / (n * (n ** 2 - 1))
+    assert r_s > 0.5
+    
+    for action in actions:
+        game.validate_action(action)
+
+def test_game_persists():
+    game.reset()
+    tree = SimpleMCTS(game)
+    for i in range(4):
+        for _ in range(30):
+            tree.search(game)
+        actions, probs = tree.get_action_probs(temperature=0)
+        if i > 0:
+            assert tree.node_information[tree.encode(game.get_observation())].num_visits > 30
+        game.step(actions[probs.argmax()])
