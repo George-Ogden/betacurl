@@ -14,6 +14,7 @@ class LSTMModelFactory(ModelFactory):
         """config ignored but left in for consistency"""
         return keras.Sequential(name=cls.get_name(),
             layers=[
+                keras.Input(shape=(None, input_size,)),
                 layers.LSTM(output_size, return_sequences=True)
             ]
         )

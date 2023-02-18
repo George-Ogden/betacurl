@@ -6,7 +6,7 @@ from dm_env.specs import BoundedArray
 from typing import Tuple
 
 from ...evaluation import NNEvaluationStrategy
-from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, ModelConfig, ModelFactory, BEST_MODEL_FACTORY
 
 from ..config import SharedTorsoSamplerConfig
 from .gaussian import GaussianSamplingStrategy
@@ -23,12 +23,21 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0) -> tf.keras.Model:
         config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
         feature_size = self.config.feature_dim
-        feature_extractor = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=feature_size, config=config)
+        feature_extractor = self.create_feature_extractor(
+            input_size=np.product(observation_spec.shape) + latent_size,
+            feature_size=feature_size,
+            model_factory=model_factory,
+            config=config
+        )
+
         feature_spec = BoundedArray(shape=(feature_size,), dtype=np.float32, minimum=np.tile(-np.inf, feature_size), maximum=np.tile(np.inf, feature_size))
         policy_head = GaussianSamplingStrategy.setup_model(self, action_spec=action_spec, observation_spec=feature_spec, model_factory=DenseModelFactory)(feature_extractor.output)
         value_head = NNEvaluationStrategy.setup_model(self, observation_spec=feature_spec, model_factory=DenseModelFactory)(feature_extractor.output)
         self.model = tf.keras.Model(inputs=feature_extractor.inputs, outputs=[policy_head, value_head])
         return self.model
+
+    def create_feature_extractor(self, input_size: int, feature_size: int, model_factory: ModelFactory, config: ModelConfig) -> tf.keras.Model:
+        return model_factory.create_model(input_size=input_size, output_size=feature_size, config=config)
 
     def postprocess_actions(self, samples: tf.Tensor) -> tf.Tensor:
         actions, values = samples
