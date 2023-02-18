@@ -7,10 +7,11 @@ from .config import ModelConfig
 from .base import ModelFactory
 
 class ConstantModel(ModelFactory):
+    NAME = "constant"
     @classmethod
     def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig(), constant: int = 0):
         return keras.Sequential(
-            name="constant",
+            name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
                 layers.Dense(output_size),

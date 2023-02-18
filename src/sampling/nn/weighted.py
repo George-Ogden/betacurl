@@ -1,20 +1,21 @@
-from ...model import TrainingConfig
-from .nn import NNSamplingStrategy
-
+from copy import deepcopy
 import numpy as np
 
 from typing import Callable, List, Tuple
-from copy import deepcopy
+
+from ...model import TrainingConfig
+
+from .nn import NNSamplingStrategy
 
 class WeightedNNSamplingStrategy(NNSamplingStrategy):
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[np.ndarray, np.ndarray, float], List[Tuple[np.ndarray, np.ndarray, float]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ):
         training_config = deepcopy(training_config)
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(observation, action, reward))]
+        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
         observations, actions, weights = zip(*training_data)
 
         observations = self.add_noise_to_observations(observations)
