@@ -274,8 +274,8 @@ class Stone:
                     impulses[i] += tangent_impulse
                     impulses[j] -= tangent_impulse
 
-
-        if ((torques != 0).any() or (impulses != 0).any()) and constants.accuracy != Accuracy.HIGH:
+        collision = ((torques != 0).any() or (impulses != 0).any())
+        if collision and constants.accuracy != Accuracy.HIGH:
             # require high accuracy for collision simulations
             for stone in stones:
                 stone.unstep(constants)
@@ -307,6 +307,11 @@ class Stone:
                         nudge_distance = (stone1.outer_radius + stone2.outer_radius - distance) / 2 + constants.eps
                         stone1.position += normal_vector * nudge_distance
                         stone2.position -= normal_vector * nudge_distance
+
+        if collision:
+            # reduce simulation time 
+            # high accuracy only needed for the collisions themselves
+            constants.accuracy = Accuracy.MID
 
 @dataclass
 class StoneThrow:
