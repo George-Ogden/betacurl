@@ -7,7 +7,7 @@ from typing import ClassVar, List, Optional, Tuple
 from dataclasses import dataclass
 
 from .enums import Colors, DisplayTime, StoneColor, SimulationState
-from .constants import Accuracy, CurlingConstants, SimulationConstants
+from .constants import Accuracy, PhysicalConstants, SimulationConstants
 
 class Curling:
     physical_constants: PhysicalConstants = PhysicalConstants()

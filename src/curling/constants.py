@@ -7,7 +7,7 @@ from .enums import Accuracy
 
 @dataclass
 class SimulationConstants:
-    time_intervals: Union[np.floating, np.ndarray] = np.array((.5, .2, .05))
+    time_intervals: Union[np.floating, np.ndarray] = np.array((.3, .1, .05))
     num_points_on_circle: np.integer = np.array(20)
     eps: np.floating = np.array(1e-6)
     accuracy: Accuracy = Accuracy.LOW
