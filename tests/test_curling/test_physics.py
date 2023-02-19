@@ -1,11 +1,22 @@
 from copy import deepcopy
 import numpy as np
 
+from dataclasses import dataclass, field
+from typing import List
+
 from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
 from src.curling.enums import Accuracy, SimulationState
 
 approx_constants = SimulationConstants(time_intervals=.1, num_points_on_circle=10)
 accurate_constants = SimulationConstants(time_intervals=.02)
+
+@dataclass
+class TraceableConstants(SimulationConstants):
+    accuracies: List[Accuracy] = field(default_factory=list)
+    @property
+    def dt(self) -> np.floating:
+        self.accuracies.append(self.accuracy)
+        return super().dt
 
 def get_short_curling(stone_on_button=False):
     short_curling = Curling(StoneColor.RED)
@@ -454,7 +465,7 @@ def test_constants_change_later():
     assert constants.dt == 1.
 
 def test_constants_change_after_collision():
-    constants = SimulationConstants(time_intervals=(.1, .1, .05))
+    constants = TraceableConstants(time_intervals=(.8, .1, .05))
     curling = get_short_curling(True)
     curling.throw(
         stone_throw=StoneThrow(
@@ -464,5 +475,6 @@ def test_constants_change_after_collision():
             velocity=1.1
         ), constants=constants
     )
-    assert constants.accuracy == Accuracy.HIGH
-    assert constants.dt == .05
+    assert Accuracy.HIGH in constants.accuracies
+    assert constants.accuracy == Accuracy.MID
+    assert constants.dt == .1
