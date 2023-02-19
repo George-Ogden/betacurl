@@ -7,10 +7,10 @@ from typing import ClassVar, List, Optional, Tuple
 from dataclasses import dataclass
 
 from .enums import Colors, DisplayTime, StoneColor, SimulationState
-from .constants import Accuracy, CurlingConstants, SimulationConstants
+from .constants import Accuracy, PhysicalConstants, SimulationConstants
 
 class Curling:
-    constants: CurlingConstants = CurlingConstants()
+    physical_constants: PhysicalConstants = PhysicalConstants()
     pitch_length: np.floating = np.array(45.720)
     pitch_width: np.floating = np.array(4.750)
     hog_line_position: np.floating = np.array(11.888) # distance from back line to hog line
@@ -80,7 +80,7 @@ class Curling:
             angle=stone_throw.angle,
             spin=stone_throw.spin,
             position=(0, self.button_position[1]-self.starting_button_distance),
-            curling_constants=self.constants
+            curling_constants=self.physical_constants
         )
 
     def throw(self, stone_throw: StoneThrow, constants: SimulationConstants = SimulationConstants(), display: bool=False):
@@ -168,13 +168,13 @@ class Stone:
     angular_acceleration: np.floating = np.array(0.) # angular acceleration
     angular_velocity: np.floating = np.array(1.5) # clockwise is negative (rad/s)
     angular_position: np.floating = np.array(0.)
-    weight: np.floating = np.array(mass * CurlingConstants.g)
+    weight: np.floating = np.array(mass * PhysicalConstants.g)
     moment_of_inertia: np.floating = np.array(.5 * mass * outer_radius ** 2) # I = 1/2 mr^2
     coefficient_of_restitution: np.floating = np.array(.5) # coefficient of restitution between stones
     coefficient_of_friction: np.floating = np.array(.2) # coefficient of friction between stones
     acceleration = np.array((0., 0.)) # xy acceleration of the stone
     velocity = np.array((0.01, 2.2)) # xy velocity of the stone
-    def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: CurlingConstants = Curling.constants):
+    def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: PhysicalConstants = Curling.physical_constants):
         """create a moving stone (equivalent to throwing)
 
         Args:
