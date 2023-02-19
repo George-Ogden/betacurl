@@ -1,8 +1,8 @@
+from pytest import mark
+
 from src.curling import SingleEndCurlingGame
 
-from tests.config import probabilistic
-
-@probabilistic
+@mark.probabilistic
 def test_random_moves_inside():
     game = SingleEndCurlingGame()
     successful = 0

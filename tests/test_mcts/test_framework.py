@@ -3,11 +3,11 @@ import numpy as np
 
 from dm_env.specs import BoundedArray
 from typing import Tuple
+from pytest import mark
 
 from src.game import Game, GameSpec
 from src.mcts import MCTS
 
-from tests.config import probabilistic
 from tests.utils import StubGame
 
 class MDPStubGame(StubGame):
@@ -90,7 +90,7 @@ def test_search_expectation():
     assert np.abs(searches.mean()) < 10
     assert 4 < searches.std() < 7
 
-@probabilistic
+@mark.probabilistic
 def test_high_actions_selected():
     game.reset(0)
     tree = RandomMCTS(game)
