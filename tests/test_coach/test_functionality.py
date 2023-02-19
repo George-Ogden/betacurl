@@ -4,6 +4,8 @@ import os
 
 from pytest import mark
 
+from pytest import mark
+
 from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
 from src.sampling import RandomSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
@@ -65,6 +67,27 @@ def test_reward_transformed_correctly_with_None():
         [(1, 0, 0, None), (-1, 10, 10, None), (1, 20, 20, None), (-1, 30, 30, 3)],
     ))
     assert transform == set([(1, 0, 0, 3), (-1, 10, 10, 3), (1, 20, 20, 3), (-1, 30, 30, 3)])
+
+@requires_cleanup
+@mark.slow
+@mark.probabilistic
+def test_model_beats_random_player():
+    coach = Coach(
+        game=stub_game,
+        config=CoachConfig(
+            num_games_per_episode=100,
+            num_iterations=10,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    arena = Arena(game=stub_game, players=[coach.best_player.dummy_constructor, RandomPlayer])
+    wins, losses = arena.play_games(100)
+    assert wins > 80
+
+    arena = Arena(game=stub_game, players=[coach.best_player.dummy_constructor, coach.load_player(coach.get_checkpoint_path(0))])
+    wins, losses = arena.play_games(100)
+    assert wins > 80
 
 @requires_cleanup
 @mark.probabilistic
@@ -226,6 +249,7 @@ def test_logs_format(capsys):
     assert not "{" in output
     assert not "}" in output
 
+@mark.probabilistic
 @mark.probabilistic
 @requires_cleanup
 def test_shared_model_learns():
