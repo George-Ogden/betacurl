@@ -10,7 +10,10 @@ from src.curling.curling import Canvas
 approx_constants = SimulationConstants(time_intervals=(.5, .1), num_points_on_circle=10)
 accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 
-@mark.display
+approx_constants = SimulationConstants(time_intervals=(.5, .1), num_points_on_circle=10)
+accurate_constants = SimulationConstants(time_intervals=(.1, .02))
+
+@display
 def test_display():
     curling = Curling(StoneColor.YELLOW)
     curling.throw(StoneThrow(
