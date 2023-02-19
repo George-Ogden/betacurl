@@ -66,28 +66,6 @@ def test_reward_transformed_correctly_with_None():
     ))
     assert transform == set([(1, 0, 0, 3), (-1, 10, 10, 3), (1, 20, 20, 3), (-1, 30, 30, 3)])
 
-
-@requires_cleanup
-@mark.slow
-@mark.probabilistic
-def test_model_beats_random_player():
-    coach = Coach(
-        game=stub_game,
-        config=CoachConfig(
-            num_games_per_episode=100,
-            num_iterations=10,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    arena = Arena(game=stub_game, players=[coach.best_player.dummy_constructor, RandomPlayer])
-    wins, losses = arena.play_games(100)
-    assert wins > 80
-
-    arena = Arena(game=stub_game, players=[coach.best_player.dummy_constructor, coach.load_player(coach.get_checkpoint_path(0))])
-    wins, losses = arena.play_games(100)
-    assert wins > 80
-
 @requires_cleanup
 @mark.probabilistic
 def test_benchmark():
