@@ -8,7 +8,7 @@ from src.curling.curling import Canvas
 
 from tests.config import display
 
-accurate_constants = SimulationConstants(dt=.02)
+accurate_constants = SimulationConstants(time_intervals=.02)
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:

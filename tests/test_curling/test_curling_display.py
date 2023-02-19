@@ -7,8 +7,8 @@ from src.curling.curling import Canvas
 
 from tests.config import display
 
-approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
-accurate_constants = SimulationConstants(dt=.02)
+approx_constants = SimulationConstants(time_intervals=(.5, .1), num_points_on_circle=10)
+accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 
 @display
 def test_display():
