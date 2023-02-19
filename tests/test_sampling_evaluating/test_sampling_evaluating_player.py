@@ -1,6 +1,8 @@
 from typing import Optional
 import numpy as np
 
+from pytest import mark
+
 from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
 from src.game import SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
@@ -8,7 +10,6 @@ from src.curling import SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
 from tests.utils import StubGame, SparseStubGame
-from tests.config import probabilistic, slow
 
 class MaximumSamplingStrategy(SamplingStrategy):
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
@@ -44,7 +45,7 @@ def test_in_bounds_evaluator():
     assert evaluator.evaluate(single_end_game.sample(np.array([1.41, 0, 0])).observation)\
          != evaluator.evaluate(single_end_game.sample(np.array([2, 0, 0])).observation)
 
-@probabilistic
+@mark.probabilistic
 def test_training_and_evaluation_matter():
     single_end_game.reset()
     player.train()
@@ -78,7 +79,7 @@ def test_sampler_is_used():
     move = maxmimum_mover.move(single_end_game)
     assert (move == single_end_game.game_spec.move_spec.maximum).all()
 
-@probabilistic
+@mark.probabilistic
 def test_evaluator_is_used():
     single_end_game.reset()
     maxmimum_mover = SamplingEvaluatingPlayer(
@@ -100,8 +101,8 @@ def test_evaluator_is_used():
     single_end_game.step(move)
     assert len(single_end_game.curling.stones) != 0
 
-@slow
-@probabilistic
+@mark.slow
+@mark.probabilistic
 def test_arena_training_happens():
     results = distinguishable_arena.play_games(10, training=False)
     assert results[0] >= 8
@@ -113,7 +114,7 @@ def test_eval_train_are_same_class():
     assert type(player.train()) == type(player)
     assert type(player.eval()) == type(player)
 
-@probabilistic
+@mark.probabilistic
 def test_picks_best_move():
     player = SamplingEvaluatingPlayer(
         stub_game.game_spec,

@@ -1,13 +1,10 @@
-from typing import Optional
 import numpy as np
 
-from src.sampling import SamplingStrategy, SharedTorsoSamplingEvaluatingStrategy
-from src.evaluation import EvaluationStrategy
+from src.sampling import SharedTorsoSamplingEvaluatingStrategy
 
 from tests.test_sampling_evaluating.test_evaluation import evaluation_strategy_test, evaluation_batch_strategy_test
 from tests.test_sampling_evaluating.test_sampling import sampling_batch_strategy_test, sampling_strategy_test
 from tests.utils import StubGame
-from tests.config import probabilistic, slow
 
 stub_game = StubGame()
 move_spec = stub_game.game_spec.move_spec
