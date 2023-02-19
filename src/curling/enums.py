@@ -38,3 +38,8 @@ class DisplayTime(Enum):
     TWICE_SPEED: LinearTransform = LinearTransform(.5, -1)
     NO_LAG: LinearTransform = LinearTransform(0, 1)
     FOREVER: LinearTransform = LinearTransform(0, 0)
+
+class Accuracy(IntEnum):
+    LOW: int = 0
+    MID: int = 1
+    HIGH: int = 2
