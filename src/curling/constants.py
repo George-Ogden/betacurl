@@ -7,7 +7,7 @@ from .enums import Accuracy
 
 @dataclass
 class SimulationConstants:
-    time_intervals: Union[np.floating, np.ndarray] = np.array((.5, .2, .05))
+    time_intervals: Union[np.floating, np.ndarray] = np.array((.3, .1, .05))
     num_points_on_circle: np.integer = np.array(20)
     eps: np.floating = np.array(1e-6)
     accuracy: Accuracy = Accuracy.LOW
@@ -28,7 +28,7 @@ class SimulationConstants:
         self.accuracy = Accuracy.LOW
 
 @dataclass
-class CurlingConstants:
+class PhysicalConstants:
     mu_0: np.floating = np.array(0.008) # coefficient of friction = m_0 / sqrt(|v|)
     A: np.floating = np.array(10.) # ratio of differences between rear and front coefficients of friction
     k: np.floating = np.array((A - 1) / (A + 1)) # linear factor for scaling coefficient of friction
