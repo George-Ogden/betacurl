@@ -1,13 +1,14 @@
 from copy import deepcopy
 import numpy as np
 
+from pytest import mark
+
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
 
 from tests.utils import StubGame, BadSymetryStubGame, BadPlayer, GoodPlayer
-from tests.config import probabilistic, slow
 
 stub_game = StubGame()
 asymmetric_game = BadSymetryStubGame()
@@ -19,27 +20,27 @@ result, history = arena.play_game(display=False, training=True, return_history=T
 training_data = [(*other_data, result) for *other_data, reward in history]
 training_data *= 100
 
-@probabilistic
+@mark.probabilistic
 def test_sampler_learns():
     sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     sampler.learn(training_data, stub_game.get_symmetries)
     assert (sampler.generate_actions(training_data[0][1]) > .75 * move_spec.maximum).all()
 
-@probabilistic
+@mark.probabilistic
 def test_evaluator_learns():
     evaluator = NNEvaluationStrategy(observation_spec=observation_spec)
     evaluator.learn(training_data, stub_game.get_symmetries)
     assert np.abs(evaluator.evaluate(training_data[0][1]) - result) < stub_game.max_move
 
-@probabilistic
+@mark.probabilistic
 def test_evaluator_uses_augmentation():
     evaluator = NNEvaluationStrategy(observation_spec=observation_spec)
     evaluator.learn(training_data, asymmetric_game.get_symmetries)
     assert np.abs(evaluator.evaluate(training_data[0][1] * 0 + 1) - 1) < 1
     assert np.abs(evaluator.evaluate(training_data[0][1] * 0 - 1) + 1) < 1
 
-@slow
-@probabilistic
+@mark.slow
+@mark.probabilistic
 def test_weighted_sampling_improves_on_normal_sampling():
     total_wins = 0
     for _ in range(5):

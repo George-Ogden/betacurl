@@ -1,15 +1,28 @@
+from copy import deepcopy
 import numpy as np
 
-from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
-from src.curling.enums import SimulationState
+from dataclasses import dataclass, field
+from typing import List
 
-approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
-accurate_constants = SimulationConstants(dt=.02)
+from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
+from src.curling.enums import Accuracy, SimulationState
+
+approx_constants = SimulationConstants(time_intervals=.1, num_points_on_circle=10)
+accurate_constants = SimulationConstants(time_intervals=.02)
+
+@dataclass
+class TraceableConstants(SimulationConstants):
+    accuracies: List[Accuracy] = field(default_factory=list)
+    @property
+    def dt(self) -> np.floating:
+        self.accuracies.append(self.accuracy)
+        return super().dt
 
 def get_short_curling(stone_on_button=False):
     short_curling = Curling(StoneColor.RED)
     short_curling.starting_button_distance = short_curling.tee_line_position
     short_curling.pitch_length = short_curling.tee_line_position * 2
+    short_curling.hog_line_position = short_curling.pitch_length
     if stone_on_button:
         short_curling.stones.append(
             Stone(
@@ -388,3 +401,80 @@ def test_time_frame_is_reasonable():
     while curling.step(accurate_constants) == SimulationState.UNFINISHED:
         time += accurate_constants.dt
     assert 20 <= time <= 30
+
+def test_close_interaction():
+    curling = get_short_curling(True)
+    curling.stones.append(Stone(StoneColor.YELLOW, (0, -curling.tee_line_position - Stone.outer_radius * (2 + 1e-5))))
+    curling.throw(stone_throw=StoneThrow(
+        color=curling.next_stone_colour,
+        velocity=2.00,
+        spin=0,
+        angle=.0
+    ))
+    assert len(curling.stones) > 1
+
+def test_stone_undo():
+    curling = Curling()
+    curling.stones.append(
+        curling.create_stone(
+            StoneThrow(
+                StoneColor.RED,
+                spin=1.,
+                angle=0.02,
+                velocity=1.41,
+        ))
+    )
+
+    while curling.step(approx_constants) == SimulationState.UNFINISHED:
+        position = curling.stones[0].position.copy()
+        velocity = curling.stones[0].velocity.copy()
+        angular_position = curling.stones[0].angular_position.copy()
+        angular_velocity = curling.stones[0].angular_velocity.copy()
+
+        old_constants = deepcopy(approx_constants)
+        if curling.stones[0].step(approx_constants) == SimulationState.FINISHED:
+            break
+        curling.stones[0].unstep(old_constants)
+
+        assert np.allclose(position, curling.stones[0].position)
+        assert np.allclose(velocity, curling.stones[0].velocity)
+
+        assert np.allclose(angular_position, curling.stones[0].angular_position)
+        assert np.allclose(angular_velocity, curling.stones[0].angular_velocity)
+
+def test_constants_change_later():
+    curling = Curling()
+    constants = SimulationConstants(time_intervals=(1., .1, .01))
+    curling.throw(stone_throw=StoneThrow(
+        color=curling.next_stone_colour,
+        velocity=1.41,
+        spin=0,
+        angle=.0
+    ), constants=constants)
+
+    assert constants.accuracy >= Accuracy.MID
+    assert constants.dt <= .1
+
+    curling.throw(stone_throw=StoneThrow(
+        color=curling.next_stone_colour,
+        velocity=2,
+        spin=0,
+        angle=1.
+    ), constants=constants)
+    assert constants.accuracy == Accuracy.LOW
+    assert constants.dt == 1.
+
+def test_constants_change_after_collision():
+    constants = TraceableConstants(time_intervals=(.8, .1, .05))
+    curling = get_short_curling(True)
+    curling.throw(
+        stone_throw=StoneThrow(
+            StoneColor.RED,
+            spin=0,
+            angle=0.03,
+            velocity=1.1
+        ), constants=constants
+    )
+    assert Accuracy.HIGH in constants.accuracies
+    assert constants.accuracy == Accuracy.MID
+    assert constants.dt == .1

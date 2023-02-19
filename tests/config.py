@@ -6,7 +6,6 @@ from pytest import fixture, mark
 SAVE_DIR = "test_save_dir"
 
 requires_cleanup = mark.usefixtures("cleanup")
-slow = mark.skip(reason="taking too long")
 display= mark.skipif("NO_DISPLAY" in os.environ, reason="no display")
 probabilistic = mark.skipif("DETERMINISTIC" in os.environ, reason="probabalistic")
 

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar, List
-import typing
+from typing import ClassVar, List, Optional
 
 
 @dataclass
@@ -29,4 +28,4 @@ class SharedTorsoSamplerConfig(GaussianSamplerConfig):
     """output size of the feature extractor"""
     vf_coef: float = .5
     """value function coefficient in loss function"""
-    target_kl: float = .1
+    target_kl: Optional[float] = None

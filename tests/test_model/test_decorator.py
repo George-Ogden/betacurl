@@ -3,9 +3,9 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
+from pytest import mark
 
-from tests.config import probabilistic
+from src.model import ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
 
 config = MLPModelConfig(
     output_activation="sigmoid", hidden_size=8
@@ -32,7 +32,7 @@ def test_without_config():
     output = model(input)
     assert output.shape == (16, 1)
 
-@probabilistic
+@mark.probabilistic
 def test_model_fits():
     model = StubModel()
     model.model = keras.Sequential(

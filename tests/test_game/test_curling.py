@@ -1,13 +1,13 @@
 from dm_env._environment import StepType
 import numpy as np
+
+from pytest import mark
 import pytest
 
 from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, Stone, StoneColor, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 
-from tests.config import probabilistic
-
-accurate_constants = SimulationConstants(dt=.02)
+accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
@@ -102,7 +102,7 @@ def test_valid_observations_are_valid():
 def test_good_player_always_wins():
     assert forced_arena.play_games(5) == (0, 5)
 
-@probabilistic
+@mark.probabilistic
 def test_random_players_split_wins():
     wins, losses = random_arena.play_games(25)
     assert wins + losses == 25

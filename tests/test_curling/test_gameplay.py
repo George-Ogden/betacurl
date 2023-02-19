@@ -2,8 +2,8 @@ import pytest
 
 from src.curling import Curling, Stone, StoneColor, StoneThrow, SimulationConstants
 
-approx_constants = SimulationConstants(dt=.1, num_points_on_circle=10)
-accurate_constants = SimulationConstants(dt=.02)
+approx_constants = SimulationConstants(time_intervals=.1, num_points_on_circle=10)
+accurate_constants = SimulationConstants(time_intervals=.02)
 
 def test_red_initialisation():
     curling = Curling(StoneColor.RED)

@@ -1,14 +1,14 @@
 import numpy as np
 import cv2
 
+from pytest import mark
+
 from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 from src.curling.enums import DisplayTime
 from src.curling.curling import Canvas
 
-from tests.config import display
-
-accurate_constants = SimulationConstants(dt=.02)
+accurate_constants = SimulationConstants(time_intervals=.02)
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
@@ -37,7 +37,7 @@ right_player = ConsistentRightPlayer(single_end_game.game_spec)
 out_of_bounds_player = OutOfBoundsPlayer(single_end_game.game_spec)
 
 
-@display
+@mark.display
 def test_single_game_display():
     # setup
     Curling.num_stones_per_end = 2
@@ -52,7 +52,7 @@ def test_single_game_display():
     cv2.destroyAllWindows()
     Curling.num_stones_per_end = 8
 
-@display
+@mark.display
 def test_multi_game_display():
     # setup
     Curling.num_stones_per_end = 2

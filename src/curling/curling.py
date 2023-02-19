@@ -7,10 +7,10 @@ from typing import ClassVar, List, Optional, Tuple
 from dataclasses import dataclass
 
 from .enums import Colors, DisplayTime, StoneColor, SimulationState
-from .constants import CurlingConstants, SimulationConstants
+from .constants import Accuracy, PhysicalConstants, SimulationConstants
 
 class Curling:
-    constants: CurlingConstants = CurlingConstants()
+    physical_constants: PhysicalConstants = PhysicalConstants()
     pitch_length: np.floating = np.array(45.720)
     pitch_width: np.floating = np.array(4.750)
     hog_line_position: np.floating = np.array(11.888) # distance from back line to hog line
@@ -31,15 +31,20 @@ class Curling:
 
     def step(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
         finished = SimulationState.FINISHED
+        update_accuracy = False
         invalid_stone_indices = []
         for i, stone in enumerate(self.stones):
             if stone.step(simulation_constants) == SimulationState.UNFINISHED:
                 finished = SimulationState.UNFINISHED
+                if -stone.position[1] < self.hog_line_position:
+                    update_accuracy = True
             if self.out_of_bounds(stone):
                 invalid_stone_indices.append(i)
         for invalid_index in reversed(invalid_stone_indices):
             self.stones.pop(invalid_index)
-        Stone.handle_collisions(self.stones)
+        Stone.handle_collisions(self.stones, constants=simulation_constants)
+        if update_accuracy:
+            simulation_constants.accuracy = max(simulation_constants.accuracy, Accuracy.MID)
         return finished
 
     def render(self) -> Canvas:
@@ -75,7 +80,7 @@ class Curling:
             angle=stone_throw.angle,
             spin=stone_throw.spin,
             position=(0, self.button_position[1]-self.starting_button_distance),
-            curling_constants=self.constants
+            curling_constants=self.physical_constants
         )
 
     def throw(self, stone_throw: StoneThrow, constants: SimulationConstants = SimulationConstants(), display: bool=False):
@@ -87,6 +92,7 @@ class Curling:
             )
 
         )
+        constants.reset()
         while self.step(constants) == SimulationState.UNFINISHED:
             if display:
                 self.display(constants)
@@ -162,13 +168,13 @@ class Stone:
     angular_acceleration: np.floating = np.array(0.) # angular acceleration
     angular_velocity: np.floating = np.array(1.5) # clockwise is negative (rad/s)
     angular_position: np.floating = np.array(0.)
-    weight: np.floating = np.array(mass * CurlingConstants.g)
+    weight: np.floating = np.array(mass * PhysicalConstants.g)
     moment_of_inertia: np.floating = np.array(.5 * mass * outer_radius ** 2) # I = 1/2 mr^2
     coefficient_of_restitution: np.floating = np.array(.5) # coefficient of restitution between stones
     coefficient_of_friction: np.floating = np.array(.2) # coefficient of friction between stones
     acceleration = np.array((0., 0.)) # xy acceleration of the stone
     velocity = np.array((0.01, 2.2)) # xy velocity of the stone
-    def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: CurlingConstants = Curling.constants):
+    def __init__(self, color: StoneColor, position: Tuple[float, float] = (0, 0), velocity: float = 0, angle: float = 0, spin: float = 0, curling_constants: PhysicalConstants = Curling.physical_constants):
         """create a moving stone (equivalent to throwing)
 
         Args:
@@ -186,7 +192,7 @@ class Stone:
 
     def step(self, simulation_constants: SimulationConstants=SimulationConstants()) -> SimulationState:
         if np.linalg.norm(self.velocity) < simulation_constants.eps:
-            self.angular_velocity = 0
+            self.angular_velocity = 0.
             return SimulationState.FINISHED
 
         dt = simulation_constants.dt
@@ -211,7 +217,6 @@ class Stone:
         # torque magnitude
         torque = -np.linalg.det(np.stack((frictional_force, relative_point_position), axis=1)).sum(axis=-1)
 
-
         # update values
         self.angular_acceleration = torque / self.moment_of_inertia
         self.angular_velocity += self.angular_acceleration * dt
@@ -220,12 +225,23 @@ class Stone:
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
         return SimulationState.UNFINISHED
+    
+    def unstep(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
+        dt = simulation_constants.dt
+        # revert a step
+        self.position -= self.velocity * dt
+        self.velocity -= self.acceleration * dt
+        self.angular_position -= self.angular_velocity * dt
+        self.angular_velocity -= self.angular_acceleration * dt
+
+        # unstep must always happen even if stone is stopping
+        return SimulationState.UNFINISHED
 
     @staticmethod
     def handle_collisions(stones: List[Stone], constants: SimulationConstants = SimulationConstants()):
         impulses = np.zeros((len(stones), 2))
         torques = np.zeros((len(stones), ))
-        # Could be rewritten more efficiently if stones are sorted by y coordinate and then values are recalculated
+        # could be rewritten more efficiently if stones are sorted by y coordinate and then values are recalculated
         for i in range(len(stones)):
             stone1 = stones[i]
             for j in range(i):
@@ -258,19 +274,44 @@ class Stone:
                     impulses[i] += tangent_impulse
                     impulses[j] -= tangent_impulse
 
+        collision = ((torques != 0).any() or (impulses != 0).any())
+        if collision and constants.accuracy != Accuracy.HIGH:
+            # require high accuracy for collision simulations
+            for stone in stones:
+                stone.unstep(constants)
+            constants.accuracy = Accuracy.HIGH
+            return
+
         dt = constants.dt
         for stone, impulse, torque in zip(stones, impulses, torques):
             if (torque != 0).any() or (impulse != 0).any():
-                # undo previous steps
-                stone.position -= stone.velocity * dt
-                stone.velocity -= stone.acceleration * dt
-                stone.angular_position -= stone.angular_velocity * dt
-                stone.angular_velocity -= stone.angular_acceleration * dt
+                stone.unstep(constants)
 
                 # update to next state
                 stone.velocity += impulse / stone.mass
                 stone.position += stone.velocity * dt
                 stone.angular_velocity += torque / stone.moment_of_inertia
+
+        # make sure no stones are still touching
+        touching = True
+        while touching:
+            touching = False
+            for i in range(len(stones)):
+                stone1 = stones[i]
+                for j in range(i):
+                    stone2 = stones[j]
+                    normal_vector = stone1.position - stone2.position
+                    distance = np.linalg.norm(normal_vector)
+                    if distance <= stone1.outer_radius + stone2.outer_radius:
+                        touching = True
+                        nudge_distance = (stone1.outer_radius + stone2.outer_radius - distance) / 2 + constants.eps
+                        stone1.position += normal_vector * nudge_distance
+                        stone2.position -= normal_vector * nudge_distance
+
+        if collision:
+            # reduce simulation time 
+            # high accuracy only needed for the collisions themselves
+            constants.accuracy = Accuracy.MID
 
 @dataclass
 class StoneThrow:
