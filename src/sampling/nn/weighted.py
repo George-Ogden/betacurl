@@ -15,7 +15,7 @@ class WeightedNNSamplingStrategy(NNSamplingStrategy):
         training_config: TrainingConfig = TrainingConfig()
     ):
         training_config = deepcopy(training_config)
-        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
+        training_data = [(augmented_observation, augmented_action, reward * np.sign(player) * np.sign(reward)) for (player, observation, action, reward) in training_history for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
         observations, actions, weights = zip(*training_data)
 
         observations = self.add_noise_to_observations(observations)
