@@ -7,7 +7,7 @@ from src.game import Arena, Game, Player, RandomPlayer
 
 from tests.config import probabilistic
 
-accurate_constants = SimulationConstants(dt=.02)
+accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 
 class ConsistentPlayer(Player):
     def move(self, game: Game) -> np.ndarray:
