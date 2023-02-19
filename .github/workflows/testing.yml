@@ -25,7 +25,7 @@ jobs:
         python -m pip install pytest pytest-timeout
     - name: Test with pytest (pull request)
       if: github.event_name == 'pull_request'
-      run: NO_DISPLAY= pytest tests/ --timeout 30
+      run: pytest tests/ --timeout 30 -m "not slow and not display and not probabilistic"
     - name: Test with pytest (master push)
       if: github.event_name == 'push'
-      run: DETERMINISTIC= NO_DISPLAY= pytest tests/ --timeout 30
+      run: pytest tests/ --timeout 30 -m "not slow and not display"
