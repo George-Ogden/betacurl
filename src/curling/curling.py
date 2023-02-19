@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import numpy as np
 import cv2
 
@@ -190,9 +191,8 @@ class Stone:
         self.angular_position = np.array(0.)
         self.angular_velocity = np.array(spin, dtype=float)
 
-    def step(self, simulation_constants: SimulationConstants=SimulationConstants()) -> SimulationState:
+    def _step(self, simulation_constants: SimulationConstants) -> SimulationState:
         if np.linalg.norm(self.velocity) < simulation_constants.eps:
-            self.angular_velocity = 0.
             return SimulationState.FINISHED
 
         dt = simulation_constants.dt
@@ -226,6 +226,38 @@ class Stone:
         self.position += self.velocity * dt
         return SimulationState.UNFINISHED
     
+    def step(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
+        if np.linalg.norm(self.velocity) < simulation_constants.eps:
+            self.stop()
+            return SimulationState.FINISHED
+
+        # midpoint method / second order Runge-Kutta method
+        dt = simulation_constants.dt
+        dt /= 2
+
+        midpoint_stone = deepcopy(self)
+        finished = midpoint_stone._step(simulation_constants)
+        dt *= 2
+        finished |= midpoint_stone._step(simulation_constants)
+
+        if SimulationState.FINISHED in finished:
+            self.stop()
+            return SimulationState.FINISHED
+
+        self.angular_acceleration = midpoint_stone.angular_acceleration
+        self.angular_velocity += self.angular_acceleration * dt
+        self.angular_position += self.angular_velocity * dt
+        self.acceleration = midpoint_stone.acceleration
+        self.velocity += self.acceleration * dt
+        self.position += self.velocity * dt
+        return SimulationState.UNFINISHED
+
+    def stop(self):
+        self.acceleration = np.zeros_like(self.acceleration)
+        self.velocity = np.zeros_like(self.velocity)
+        self.angular_acceleration = np.zeros_like(self.angular_acceleration)
+        self.angular_velocity = np.zeros_like(self.angular_velocity)
+
     def unstep(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
         dt = simulation_constants.dt
         # revert a step

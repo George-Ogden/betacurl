@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import auto, Enum, Flag, IntEnum
 
 class StoneColor(IntEnum):
     RED: int = -1
@@ -12,9 +12,9 @@ class StoneColor(IntEnum):
         elif self == StoneColor.YELLOW:
             return StoneColor.RED
 
-class SimulationState(Enum):
-    FINISHED: bool = True
-    UNFINISHED: bool = False
+class SimulationState(Flag):
+    FINISHED: bool = auto()
+    UNFINISHED: bool = auto()
 
 class Colors(Enum):
     """colors Enum in BGR"""
