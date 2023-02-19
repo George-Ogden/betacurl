@@ -274,6 +274,14 @@ class Stone:
                     impulses[i] += tangent_impulse
                     impulses[j] -= tangent_impulse
 
+        collision = ((torques != 0).any() or (impulses != 0).any())
+        if collision and constants.accuracy != Accuracy.HIGH:
+            # require high accuracy for collision simulations
+            for stone in stones:
+                stone.unstep(constants)
+            constants.accuracy = Accuracy.HIGH
+            return
+
         dt = constants.dt
         for stone, impulse, torque in zip(stones, impulses, torques):
             if (torque != 0).any() or (impulse != 0).any():
@@ -283,6 +291,27 @@ class Stone:
                 stone.velocity += impulse / stone.mass
                 stone.position += stone.velocity * dt
                 stone.angular_velocity += torque / stone.moment_of_inertia
+
+        # make sure no stones are still touching
+        touching = True
+        while touching:
+            touching = False
+            for i in range(len(stones)):
+                stone1 = stones[i]
+                for j in range(i):
+                    stone2 = stones[j]
+                    normal_vector = stone1.position - stone2.position
+                    distance = np.linalg.norm(normal_vector)
+                    if distance <= stone1.outer_radius + stone2.outer_radius:
+                        touching = True
+                        nudge_distance = (stone1.outer_radius + stone2.outer_radius - distance) / 2 + constants.eps
+                        stone1.position += normal_vector * nudge_distance
+                        stone2.position -= normal_vector * nudge_distance
+
+        if collision:
+            # reduce simulation time 
+            # high accuracy only needed for the collisions themselves
+            constants.accuracy = Accuracy.MID
 
 @dataclass
 class StoneThrow:
