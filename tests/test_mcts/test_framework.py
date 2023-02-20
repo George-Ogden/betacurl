@@ -54,7 +54,7 @@ class RandomMCTS(MCTS):
 
     def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
         actions = self.get_actions(game.get_observation())
-        values = np.array([(action.reward + self.node_information[action.next_state].expected_return) * self.game.player_delta for action in actions])
+        values = np.array([(action.reward + self.nodes[action.next_state].expected_return) * self.game.player_delta for action in actions])
         if temperature == 0:
             probs = np.zeros(len(actions))
             probs[values.argmax()] = 1
@@ -70,12 +70,12 @@ def test_immutability():
     assert game.current_round == first_round
 
     for i in range(20):
-        nodes = deepcopy(tree.node_information)
+        nodes = deepcopy(tree.nodes)
         tree.search()
         for representation in nodes:
-            assert representation in tree.node_information
-            assert tree.node_information[representation].game.current_round == nodes[representation].game.current_round
-            assert (tree.node_information[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
+            assert representation in tree.nodes
+            assert tree.nodes[representation].game.current_round == nodes[representation].game.current_round
+            assert (tree.nodes[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
 
 def test_predetermined_search():
     deterministic_game.reset()
@@ -138,5 +138,5 @@ def test_game_persists():
             tree.search(game)
         actions, probs = tree.get_action_probs(temperature=0)
         if i > 0:
-            assert tree.node_information[tree.encode(game.get_observation())].num_visits > 30
+            assert tree.nodes[tree.encode(game.get_observation())].num_visits > 30
         game.step(actions[probs.argmax()])
