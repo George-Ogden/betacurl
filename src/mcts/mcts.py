@@ -26,6 +26,12 @@ class Node:
     def expected_return(self) -> float:
         return self.total_return / self.num_visits
 
+    def get_transition(self, action: np.ndarray) -> Optional[Transition]:
+        return self.transitions.get(MCTS.encode(action), None)
+
+    def set_transition(self, action: np.ndarray, transition: Transition):
+        self.transitions[MCTS.encode(action)] = transition
+
 class MCTS(metaclass=ABCMeta):
     def __init__(self, game: Game):
         self.game = game
@@ -59,7 +65,13 @@ class MCTS(metaclass=ABCMeta):
         if probs.sum() != 0:
             probs /= probs.sum()
         return np.array(actions), probs
-    
+
+    def get_node(self, observation: np.ndarray) -> Optional[Node]:
+        return self.nodes.get(self.encode(observation), None)
+
+    def set_node(self, observation: np.ndarray, node: Node):
+        self.nodes[self.encode(observation)] = node
+
     def rollout(self, game: Game):
         action = game.get_random_move()
         timestep = game.step(action)
@@ -71,46 +83,43 @@ class MCTS(metaclass=ABCMeta):
         if not game:
             game = self.game
         observation = game.get_observation()
-        state = self.encode(observation)
-        if not state in self.nodes:
+        if not (node:= self.get_node(observation)):
             # game will be modified in rollout
             returns = self.rollout(deepcopy(game))
-            node_information = Node(
+            node = Node(
                 game=game,
                 num_visits=1,
                 total_return=returns
             )
-            self.nodes[state] = node_information
+            self.set_node(observation, node)
             return returns
 
-        node_information = self.nodes[state]
         action = self.select_action(observation)
-        action_representation = self.encode(action)
-        if action_representation in node_information.transitions:
-            action_information = node_information.transitions[action_representation]
-            next_state = action_information.next_state
+        transition = node.get_transition(action)
+        if transition:
+            next_state = transition.next_state
             # running the simulation is the expensive part
-            returns = action_information.reward + (
+            returns = transition.reward + (
                 self.search(self.nodes[next_state].game)
-                if not action_information.termination else 0
+                if not transition.termination else 0
             )
         else:
             # only copied when stepping
             game = deepcopy(game)
             timestep = game.step(action)
-            action_information = Transition(
+            transition = Transition(
                 action=action,
                 next_state=self.encode(timestep.observation),
                 reward=timestep.reward,
                 termination=timestep.step_type == StepType.LAST,
                 num_visits=0
             )
-            node_information.transitions[action_representation] = action_information
+            node.set_transition(action, transition)
             returns = timestep.reward + (
                 self.search(game) 
-                if not action_information.termination else 0
+                if not transition.termination else 0
             )
-        node_information.num_visits += 1
-        action_information.num_visits += 1
-        node_information.total_return += returns
+        node.num_visits += 1
+        transition.num_visits += 1
+        node.total_return += returns
         return returns
