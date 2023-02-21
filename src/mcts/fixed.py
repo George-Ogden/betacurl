@@ -1,33 +1,29 @@
 import numpy as np
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, Optional, Tuple
 
 from src.game import Game
 
+from .config import FixedMCTSConfig
 from .base import MCTS
 
 class FixedMCTS(MCTS):
-    cpuct: np.floating = np.array(1.) # "theoretically equal to √2; in practice usually chosen empirically"
-    def __init__(self, game: Game, move_generator: Union[Callable[[np.ndarray], List[Tuple[np.ndarray, float]]], int] = 10):
+    def __init__(self, game: Game, action_generator: Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]] = None, config: FixedMCTSConfig = FixedMCTSConfig):
         """
         Args:
             game (Game): game to search
-            move_generation (Optional[Callable[[np.ndarray], List[Tuple[np.ndarray, float]]]], optional): function to take in an observation and return a list of tuples of actions and probabilities. Defaults to None.
+            action_generator (Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]], optional): function to generate a tuple of an action and its probability from an observation. Defaults to None.
         """
-        super().__init__(game)
-        if isinstance(move_generator, int):
-            move_generator = self._default_move_generator(move_generator)
-        self.generate_moves = move_generator
-
-    def _default_move_generator(self, num_moves: int) -> Callable[[np.ndarray], List[Tuple[np.ndarray, float]]]:
-        def generate_moves(observation: np.ndarray) -> List[Tuple[np.ndarray, float]]:
-            return [(self.game.get_random_move(), 1.) for _ in range(num_moves)]
-        return generate_moves
+        super().__init__(game, config)
+        self.num_actions = config.num_actions
+        if not action_generator:
+            action_generator = self._default_move_generator
+        self.generate_action = action_generator
 
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         node = self.get_node(observation)
         if not hasattr(node, "potential_actions"):
-            actions, probs = zip(*self.generate_moves(observation))
+            actions, probs = zip(*[self.generate_action(observation) for _ in range(self.num_actions)])
             probs = np.array(probs)
             order = np.argsort(-probs)
             # keep actions in order of probability as selected by policy

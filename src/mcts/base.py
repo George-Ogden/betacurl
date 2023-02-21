@@ -1,10 +1,16 @@
+from copy import copy, deepcopy
 from dm_env import StepType
-from copy import deepcopy
 import numpy as np
 
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Optional, Tuple
+
+from src.game import Game
+
+from .config import MCTSConfig
+
+import numpy as np
 
 from src.game import Game
 
@@ -33,10 +39,13 @@ class Node:
         self.transitions[MCTS.encode(action)] = transition
 
 class MCTS(metaclass=ABCMeta):
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         self.game = game
         self.action_spec = game.game_spec.move_spec
         self.nodes: Dict[bytes, Node] = {}
+        
+        self.config = copy(config)
+        self.cpuct = config.cpuct
 
     @staticmethod
     def encode(state: np.ndarray) -> bytes:
@@ -45,10 +54,13 @@ class MCTS(metaclass=ABCMeta):
     @abstractmethod
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         ...
-    
+
+    def _default_move_generator(self, observation: np.ndarray) -> Tuple[np.ndarray, float]:
+        return (self.game.get_random_move(), 1.)
+
     def get_actions(self, observation: np.ndarray) -> List[Transition]:
         return list(self.nodes[self.encode(observation)].transitions.values())
-    
+
     def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
         observation = game.get_observation()
         actions = np.array([action.action for action in self.get_actions(observation)])
