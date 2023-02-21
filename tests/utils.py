@@ -53,10 +53,10 @@ class StubGame(Game):
         return delta
 
 class SparseStubGame(StubGame):
-    """stub game with rewadr only on last step"""
+    """stub game with reward only on last step"""
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
         super()._step(action, display)
-        reward = float(self.get_observation())
+        reward = float(self.get_observation()[0])
         if self.current_round == self.max_round - 1:
             return reward if reward != 0 else self.eps * -self.player_delta
 
