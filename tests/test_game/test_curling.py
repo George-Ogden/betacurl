@@ -51,15 +51,16 @@ def test_game_is_game():
 
 def test_correct_number_of_rounds_played():
     assert single_end_game.reset().step_type == StepType.FIRST
-    for i in range(7):
+    for i in range(15):
         assert single_end_game.step(good_player.move(single_end_game)).step_type == StepType.MID
     assert single_end_game.step(good_player.move(single_end_game)).step_type == StepType.LAST
 
-def test_game_to_play_oscillates():
+@mark.slow
+def test_to_play_oscillates():
     single_end_game.reset(starting_player=1)
     assert single_end_game.to_play == 1
     expected_stone = single_end_game.stone_to_play
-    for i in range(8):
+    for i in range(Curling.num_stones_per_end):
         single_end_game.step(good_player.move(single_end_game))
         expected_stone = ~expected_stone
         assert single_end_game.to_play == i % 2
@@ -67,7 +68,7 @@ def test_game_to_play_oscillates():
 
     single_end_game.reset(starting_player=0)
     assert single_end_game.to_play == 0
-    for i in range(8):
+    for i in range(Curling.num_stones_per_end):
         single_end_game.step(good_player.move(single_end_game))
         assert single_end_game.to_play == 1 - (i % 2)
 
@@ -170,19 +171,19 @@ def test_symmetries_are_reasonable():
         original_positions = single_end_game.get_positions(original_observation)
         if player_delta == 1:
             assert (mask == original_mask).all()
-            red_stones = positions[:8]
-            yellow_stones = positions[8:]
+            red_stones = positions[:Curling.num_stones_per_end]
+            yellow_stones = positions[Curling.num_stones_per_end:]
         else:
-            assert (mask[:4] == single_end_game.get_mask(original_observation)[4:]).all() \
-                and (mask[4:] == single_end_game.get_mask(original_observation)[:4]).all()
-            red_stones = positions[8:]
-            yellow_stones = positions[:8]
+            assert (mask[:Curling.num_stones_per_end // 2] == single_end_game.get_mask(original_observation)[Curling.num_stones_per_end // 2:]).all() \
+                and (mask[Curling.num_stones_per_end // 2:] == single_end_game.get_mask(original_observation)[:Curling.num_stones_per_end // 2]).all()
+            red_stones = positions[Curling.num_stones_per_end:]
+            yellow_stones = positions[:Curling.num_stones_per_end]
 
-        for i in range(8):
+        for i in range(Curling.num_stones_per_end):
             position = original_positions[2*i:2*i+2]
             if (position == 0).all():
                 continue
-            if i < 4:
+            if i < Curling.num_stones_per_end / 2:
                 left_index = np.argwhere(np.abs(red_stones - position[0] * position_delta) < 1e-6)
                 right_index = np.argwhere(np.abs(red_stones - position[1]) < 1e-6).reshape(())
             else:
@@ -264,15 +265,15 @@ def test_out_of_house_evaluation():
 def test_drawn_game_where_player_1_starts():
     single_end_game.reset(0)
     starter = single_end_game.stone_to_play
-    for i in range(8):
+    for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
     assert np.sign(time_step.reward) == starter
 
 def test_drawn_game_where_player_2_starts():
-    single_end_game.reset(0)
+    single_end_game.reset(1)
     starter = single_end_game.stone_to_play
-    for i in range(8):
+    for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
     assert np.sign(time_step.reward) == starter

@@ -50,7 +50,7 @@ def test_single_game_display():
 
     # cleanup
     cv2.destroyAllWindows()
-    Curling.num_stones_per_end = 8
+    Curling.num_stones_per_end = 16
 
 @mark.display
 def test_multi_game_display():
@@ -65,4 +65,4 @@ def test_multi_game_display():
 
     # cleanup
     cv2.destroyAllWindows()
-    Curling.num_stones_per_end = 8
+    Curling.num_stones_per_end = 16
