@@ -6,7 +6,7 @@ from typing import Tuple
 from pytest import mark
 
 from src.mcts.base import Node, Transition
-from src.mcts import FixedMCTS, MCTS
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig
 from src.game import Game, GameSpec
 
 from tests.utils import SparseStubGame, StubGame
@@ -101,6 +101,16 @@ def test_immutability():
             assert tree.nodes[representation].game.current_round == nodes[representation].game.current_round
             assert (tree.nodes[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
 
+def test_mcts_uses_config():
+    mcts = SimpleMCTS(
+        game,
+        config=MCTSConfig(
+            cpuct=2.8
+        )
+    )
+    assert mcts.cpuct == 2.8
+    assert mcts.config.cpuct == 2.8
+
 def test_predetermined_search():
     deterministic_game.reset()
     tree = SimpleMCTS(deterministic_game)
@@ -190,32 +200,53 @@ def test_actions_chosen_by_num_visits():
     assert (np.argsort(actions) == np.argsort(probs)).all()
 
 def test_default_move_generator():
-    mcts = FixedMCTS(game, 83)
-    actions = mcts.generate_moves(game.get_observation())
-    assert len(actions) == 83
-    for action, probs in actions:
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=83
+        )
+    )
+    for i in range(83):
+        action, prob = mcts.generate_action(game.get_observation())
         game.validate_action(action)
+    assert mcts.num_actions == 83
 
 def test_specific_action_generator():
+    moves = [(np.repeat(x, game.game_spec.move_spec.shape), x) for x in np.linspace(0., 1., num=4)]
     def generate_moves(observation):
-        return [(np.repeat(x, game.game_spec.move_spec.shape), x) for x in np.linspace(0., 1., num=4)]
-    mcts = FixedMCTS(game, generate_moves)
-    actions = mcts.generate_moves(game.get_observation())
-    assert len(actions) == 4
-    for action, probs in actions:
+        return moves.pop(0)
+    mcts = FixedMCTS(
+        game,
+        generate_moves,
+        config=FixedMCTSConfig(
+            num_actions=4
+        )
+    )
+    for i in range(4):
+        action, prob = mcts.generate_action(game.get_observation())
         game.validate_action(action)
+    assert len(moves) == 0
 
 def test_selection_order():
     game.reset()
+    moves = [(np.repeat(x, game.game_spec.move_spec.shape), x) for x in np.linspace(0., 1., num=4)]
+    used_moves = []
     def generate_moves(observation):
-        return [(np.repeat(x, game.game_spec.move_spec.shape), x) for x in np.linspace(0., 1., num=4)]
-    mcts = FixedMCTS(game, generate_moves)
+        move = moves.pop(0)
+        used_moves.append(move)
+        return move
+    mcts = FixedMCTS(
+        game,
+        generate_moves,
+        config=FixedMCTSConfig(
+            num_actions=4
+        )
+    )
     for i in range(5):
         mcts.search()
         transitions = mcts.get_node(game.get_observation()).transitions
         assert len(transitions) == i
         if i != 4:
             next_action = mcts.select_action(game.get_observation())
-            print(next_action)
             for action in transitions.values():
                 assert (action.action > next_action).all()
