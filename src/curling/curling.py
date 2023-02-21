@@ -21,7 +21,7 @@ class Curling:
     house_radius: np.floating = np.array((1.996)) # distance from centre of stone to button
     vertical_lines: np.ndarray = np.array((-.457, 0, .457)) # positioning of vertical lines
     horizontal_lines: np.ndarray = np.array((3.658, tee_line_position, hog_line_position, pitch_length / 2, 33.832, 40.233, 42.062)) # positioning of horizontal lines
-    num_stones_per_end: int = 8
+    num_stones_per_end: int = 16
     def __init__(self, starting_color: Optional[StoneColor] = None):
         self.reset(starting_color)
 
@@ -48,7 +48,7 @@ class Curling:
         return finished
 
     def render(self) -> Canvas:
-        canvas = Canvas(self, pixels_per_meter=920//self.pitch_length)
+        canvas = Canvas(self, pixels_per_meter=920//(self.pitch_length / 2))
         canvas.draw_vertical_lines(self.vertical_lines)
         canvas.draw_targets(buffer=self.tee_line_position, radii=self.target_radii)
         canvas.draw_horizontal_lines(self.horizontal_lines)
@@ -116,7 +116,7 @@ class Canvas:
     DISPLAY_TIME = DisplayTime.TWICE_SPEED
     def __init__(self, curling: Curling, pixels_per_meter: int = 20):
         self.pitch_width = curling.pitch_width
-        self.pitch_length = curling.pitch_length
+        self.pitch_length = curling.pitch_length / 2
         self.pixels_per_meter = pixels_per_meter
         self.canvas_width = int(self.pitch_width * pixels_per_meter)
         self.canvas_height = int(self.pitch_length * pixels_per_meter)
@@ -143,7 +143,6 @@ class Canvas:
 
     def draw_targets(self, radii: List[float], buffer: float):
         self.draw_target(radii=radii, offset=-buffer)
-        self.draw_target(radii, buffer-self.pitch_length)
 
     def draw_stone(self, stone: Stone):
         stone_color = Colors.RED if stone.color == StoneColor.RED else Colors.YELLOW
