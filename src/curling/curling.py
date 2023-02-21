@@ -21,7 +21,7 @@ class Curling:
     house_radius: np.floating = np.array((1.996)) # distance from centre of stone to button
     vertical_lines: np.ndarray = np.array((-.457, 0, .457)) # positioning of vertical lines
     horizontal_lines: np.ndarray = np.array((3.658, tee_line_position, hog_line_position, pitch_length / 2, 33.832, 40.233, 42.062)) # positioning of horizontal lines
-    num_stones_per_end: int = 8
+    num_stones_per_end: int = 16
     def __init__(self, starting_color: Optional[StoneColor] = None):
         self.reset(starting_color)
 
