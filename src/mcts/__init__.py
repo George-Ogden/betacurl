@@ -1,1 +1,2 @@
-from .mcts import MCTS
+from .fixed import FixedMCTS
+from .base import MCTS

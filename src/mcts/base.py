@@ -49,22 +49,29 @@ class MCTS(metaclass=ABCMeta):
     def get_actions(self, observation: np.ndarray) -> List[Transition]:
         return list(self.nodes[self.encode(observation)].transitions.values())
     
-    @abstractmethod
     def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
-        ...
+        observation = game.get_observation()
+        actions = np.array([action.action for action in self.get_actions(observation)])
+        visits = np.array([action.num_visits for action in self.get_actions(observation)])
+        if temperature == 0:
+            probs = np.zeros(len(actions), dtype=float)
+            potential_actions = np.argwhere(visits == visits.max()).reshape(-1)
+            probs[np.random.choice(potential_actions)] = 1.
+        else:
+            probs = visits ** (1. / temperature)
+        return actions, probs
 
-    def get_action_probs(self, game: Optional[Game] = None, temperature: float = 0) -> Tuple[np.ndarray, np.ndarray]:
+    def get_action_probs(self, game: Optional[Game] = None, temperature: float = 1.) -> Tuple[np.ndarray, np.ndarray]:
         """
         Returns:
-            Tuple[np.ndarray, np.ndarray]: Tuple of (actions, probs) (probs sub to 1)
+            Tuple[np.ndarray, np.ndarray]: Tuple of (actions, probs) (probs sum to 1)
         """
         if not game:
             game = self.game
         actions, probs = self._get_action_probs(game, temperature)
-        probs = np.array(probs, dtype=float)
         if probs.sum() != 0:
             probs /= probs.sum()
-        return np.array(actions), probs
+        return actions, probs
 
     def get_node(self, observation: np.ndarray) -> Optional[Node]:
         return self.nodes.get(self.encode(observation), None)
@@ -76,14 +83,14 @@ class MCTS(metaclass=ABCMeta):
         action = game.get_random_move()
         timestep = game.step(action)
         if timestep.step_type == StepType.LAST:
-            return timestep.reward
+            return (timestep.reward or 0)
         return (timestep.reward or 0) + self.rollout(game)
 
     def search(self, game: Optional[Game] = None):
         if not game:
             game = self.game
         observation = game.get_observation()
-        if not (node:= self.get_node(observation)):
+        if not (node := self.get_node(observation)):
             # game will be modified in rollout
             returns = self.rollout(deepcopy(game))
             node = Node(
@@ -110,12 +117,12 @@ class MCTS(metaclass=ABCMeta):
             transition = Transition(
                 action=action,
                 next_state=self.encode(timestep.observation),
-                reward=timestep.reward,
+                reward=timestep.reward or 0,
                 termination=timestep.step_type == StepType.LAST,
                 num_visits=0
             )
             node.set_transition(action, transition)
-            returns = timestep.reward + (
+            returns = transition.reward + (
                 self.search(game) 
                 if not transition.termination else 0
             )
