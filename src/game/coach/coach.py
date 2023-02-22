@@ -3,15 +3,14 @@ import numpy as np
 import wandb
 import os
 
-from typing import Callable, List, Optional, Tuple
-from dm_env.specs import BoundedArray
+from typing import List, Optional, Tuple, Type
 from copy import copy
 
 from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
 from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
 from ...io import SaveableObject
 
-from ..player import Player, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from ..player import Player, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from ..game import Game, GameSpec
 from ..arena import Arena
 
@@ -23,8 +22,8 @@ class Coach(SaveableObject):
     def __init__(
         self,
         game: Game,
-        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
+        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
@@ -61,8 +60,8 @@ class Coach(SaveableObject):
     def setup_player(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass: Callable[[BoundedArray, BoundedArray], SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Callable[[BoundedArray], EvaluationStrategy] = NNEvaluationStrategy,
+        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
+        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
         config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
     ):
         self.player = SamplingEvaluatingPlayer(
@@ -133,7 +132,7 @@ class Coach(SaveableObject):
         self.patience -= 1
         return self.patience <= 0
 
-    def benchmark(self, Opponent: Callable[[GameSpec], Player]) -> Tuple[int, int]:
+    def benchmark(self, Opponent: Type[Player]) -> Tuple[int, int]:
         eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
         wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
         return wins, losses

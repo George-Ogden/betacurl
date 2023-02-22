@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Union
 
 from ...sampling import SamplerConfig
+from ...mcts import MCTSConfig
 
 @dataclass
 class SamplingEvaluatingPlayerConfig:
@@ -12,3 +13,8 @@ class SamplingEvaluatingPlayerConfig:
     """number of samples generated during evaluation"""
     epsilon: float = 0.1
     """epsilon-greedy exploration parameter"""
+
+@dataclass
+class MCTSPlayerConfig:
+    mcts_config: Union[MCTSConfig, dict] = field(default_factory=dict)
+    num_simulations: int = 50

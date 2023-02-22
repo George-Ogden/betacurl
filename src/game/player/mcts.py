@@ -1,28 +1,25 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, List, Optional, Tuple, Type, Union
+from typing import Callable, Iterable, List, Optional, Tuple, Union
+from dm_env.specs import BoundedArray
 from numpy.typing import ArrayLike
 
 from copy import copy
 import numpy as np
 
-from ...sampling import NNSamplingStrategy, SamplerConfig, SamplingStrategy
-from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ...model import Learnable, TrainingConfig
+from ...mcts import MCTS
 
 from ..game import Game, GameSpec
 
-from .config import SamplingEvaluatingPlayerConfig
+from .config import MCTSPlayerConfig
 from .base import Player
 
-class SamplingEvaluatingPlayer(Player, Learnable):
-    SEPARATE_ATTRIBUTES = ["evaluator", "sampler"]
+class MCTSPlayer(Player):
     def __init__(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
-        config: Optional[SamplingEvaluatingPlayerConfig]=SamplingEvaluatingPlayerConfig()
+        MCTSClass: Type[MCTS]
+        config: Optional[MCTSPlayerConfig]=MCTSPlayerConfig()
     ):
         self.config = copy(config)
         self.epsilon = config.epsilon
