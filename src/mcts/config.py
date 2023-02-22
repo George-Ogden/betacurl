@@ -1,7 +1,13 @@
 from dataclasses import dataclass
+from typing import List
 
 @dataclass
 class MCTSConfig:
+    def keys(self) -> List[str]:
+        return self.__match_args__
+
+    def __getitem__(self, key):
+        return getattr(self, key)
     cpuct: float = 1. # "theoretically equal to √2; in practice usually chosen empirically"
 
 @dataclass

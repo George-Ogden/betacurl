@@ -18,3 +18,7 @@ class SamplingEvaluatingPlayerConfig:
 class MCTSPlayerConfig:
     mcts_config: Union[MCTSConfig, dict] = field(default_factory=dict)
     num_simulations: int = 50
+
+    def __post_init__(self):
+        # one simulation doesn't generate any actions
+        assert self.num_simulations >= 2

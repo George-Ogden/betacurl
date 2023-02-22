@@ -2,13 +2,12 @@ import numpy as np
 
 from typing import Callable, Optional, Tuple
 
-from src.game import Game
-
 from .config import FixedMCTSConfig
 from .base import MCTS
 
 class FixedMCTS(MCTS):
-    def __init__(self, game: Game, action_generator: Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]] = None, config: FixedMCTSConfig = FixedMCTSConfig()):
+    CONFIG_CLASS = FixedMCTSConfig
+    def __init__(self, game: "Game", action_generator: Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]] = None, config: FixedMCTSConfig = FixedMCTSConfig()):
         """
         Args:
             game (Game): game to search

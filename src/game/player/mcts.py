@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, List, Optional, Tuple, Union
-from dm_env.specs import BoundedArray
-from numpy.typing import ArrayLike
+from typing import Optional, Type
 
-from copy import copy
+from copy import deepcopy
 import numpy as np
 
-from ...mcts import MCTS
+from ...mcts import MCTS, BEST_MCTS
 
 from ..game import Game, GameSpec
 
@@ -18,73 +16,39 @@ class MCTSPlayer(Player):
     def __init__(
         self,
         game_spec: GameSpec,
-        MCTSClass: Type[MCTS]
+        MCTSClass: Type[MCTS] = BEST_MCTS,
         config: Optional[MCTSPlayerConfig]=MCTSPlayerConfig()
     ):
-        self.config = copy(config)
-        self.epsilon = config.epsilon
-        self.num_train_samples = config.num_train_samples
-        self.num_eval_samples = config.num_eval_samples
+        self.config = deepcopy(config)
+        self.simulations = config.num_simulations
+        self.temperature = 1.
+        
+        self.MCTSClass = MCTSClass
+        self.mcts: Optional[MCTS] = None
 
         super().__init__(game_spec)
 
-        self.setup_sampler_evaluator(
-            game_spec=game_spec,
-            SamplingStrategyClass=SamplingStrategyClass,
-            EvaluationStrategyClass=EvaluationStrategyClass,
-            config=config.sampler_config
-        )
-
-    def setup_sampler_evaluator(
-        self,
-        game_spec: GameSpec,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
-        config = Union[SamplerConfig, dict]
-    ):
-        sampler_config = SamplingStrategyClass.CONFIG_CLASS(**config)
-            
-        self.sampler: SamplingStrategy = SamplingStrategyClass(action_spec=game_spec.move_spec, observation_spec=game_spec.observation_spec, config=sampler_config)
-        self.evaluator: EvaluationStrategy = EvaluationStrategyClass(observation_spec=game_spec.observation_spec)
-
     def train(self) -> "Self":
-        self.num_samples = self.num_train_samples
+        self.mcts = None
+        self.temperature = 1.
         return super().train()
 
     def eval(self) -> "Self":
-        self.num_samples = self.num_eval_samples
+        self.mcts = None
+        self.temperature = 0.
         return super().eval()
 
-    def evaluate(self, observations: np.ndarray) -> Union[float, np.ndarray]:
-        return self.evaluator.evaluate(observations)
-    
-    def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:
-        return self.sampler.generate_actions(observation, n)
-
     def move(self, game: Game) -> np.ndarray:
-        potential_actions = self.generate_actions(observation=game.get_observation(), n=self.num_samples)
-        if self.is_training and np.random.random() < self.epsilon:
-            return potential_actions[np.random.randint(len(potential_actions))]
-        return self.get_best_move_from_samples(game, potential_actions)
+        if self.mcts is None:
+            self.mcts = self.MCTSClass(
+                game,
+                config=self.MCTSClass.CONFIG_CLASS(
+                    **self.config.mcts_config
+                )
+            )
 
-    def get_best_move_from_samples(self, game: Game, potential_actions: Iterable[ArrayLike]) -> np.ndarray:
-        if len(potential_actions) == 1:
-            return potential_actions[0]
-        next_time_steps = [game.sample(action) for action in potential_actions]
-        next_observations = np.stack([time_step.observation for time_step in next_time_steps], axis=0)
-        rewards = np.array([time_step.reward for time_step in next_time_steps], dtype=np.float32)
-        if np.isnan(rewards).any():
-            rewards[np.isnan(rewards)] = self.evaluate(next_observations[np.isnan(rewards)])
-        best_action = potential_actions[(rewards * game.player_delta).argmax()]
-        return best_action
+        for _ in range(self.simulations):
+            self.mcts.search(game)
 
-    def learn(
-        self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
-        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
-        training_config: TrainingConfig = TrainingConfig()
-    ):
-        if isinstance(self.evaluator, Learnable):
-            self.evaluator.learn(training_history, augmentation_function, training_config)
-        if isinstance(self.sampler, Learnable):
-            self.sampler.learn(training_history, augmentation_function, training_config)
+        actions, probs = self.mcts.get_action_probs(game, temperature=self.temperature)
+        return actions[np.random.choice(len(actions), p=probs)]
