@@ -6,7 +6,7 @@ from typing import Tuple
 from pytest import mark
 
 from src.mcts.base import Node, Transition
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.game import Game, GameSpec
 
 from tests.utils import SparseStubGame, StubGame
@@ -85,6 +85,15 @@ class RandomMCTS(MCTS):
         else:
             probs = np.exp(values / temperature)
         return [action.action for action in actions], probs
+
+def test_python_dictionaries():
+    # make sure dictionary keys stay in order after insertion
+    keys = np.random.permutation(20)
+    d = {}
+    for k in keys:
+        d[k] = np.random.random()
+    for dict_key, list_key in zip(d, keys):
+        assert dict_key == list_key
 
 def test_immutability():
     game.reset()
@@ -250,3 +259,92 @@ def test_selection_order():
             next_action = mcts.select_action(game.get_observation())
             for action in transitions.values():
                 assert (action.action > next_action).all()
+
+def test_width_is_accurate():
+    game.reset()
+    mcts = WideningMCTS(
+        game,
+        config=WideningMCTSConfig(
+            kappa=.9,
+            cpw=.4
+        )
+    )
+    for i in range(1000):
+        mcts.search(game)
+        expected_size = .4 * (i + 1) ** .9
+        assert expected_size - 1 <= len(mcts.get_node(game.get_observation()).transitions) <= expected_size + 1
+
+def test_puct_with_no_rewards():
+    long_game = MDPSparseStubGame(rounds=50)
+    long_game.reset()
+    
+    mcts = FixedMCTS(
+        long_game,
+        config=FixedMCTSConfig(
+            num_actions=4
+        )
+    )
+    mcts.rollout = (lambda *args, **kwargs: 0.0).__get__(mcts)
+
+    for i in range(20):
+        mcts.search()
+    root = mcts.get_node(long_game.get_observation())
+    actions = root.potential_actions
+    
+    assert root.num_visits == 20
+    assert len(actions) == 4
+    assert len(root.transitions) == 4
+
+    for action in actions:
+        assert root.get_transition(action).reward == 0.
+        assert root.get_transition(action).num_visits == 5 or (
+            root.get_transition(action).num_visits == 4
+            and (mcts.select_puct_action(long_game.get_observation()) == action).all()
+        )
+
+def test_puct_with_policy():
+    max_move = MDPStubGame.max_move
+    MDPStubGame.max_move = .01
+    
+    game = MDPStubGame(rounds=4)
+    move_spec = game.game_spec.move_spec
+    moves = [(move_spec.minimum, 1.), (move_spec.maximum / 100, 0.)]
+
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=2
+        ),
+        action_generator=lambda *args, **kwargs: moves.pop(0) if len(moves) else (np.random.uniform(move_spec.minimum, move_spec.maximum), 1.)
+    )
+
+    for i in range(10):
+        mcts.search()
+    root = mcts.get_node(game.get_observation())
+    
+    assert root.num_visits == 10
+    assert root.get_transition(move_spec.minimum).num_visits >= 8
+    assert (not root.get_transition(move_spec.maximum) or
+        root.get_transition(move_spec.maximum).num_visits <= 1)
+
+    # cleanup
+    MDPStubGame.max_move = max_move
+
+def test_puct_with_rewards():
+    game.reset()
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=10
+        ),
+    )
+
+    for i in range(100):
+        mcts.search()
+    
+    root = mcts.get_node(game.get_observation())
+    values, counts = zip(*[(action.reward + mcts.nodes[action.next_state].expected_return, action.num_visits) for action in root.transitions.values()])
+
+    n = 10
+    r_s = 1 - 6 * np.linalg.norm(np.argsort(values) - np.argsort(counts)) / (n * (n ** 2 - 1))
+    assert r_s > .5

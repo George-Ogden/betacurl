@@ -1,7 +1,7 @@
 from pytest import mark
 
 from src.curling import SingleEndCurlingGame
-from src.mcts import FixedMCTS
+from src.mcts import FixedMCTS, WideningMCTS
 
 @mark.probabilistic
 def test_random_moves_inside():
@@ -16,9 +16,25 @@ def test_random_moves_inside():
     assert successful > 50
 
 @mark.probabilistic
-def test_mcts_helps():
+def test_fixed_mcts_helps():
     game = SingleEndCurlingGame()
-    mcts = FixedMCTS(game, 10)
+    mcts = FixedMCTS(game)
+    game.reset(0)
+    for i in range(game.num_stones_per_end):
+        if i % 2 == 0:
+            for i in range(12):
+                mcts.search(game)
+            actions, probs = mcts.get_action_probs()
+            game.step(actions[probs.argmax()])
+        else:
+            game.step(game.get_random_move())
+
+    assert game.evaluate_position() > 0
+
+@mark.probabilistic
+def test_widening_mcts_helps():
+    game = SingleEndCurlingGame()
+    mcts = WideningMCTS(game)
     game.reset(0)
     for i in range(game.num_stones_per_end):
         if i % 2 == 0:
