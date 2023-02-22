@@ -15,6 +15,7 @@ def test_random_moves_inside():
         successful += len(game.curling.stones)
     assert successful > 50
 
+@mark.slow
 @mark.probabilistic
 def test_fixed_mcts_helps():
     game = SingleEndCurlingGame()
@@ -31,6 +32,7 @@ def test_fixed_mcts_helps():
 
     assert game.evaluate_position() > 0
 
+@mark.slow
 @mark.probabilistic
 def test_widening_mcts_helps():
     game = SingleEndCurlingGame()
