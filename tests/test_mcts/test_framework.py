@@ -111,6 +111,7 @@ def test_immutability():
             assert (tree.nodes[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
 
 def test_mcts_uses_config():
+    # effective use of config is tested in other tests
     mcts = SimpleMCTS(
         game,
         config=MCTSConfig(
@@ -119,6 +120,28 @@ def test_mcts_uses_config():
     )
     assert mcts.cpuct == 2.8
     assert mcts.config.cpuct == 2.8
+
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            cpuct=2.9,
+            num_actions=4
+        )
+    )
+    assert mcts.cpuct == 2.9
+    assert mcts.num_actions == 4
+
+    mcts = WideningMCTS(
+        game,
+        config=WideningMCTSConfig(
+            cpuct=2.4,
+            kappa=.4,
+            cpw=.3,
+        )
+    )
+    assert mcts.cpuct == 2.4
+    assert mcts.kappa == .4
+    assert mcts.cpw == .3
 
 def test_predetermined_search():
     deterministic_game.reset()
