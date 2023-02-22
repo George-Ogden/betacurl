@@ -18,7 +18,7 @@ from src.game import Game
 class Transition:
     action: np.ndarray
     next_state: bytes
-    reward: float = 0 # assume deterministic reward
+    reward: float = 0. # assume deterministic reward
     num_visits: int = 0
     termination: bool = False
 
@@ -142,3 +142,25 @@ class MCTS(metaclass=ABCMeta):
         transition.num_visits += 1
         node.total_return += returns
         return returns
+
+    def select_puct_action(self, observation: np.ndarray) -> np.ndarray:
+        node = self.get_node(observation)
+        actions = node.transitions.values()
+        q_values = np.array([
+            action.reward + (
+                0.
+                if action.termination else
+                self.nodes[action.next_state].expected_return
+            )
+            for action in actions
+        ])
+        u_values = (
+            node.action_probs / node.action_probs.sum()
+            * self.cpuct 
+            * [
+                np.sqrt(node.num_visits) / (1 + action.num_visits) 
+                for action in actions
+            ]
+        )
+        values = u_values + q_values * self.game.player_delta
+        return [action.action for action in actions][values.argmax()]

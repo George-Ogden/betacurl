@@ -11,5 +11,5 @@ class FixedMCTSConfig(MCTSConfig):
 @dataclass
 class WideningMCTSConfig(MCTSConfig):
     # m(s) = c_pw * n(s)^kappa
-    kappa: float = .5
     cpw: float = 1.
+    kappa: float = .5
