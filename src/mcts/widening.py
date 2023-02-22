@@ -14,7 +14,7 @@ class WideningMCTS(MCTS):
             game (Game): game to search
             move_generation (Optional[Callable[[np.ndarray], List[Tuple[np.ndarray, float]]]], optional): function to take in an observation and return a list of tuples of actions and probabilities. Defaults to None.
         """
-        super().__init__(game)
+        super().__init__(game, config)
         
         if not action_generator:
             action_generator = self._default_move_generator
