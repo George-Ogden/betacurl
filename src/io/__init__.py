@@ -1,2 +1,2 @@
-from .model import SaveableModel
+from .model import SaveableModel, SaveableMultiModel
 from .io import SaveableObject
