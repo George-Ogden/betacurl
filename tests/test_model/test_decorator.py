@@ -13,13 +13,13 @@ config = MLPModelConfig(
 
 class StubModel(ModelDecorator):
     def __init__(self):
-        self.model = BEST_MODEL_FACTORY.create_model(input_size=1, output_size=1)
+        self.model = BEST_MODEL_FACTORY.create_model(input_shape=1, output_shape=1)
 
     def learn(self, *args, **kwargs):
         ...
 
 def test_forward():
-    model = MLPModelFactory.create_model(input_size=2, output_size=1, config=config)
+    model = MLPModelFactory.create_model(input_shape=2, output_shape=1, config=config)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)
@@ -27,7 +27,7 @@ def test_forward():
     assert tf.reduce_all(output < 1)
 
 def test_without_config():
-    model = MLPModelFactory.create_model(input_size=2, output_size=1)
+    model = MLPModelFactory.create_model(input_shape=2, output_shape=1)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)

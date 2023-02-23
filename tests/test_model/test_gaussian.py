@@ -30,9 +30,9 @@ narrow_skewed_strategy = GaussianSamplingStrategy(action_spec=narrow_skewed_acti
 
 @mark.probabilistic
 def test_samples_are_normal():
-    means = np.ones(1000)
-    log_stds = np.log(np.ones(1000) * 2)
-    actions = np.concatenate((means, log_stds), axis=-1, dtype=np.float32).reshape(-1, 4)
+    means = np.ones((1000, 2))
+    log_stds = np.log(np.ones((1000, 2)) * 2)
+    actions = np.stack((means, log_stds), axis=-1, dtype=np.float32)
     with tf.GradientTape(watch_accessed_variables=False) as tape:
         samples = wide_range_strategy.postprocess_actions(actions)
         mean = float(tf.reduce_mean(samples).numpy())
@@ -41,7 +41,7 @@ def test_samples_are_normal():
     assert 1. < std < 3.
 
 def test_distribution_is_correct():
-    distribution = wide_range_strategy.generate_distribution(np.array(((-1., -4., -2, -5.),), dtype=np.float32))
+    distribution = wide_range_strategy.generate_distribution(np.array((((-1., -4.), (-2, -5.)),), dtype=np.float32))
     assert np.allclose(distribution.mean(), (-1, -2)) and np.allclose(distribution.stddev(), np.exp((-4, -5)))
 
 @mark.probabilistic

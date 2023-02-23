@@ -229,7 +229,6 @@ def test_logs_format(capsys):
     assert not "}" in output
 
 @mark.probabilistic
-@mark.probabilistic
 @requires_cleanup
 def test_shared_model_learns():
     max_move = SparseStubGame.max_move

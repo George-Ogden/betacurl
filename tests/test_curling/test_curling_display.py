@@ -26,7 +26,6 @@ def test_display():
     cv2.destroyAllWindows()
 
 @mark.display
-@mark.display
 def test_image():
     curling = Curling(StoneColor.YELLOW)
     curling.throw(StoneThrow(
@@ -36,7 +35,7 @@ def test_image():
         spin=0
     ), constants=approx_constants)
     image = curling.render().get_canvas()
-    assert np.abs(image.shape[0] / image.shape[1] - curling.pitch_length / curling.pitch_width) < 0.1
+    assert np.abs(image.shape[0] / image.shape[1] - (curling.pitch_length / 2) / curling.pitch_width) < 0.1
     assert (image == Colors.YELLOW.value).any()
     assert (image == Colors.BACKGROUND.value).sum() > np.prod(image.shape[:-1]) / 2
 
