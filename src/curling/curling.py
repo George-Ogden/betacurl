@@ -28,6 +28,7 @@ class Curling:
     def reset(self, starting_color: Optional[StoneColor] = None):
         self.stones: List[Stone] = []
         self.next_stone_colour = starting_color or np.random.choice([StoneColor.RED, StoneColor.YELLOW])
+        self.canvas: Optional[np.ndarray] = None
 
     def step(self, simulation_constants: SimulationConstants = SimulationConstants()) -> SimulationState:
         finished = SimulationState.FINISHED
@@ -71,7 +72,10 @@ class Curling:
         return (-stone.position[1] >= self.tee_line_position and -stone.position[1] <= self.hog_line_position) and not self.in_house(stone)
 
     def display(self, constants: SimulationConstants = SimulationConstants()):
-        self.render().display(constants)
+        canvas = self.render()
+        if self.canvas is None or not (canvas._canvas == self.canvas).all():
+            canvas.display(constants)
+            self.canvas = canvas._canvas
 
     def create_stone(self, stone_throw: StoneThrow):
         return Stone(
@@ -317,12 +321,12 @@ class StoneThrow:
     bounds: ClassVar[np.ndarray] = np.array([
         (1.3, 2.),
         (-.1, .1),
-        (-4, 4)
+        (-2, 2)
     ]).astype(float)
     random_parameters: ClassVar[np.ndarray] = np.array([
         (1.41, .05),
         (0., .04),
-        (0., 2.),
+        (0., 1.),
     ])
     color: StoneColor
     velocity: float
