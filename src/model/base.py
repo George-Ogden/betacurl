@@ -15,11 +15,13 @@ class ModelFactory(metaclass=ABCMeta):
     def create_model(cls, input_shape: Union[int, Tuple[int]], output_shape: Union[int, Tuple[int]], config: Optional[ModelConfig] = None) -> keras.Model:
         if config is None:
             config = cls.CONFIG_CLASS()
+        input_size = np.prod(input_shape, dtype=int)
+        output_size = np.prod(output_shape, dtype=int)
         return keras.Sequential(
             [
                 keras.Input(np.reshape(input_shape, -1)),
-                layers.Reshape((np.prod(input_shape, dtype=int),)),
-                cls._create_model(np.prod(input_shape, dtype=int), np.prod(output_shape, dtype=int), config=config),
+                layers.Reshape((input_size,)),
+                cls._create_model(input_size, output_size, config=config),
                 layers.Reshape(np.reshape(output_shape, -1)),
             ]
         )

@@ -21,3 +21,7 @@ class WideningMCTSConfig(MCTSConfig):
     kappa: float = .5
     def __post_init__(self):
         assert 0 < self.kappa and self.kappa <= 1
+
+@dataclass
+class MCTSModelConfig:
+    feature_size: int = 32

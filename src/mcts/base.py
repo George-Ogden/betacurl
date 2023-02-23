@@ -88,12 +88,12 @@ class MCTS(metaclass=ABCMeta):
     def set_node(self, observation: np.ndarray, node: Node):
         self.nodes[self.encode(observation)] = node
 
-    def rollout(self, game: "Game"):
+    def rollout(self, game: "Game") -> float:
         action = game.get_random_move()
         timestep = game.step(action)
         if timestep.step_type == StepType.LAST:
-            return (timestep.reward or 0)
-        return (timestep.reward or 0) + self.rollout(game)
+            return (timestep.reward or 0.)
+        return (timestep.reward or 0.) + self.rollout(game)
 
     def search(self, game: Optional["Game"] = None):
         if not game:
