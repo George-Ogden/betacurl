@@ -1,5 +1,5 @@
-from tensorflow_probability import distributions
 from tensorflow.keras import callbacks, models, utils
+from tensorflow_probability import distributions
 from copy import copy
 from tensorflow import data
 import tensorflow as tf
@@ -25,7 +25,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
     
     def setup_model(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory, latent_size: int = 0)  -> tf.keras.Model:
         config = model_factory.CONFIG_CLASS(output_activation="linear")
-        self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape) * 2, config=config)
+        self.model: tf.keras.Model = model_factory.create_model(input_shape=np.product(observation_spec.shape) + latent_size, output_shape=action_spec.shape + (2,), config=config)
         return self.model
     
     def add_noise_to_observations(self, observations: np.ndarray, mu: float = 0) -> np.ndarray:
@@ -33,11 +33,10 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         return observations
 
     def generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        actions = tf.reshape(raw_actions, (raw_actions.shape[0], *self.action_shape, 2))
-        means, log_stds = tf.split(actions, 2, axis=-1)
+        means, log_stds = tf.split(raw_actions, 2, axis=-1)
         means = tf.squeeze(means, -1)
         log_stds = tf.squeeze(log_stds, -1)
-        
+
         means += self.action_mean
         stds = tf.exp(log_stds)
         return distributions.TruncatedNormal(means, stds, *self.action_range)

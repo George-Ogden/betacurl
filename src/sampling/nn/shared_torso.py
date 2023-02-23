@@ -21,7 +21,7 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         self.target_kl = config.target_kl
 
     def setup_model(self, action_spec, observation_spec, model_factory, latent_size=0) -> tf.keras.Model:
-        config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="linear")
+        config = model_factory.CONFIG_CLASS(output_activation="linear")
         feature_size = self.config.feature_dim
         feature_extractor = self.create_feature_extractor(
             input_size=np.product(observation_spec.shape) + latent_size,
@@ -37,7 +37,7 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         return self.model
 
     def create_feature_extractor(self, input_size: int, feature_size: int, model_factory: ModelFactory, config: ModelConfig) -> tf.keras.Model:
-        return model_factory.create_model(input_size=input_size, output_size=feature_size, config=config)
+        return model_factory.create_model(input_shape=input_size, output_shape=feature_size, config=config)
 
     def postprocess_actions(self, samples: tf.Tensor) -> tf.Tensor:
         actions, values = samples
@@ -61,7 +61,7 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         )
         target_distribution = self.generate_distribution(target_policy)
 
-        advantages = reward - tf.squeeze(target_values, axis=-1)
+        advantages = reward - target_values
         return advantages * tf.sign(players), self.compute_log_probs(target_distribution, actions)
     
     def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, rewards: tf.Tensor, advantage: tf.Tensor, target_log_probs: tf.Tensor) -> tf.Tensor:
@@ -80,7 +80,7 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
             advantages=advantage
         )
 
-        value_loss = losses.mean_squared_error(rewards, tf.squeeze(predicted_values, axis=-1))
+        value_loss = losses.mean_squared_error(rewards, predicted_values)
 
         if self.target_kl is not None:
             log_ratio = log_probs - target_log_probs

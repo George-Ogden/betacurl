@@ -10,7 +10,7 @@ class DenseModelFactory(ModelFactory):
     NAME = "dense"
     CONFIG_CLASS = ModelConfig
     @classmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()) -> Model:
+    def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()) -> Model:
         return keras.Sequential(name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),

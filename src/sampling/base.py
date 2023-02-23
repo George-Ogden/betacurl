@@ -15,7 +15,7 @@ class SamplingStrategy(SaveableObject):
         self.action_shape = action_spec.shape
         self.observation_range = np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
         self.observation_shape = observation_spec.shape
-        
+
         self.config = copy(config)
 
     def generate_actions(self, observation: np.ndarray, n: Optional[int] = None) -> np.ndarray:

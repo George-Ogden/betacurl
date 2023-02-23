@@ -9,22 +9,22 @@ from .base import ModelFactory
 class ConstantModel(ModelFactory):
     NAME = "constant"
     @classmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig(), constant: int = 0):
+    def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig(), constant: int = 0):
         return keras.Sequential(
             name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
                 layers.Dense(output_size),
-                layers.Lambda(lambda x: x * 0 + constant)
+                layers.Lambda(lambda x: x * 0 + constant),
             ]
         )
 
 class ZeroModel(ConstantModel):
     @classmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()):
-        return super().create_model(input_size, output_size, config, constant=0)
+    def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()):
+        return super()._create_model(input_size, output_size, config, constant=0)
 
 class OneModel(ConstantModel):
     @classmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()):
-        return super().create_model(input_size, output_size, config, constant=1)
+    def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()):
+        return super()._create_model(input_size, output_size, config, constant=1)

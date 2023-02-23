@@ -20,8 +20,8 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         self.setup_model(action_spec, observation_spec, model_factory, self.latent_size)
 
     def setup_model(self, action_spec: BoundedArray, observation_spec: BoundedArray, model_factory: ModelFactory, latent_size: int = 0) -> tf.keras.Model:
-        config = BEST_MODEL_FACTORY.CONFIG_CLASS(output_activation="sigmoid")
-        self.model: tf.keras.Model = model_factory.create_model(input_size=np.product(observation_spec.shape) + latent_size, output_size=np.product(action_spec.shape), config=config)
+        config = model_factory.CONFIG_CLASS(output_activation="sigmoid")
+        self.model: tf.keras.Model = model_factory.create_model(input_shape=np.product(observation_spec.shape) + latent_size, output_shape=action_spec.shape, config=config)
         return self.model
 
     def preprocess_observations(self, observations: tf.Tensor) -> tf.Tensor:
@@ -30,7 +30,6 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         return observations * 2 - 1
 
     def postprocess_actions(self, actions: tf.Tensor) -> tf.Tensor:
-        actions = tf.reshape(actions, shape=(-1, *self.action_shape))
         actions *= np.diff(self.action_range, axis=0).squeeze(0)
         actions += self.action_range[0]
         return actions
@@ -64,7 +63,7 @@ class NNSamplingStrategy(SamplingStrategy, ModelDecorator):
         if not batched_throughput:
             samples = tf.squeeze(samples, 0)
 
-        samples = samples.numpy()
+        samples = np.array(samples)
         return samples
 
     def learn(

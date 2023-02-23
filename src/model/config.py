@@ -17,6 +17,8 @@ class MLPModelConfig(ModelConfig):
 class FCNNConfig(MLPModelConfig):
     dropout: float = .1
     hidden_layers: int = 3
+    def __post_init__(self):
+        assert self.hidden_layers >= 1
 
 @dataclass
 class TrainingConfig:
