@@ -25,3 +25,7 @@ class WideningMCTSConfig(MCTSConfig):
 @dataclass
 class MCTSModelConfig:
     feature_size: int = 32
+
+@dataclass
+class NNMCTSConfig(FixedMCTSConfig):
+    max_rollout_depth: int = 4
