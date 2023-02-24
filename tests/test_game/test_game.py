@@ -1,4 +1,4 @@
-from dm_env._environment import StepType
+from dm_env import StepType
 from dm_env.specs import BoundedArray
 
 import numpy as np

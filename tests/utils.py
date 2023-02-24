@@ -1,5 +1,5 @@
-from dm_env._environment import TimeStep
 from tensorflow.keras import callbacks
+from dm_env import TimeStep
 import numpy as np
 import os
 
