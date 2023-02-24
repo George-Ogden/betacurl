@@ -1,9 +1,9 @@
 from copy import copy, deepcopy
 import numpy as np
 
-from dm_env._environment import TimeStep
 from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
+from dm_env import TimeStep
 
 from ..curling.curling import Curling, SimulationConstants, Stone, StoneColor, StoneThrow
 from ..game.game import Game, GameSpec

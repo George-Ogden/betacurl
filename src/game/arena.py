@@ -1,7 +1,7 @@
 import numpy as np
 
 from typing import Iterable, List, Optional, Tuple, Type, Union
-from dm_env._environment import StepType
+from dm_env import StepType
 from tqdm import trange
 
 from .game import Game

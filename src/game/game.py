@@ -1,7 +1,7 @@
 from copy import deepcopy
 import numpy as np
 
-from dm_env._environment import StepType, TimeStep
+from dm_env import StepType, TimeStep
 from typing import List, Optional, Tuple
 from abc import ABCMeta, abstractmethod
 from dm_env.specs import BoundedArray
