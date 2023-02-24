@@ -66,6 +66,50 @@ class BadSymetryStubGame(StubGame):
     ) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         return [(player, observation * 0 + 1, action * 0 + 1, 1), (player, observation * 0 - 1, action * 0 + 2, -1)]
 
+class MDPStubGame(StubGame):
+    def __init__(self, rounds: int = 6):
+        self.max_round = rounds
+        self.game_spec = GameSpec(
+            move_spec=BoundedArray(
+                maximum=(self.max_move,) * self.action_size,
+                minimum=(0,) * self.action_size,
+                dtype=np.float32,
+                shape=(self.action_size,),
+            ),
+            observation_spec=BoundedArray(
+                minimum=(-self.max_round // 2 * self.max_move, 0),
+                maximum=((self.max_round + 1) // 2 * self.max_move, self.max_round),
+                shape=(2,),
+                dtype=np.float32,
+            ),
+        )
+        self.reset()
+
+    def _get_observation(self)-> np.ndarray:
+        return np.array((self.score[0] - self.score[1], self.current_round))
+
+class MDPSparseStubGame(SparseStubGame):
+    def __init__(self, rounds: int = 6):
+        self.max_round = rounds
+        self.game_spec = GameSpec(
+            move_spec=BoundedArray(
+                maximum=(self.max_move,) * self.action_size,
+                minimum=(0,) * self.action_size,
+                dtype=np.float32,
+                shape=(self.action_size,),
+            ),
+            observation_spec=BoundedArray(
+                minimum=(-self.max_round // 2 * self.max_move, 0),
+                maximum=((self.max_round + 1) // 2 * self.max_move, self.max_round),
+                shape=(2,),
+                dtype=np.float32,
+            ),
+        )
+        self.reset()
+
+    def _get_observation(self)-> np.ndarray:
+        return np.array((self.score[0] - self.score[1], self.current_round))
+
 class GoodPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.maximum

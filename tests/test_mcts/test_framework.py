@@ -9,51 +9,7 @@ from src.mcts.base import Node, Transition
 from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.game import Game, GameSpec
 
-from tests.utils import SparseStubGame, StubGame
-
-class MDPStubGame(StubGame):
-    def __init__(self, rounds: int = 6):
-        self.max_round = rounds
-        self.game_spec = GameSpec(
-            move_spec=BoundedArray(
-                maximum=(self.max_move,) * self.action_size,
-                minimum=(0,) * self.action_size,
-                dtype=np.float32,
-                shape=(self.action_size,),
-            ),
-            observation_spec=BoundedArray(
-                minimum=(-self.max_round // 2 * self.max_move, 0),
-                maximum=((self.max_round + 1) // 2 * self.max_move, self.max_round),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-        )
-        self.reset()
-
-    def _get_observation(self)-> np.ndarray:
-        return np.array((self.score[0] - self.score[1], self.current_round))
-
-class MDPSparseStubGame(SparseStubGame):
-    def __init__(self, rounds: int = 6):
-        self.max_round = rounds
-        self.game_spec = GameSpec(
-            move_spec=BoundedArray(
-                maximum=(self.max_move,) * self.action_size,
-                minimum=(0,) * self.action_size,
-                dtype=np.float32,
-                shape=(self.action_size,),
-            ),
-            observation_spec=BoundedArray(
-                minimum=(-self.max_round // 2 * self.max_move, 0),
-                maximum=((self.max_round + 1) // 2 * self.max_move, self.max_round),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-        )
-        self.reset()
-
-    def _get_observation(self)-> np.ndarray:
-        return np.array((self.score[0] - self.score[1], self.current_round))
+from tests.utils import MDPStubGame, MDPSparseStubGame
 
 class MDPStubGameDeterministic(MDPStubGame):
     def get_random_move(self):
@@ -110,7 +66,7 @@ def test_immutability():
             assert tree.nodes[representation].game.current_round == nodes[representation].game.current_round
             assert (tree.nodes[representation].game.get_observation() == nodes[representation].game.get_observation()).all()
 
-def test_mcts_uses_config():
+def test_config_is_used():
     # effective use of config is tested in other tests
     mcts = SimpleMCTS(
         game,

@@ -60,7 +60,7 @@ def test_log_probs_are_reasonable():
     assert np.allclose(GaussianSamplingStrategy.compute_log_probs(Normal(((0.,),), ((1.,),)), ((0.,),)) * 2, GaussianSamplingStrategy.compute_log_probs(Normal(((0.,0.),), ((1.,1.),)), ((0.,0.),)))
     assert np.allclose(GaussianSamplingStrategy.compute_log_probs(Normal(((0.,),), ((1.,),)), ((0.5,),)), GaussianSamplingStrategy.compute_log_probs(Normal(((1.,),), ((1.,),)), ((0.5,),)))
 
-def test_uses_training_config():
+def test_training_config_is_used():
     strategy = GaussianSamplingStrategy(
         action_spec=wide_action_spec,
         observation_spec=wide_observation_spec
