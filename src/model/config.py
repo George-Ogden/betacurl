@@ -38,7 +38,7 @@ class TrainingConfig:
     additional_callbacks: Optional[List[callbacks.Callback]] = None
     compile_kwargs: Optional[Dict[str, Any]] = None
     fit_kwargs: Optional[Dict[str, Any]] = None
-    optimizer_kwargs: Optional[Dict[str, Any]] = None
+    optimizer_kwargs: Optional[Dict[str, Any]] = field(default_factory=lambda:{"clipnorm": None})
     verbose: ClassVar[int] = 0
 
     @property

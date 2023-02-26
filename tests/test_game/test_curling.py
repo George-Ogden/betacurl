@@ -49,6 +49,7 @@ def validate_mask(observation: np.ndarray):
 def test_game_is_game():
     assert isinstance(sophisticated_game, Game)
 
+@mark.slow
 def test_correct_number_of_rounds_played():
     assert single_end_game.reset().step_type == StepType.FIRST
     for i in range(15):

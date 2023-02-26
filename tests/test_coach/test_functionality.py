@@ -228,6 +228,7 @@ def test_logs_format(capsys):
     assert not "{" in output
     assert not "}" in output
 
+@mark.slow
 @mark.probabilistic
 @requires_cleanup
 def test_shared_model_learns():

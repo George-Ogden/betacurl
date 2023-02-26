@@ -3,6 +3,8 @@ import tensorflow as tf
 from glob import glob
 from copy import copy
 import time
+
+from pytest import mark
 import os
 
 from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
@@ -167,6 +169,7 @@ def test_best_player_saves_and_loads():
     best_player = coach.best_player
     assert best_player.dummy_variable == 22
 
+@mark.slow
 @requires_cleanup
 def test_with_gaussian_strategy(capsys):
     coach = Coach(
@@ -211,6 +214,7 @@ def test_with_gaussian_strategy(capsys):
     assert "starting iteration 2" in output.out.lower()
     assert not "starting iteration 1" in output.out.lower()
 
+@mark.slow
 @requires_cleanup
 def test_with_st_coach(capsys):
     coach = SharedTorsoCoach(
