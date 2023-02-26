@@ -167,10 +167,7 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         flattened_transform = [np.concatenate(data, axis=0) for data in zip(*batched_transform)]
         secondary_dataset = self.create_dataset(zip(*flattened_transform))
 
-        if training_config.optimizer_kwargs is None:
-            training_config.optimizer_kwargs = {"clipnorm": self.max_grad_norm}
-        else:
-            training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
+        training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
 
         self.compile_model(training_config)
         
