@@ -91,7 +91,6 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         optimizer = training_config.optimizer
-        optimizer.clipnorm = self.max_grad_norm
         batch_size = training_config.batch_size
         training_config.metrics = []
 
@@ -167,7 +166,12 @@ class GaussianSamplingStrategy(NNSamplingStrategy):
         batched_transform = [(observation, action, reward) + self.compute_advantages_and_target_log_probs(player, observation, action, reward) for player, observation, action, reward in primary_dataset]
         flattened_transform = [np.concatenate(data, axis=0) for data in zip(*batched_transform)]
         secondary_dataset = self.create_dataset(zip(*flattened_transform))
-                
+
+        if training_config.optimizer_kwargs is None:
+            training_config.optimizer_kwargs = {"clipnorm": self.max_grad_norm}
+        else:
+            training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
+
         self.compile_model(training_config)
         
         return self.fit(secondary_dataset, training_config)
