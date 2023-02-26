@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
 from src.game import Game, GameSpec, Player
-from src.io import SaveableObject
+from src.utils import SaveableObject
 
 from .config import SAVE_DIR
 
