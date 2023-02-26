@@ -5,8 +5,10 @@ from tqdm.keras import TqdmCallback
 from typing import Any, ClassVar, Dict, List, Optional
 from dataclasses import dataclass, field
 
+from ..utils import Config
+
 @dataclass
-class ModelConfig:
+class ModelConfig(Config):
     output_activation: str = "sigmoid"
 
 @dataclass
@@ -21,7 +23,7 @@ class FCNNConfig(MLPModelConfig):
         assert self.hidden_layers >= 1
 
 @dataclass
-class TrainingConfig:
+class TrainingConfig(Config):
     training_epochs: int = 20
     """number of epochs to train each model for"""
     batch_size: int = 64

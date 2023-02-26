@@ -1,13 +1,9 @@
 from dataclasses import dataclass
-from typing import List
+
+from ..utils.config import Config
 
 @dataclass
-class MCTSConfig:
-    def keys(self) -> List[str]:
-        return self.__match_args__
-
-    def __getitem__(self, key):
-        return getattr(self, key)
+class MCTSConfig(Config):
     cpuct: float = 1. # "theoretically equal to √2; in practice usually chosen empirically"
 
 @dataclass
@@ -23,9 +19,9 @@ class WideningMCTSConfig(MCTSConfig):
         assert 0 < self.kappa and self.kappa <= 1
 
 @dataclass
-class MCTSModelConfig:
+class MCTSModelConfig(Config):
     feature_size: int = 32
 
 @dataclass
-class NNMCTSConfig(FixedMCTSConfig):
+class NNMCTSConfig(Config):
     max_rollout_depth: int = 4

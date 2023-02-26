@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from typing import ClassVar, List, Optional
 
+from ..utils import Config
 
 @dataclass
-class SamplerConfig:
+class SamplerConfig(Config):
     def keys(self) -> List[str]:
         return self.__match_args__
 

@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
 from ...model import TrainingConfig
+from ...utils import Config
 
 from ..player import SamplingEvaluatingPlayerConfig
 
 @dataclass
-class CoachConfig:
+class CoachConfig(Config):
     resume_from_checkpoint: bool = False
     """continue training from previous checkpoint"""
     num_games_per_episode: int = 100
