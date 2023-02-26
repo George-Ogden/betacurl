@@ -4,7 +4,7 @@ import os
 from src.game import RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from src.sampling import NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
-from src.io import SaveableModel, SaveableObject
+from src.utils import SaveableModel, SaveableObject
 from src.curling import SingleEndCurlingGame
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
