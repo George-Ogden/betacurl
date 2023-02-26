@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 
 from src.game import Arena, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
-from src.sampling import NNSamplingStrategy, WeightedNNSamplingStrategy
+from src.sampling import GaussianSamplerConfig, GaussianSamplingStrategy, NNSamplingStrategy, WeightedNNSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
 
@@ -25,6 +25,19 @@ def test_sampler_learns():
     sampler = NNSamplingStrategy(action_spec=move_spec, observation_spec=observation_spec)
     sampler.learn(training_data, stub_game.get_symmetries)
     assert (sampler.generate_actions(training_data[0][1]) > .75 * move_spec.maximum).all()
+
+def test_gaussian_strategy_uses_clipnorm():
+    strategy = GaussianSamplingStrategy(
+        action_spec=move_spec,
+        observation_spec=observation_spec,
+        config=GaussianSamplerConfig(
+            clip_ratio=.2,
+            max_grad_norm=1.
+        )
+    )
+
+    strategy.learn(training_data, stub_game.get_symmetries)
+    assert strategy.model.optimizer.clipnorm == 1.
 
 @mark.probabilistic
 def test_evaluator_learns():
