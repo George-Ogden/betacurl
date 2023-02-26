@@ -3,7 +3,7 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from typing import Union
 
-from ..io import SaveableObject
+from ..utils import SaveableObject
 
 class EvaluationStrategy(SaveableObject):
     DEFAULT_FILENAME = "evaluator.pickle"

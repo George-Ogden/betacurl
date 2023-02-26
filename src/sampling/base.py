@@ -4,7 +4,7 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from typing import Optional
 
-from ..io import SaveableObject
+from ..utils import SaveableObject
 from .config import SamplerConfig
 
 class SamplingStrategy(SaveableObject):

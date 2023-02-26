@@ -86,7 +86,15 @@ class CustomDecorator(ModelDecorator):
         with tf.GradientTape() as tape:
             loss = self.compute_loss(*batch)
         grads = tape.gradient(loss, self.model.trainable_variables)
-        optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+        optimizer.apply_gradients(
+            zip(
+                [
+                    tf.where(tf.math.is_nan(grad), tf.zeros_like(grad), grad)
+                    for grad in grads
+                ],
+                self.model.trainable_variables
+            )
+        )
         return loss
 
     def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()) -> callbacks.History:

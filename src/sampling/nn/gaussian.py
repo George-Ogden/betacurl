@@ -129,6 +129,5 @@ class GaussianSamplingStrategy(CustomDecorator, NNSamplingStrategy):
         secondary_dataset = self.create_dataset(zip(*flattened_transform))
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
-        training_config.metrics = []
         
         return self.fit(secondary_dataset, training_config)

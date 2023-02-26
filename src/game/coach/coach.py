@@ -8,7 +8,7 @@ from copy import copy
 
 from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
 from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ...io import SaveableObject
+from ...utils import SaveableObject
 
 from ..player import Player, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
 from ..game import Game, GameSpec

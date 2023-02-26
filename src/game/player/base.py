@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from ...io import SaveableObject
+from ...utils import SaveableObject
 
 from ..game import Game, GameSpec
 
