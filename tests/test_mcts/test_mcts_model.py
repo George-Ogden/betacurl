@@ -80,10 +80,17 @@ def test_config_is_used():
         game_spec=game_spec,
         model_factory=DenseModelFactory,
         config=MCTSModelConfig(
-            feature_size=10
+            feature_size=10,
+            vf_coeff=.5,
+            ent_coeff=.1,
+            max_grad_norm=1.
         )
     )
 
     assert model.feature_size == 10
     features = model.feature_extractor(np.random.randn(20, 1))
     assert features.shape == (20, 10)
+
+    assert model.vf_coeff == .5
+    assert model.ent_coeff == .1
+    assert model.max_grad_norm == 1.
