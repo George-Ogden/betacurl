@@ -161,3 +161,16 @@ class MCTS(metaclass=ABCMeta):
         )
         values = u_values + q_values * self.game.player_delta
         return [action.action for action in actions][values.argmax()]
+
+    def freeze(self):
+        """
+        calculate values for actions
+        this can only be done once the values no longer update
+        """
+        for node in self.nodes.values():
+            for transition in node.transitions.values():
+                # apply Bayes Theorem to the expected return to add uncertainty
+                transition.expected_return = (
+                    self.nodes[transition.next_state].expected_return
+                    if not transition.termination else 0
+                ) * transition.num_visits / (2 + transition.num_visits) + transition.reward

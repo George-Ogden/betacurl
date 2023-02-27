@@ -327,3 +327,28 @@ def test_puct_with_rewards():
     n = 10
     r_s = 1 - 6 * np.linalg.norm(np.argsort(values) - np.argsort(counts)) / (n * (n ** 2 - 1))
     assert r_s > .5
+
+def test_freezing():
+    class BinaryGame(MDPSparseStubGame):
+        def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
+            """win: +1, loss: -1"""
+            super()._step(action, display)
+            reward = float(self.get_observation()[0])
+            if self.current_round == self.max_round - 1:
+                return np.sign(reward)
+    game = BinaryGame()
+    game.reset()
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=10
+        ),
+    )
+
+    for i in range(11):
+        mcts.search()
+
+    mcts.freeze()
+    for node in mcts.nodes.values():
+        for transition in node.transitions.values():
+            assert np.allclose(np.abs(transition.expected_return), 1 / 3)
