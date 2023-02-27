@@ -13,11 +13,10 @@ from ..utils import SaveableMultiModel
 from .config import MCTSModelConfig
 
 class MCTSModel(SaveableMultiModel, CustomDecorator):
-    models = {
+    MODELS = {
         "feature_extractor": "feature_extractor.h5",
         "policy_head": "policy.h5",
-        "value_head": "value.h5",
-        "observation_head": "observation.h5",
+        "value_head": "value.h5"
     }
     def __init__(
         self,
@@ -72,25 +71,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 output_activation="linear"
             )
         )
-
-        inputs = layers.Concatenate()(
-            [   
-                keras.Input(self.feature_size),
-                layers.Reshape(
-                    (np.prod(self.action_shape, dtype=int),)
-                )(
-                    keras.Input(self.action_shape)
-                )
-            ]
-        )
-
-        self.observation_head = DenseModelFactory.create_model(
-            input_shape=self.feature_size + np.prod(action_spec.shape),
-            output_shape=self.feature_size,
-            config=DenseModelFactory.CONFIG_CLASS(
-                output_activation="linear"
-            )
-        )(inputs) # not used yet
 
         if scaling_spec is None:
             self.scaling_spec = np.stack(
