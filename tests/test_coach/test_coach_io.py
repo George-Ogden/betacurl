@@ -7,7 +7,7 @@ import time
 from pytest import mark
 import os
 
-from src.game import Coach, CoachConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
+from src.game import Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayerConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
 from src.sampling import GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import TrainingConfig
@@ -246,6 +246,47 @@ def test_with_st_coach(capsys):
         )
     )
     assert isinstance(coach, SharedTorsoCoach)
+    coach.learn()
+    
+    assert coach.num_iterations == 3
+    assert coach.num_games_per_episode == 2
+    assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
+    
+    output = capsys.readouterr()
+    assert "starting iteration 2" in output.out.lower()
+    assert not "starting iteration 1" in output.out.lower()
+
+@mark.slow
+@requires_cleanup
+def test_with_mcts_coach(capsys):
+    coach = MCTSCoach(
+        game=stub_game,
+        config=MCTSCoachConfig(
+            **necessary_config,
+            num_games_per_episode=1,
+            num_iterations=2,
+            evaluation_games=4,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4
+            )
+        )
+    )
+    coach.learn()
+    capsys.readouterr()
+
+    coach = MCTSCoach(
+        game=stub_game,
+        config=MCTSCoachConfig(
+            **necessary_config,
+            num_games_per_episode=1,
+            num_iterations=3,
+            resume_from_checkpoint=True,
+            evaluation_games=4,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4
+            )
+        )
+    )
     coach.learn()
     
     assert coach.num_iterations == 3

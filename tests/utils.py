@@ -1,5 +1,6 @@
 from tensorflow.keras import callbacks
 from dm_env import TimeStep
+from copy import deepcopy
 import numpy as np
 import os
 
@@ -133,6 +134,27 @@ def generic_save_test(object: SaveableObject):
     assert os.path.exists(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME))
     assert os.path.getsize(os.path.join(SAVE_DIR, object.DEFAULT_FILENAME)) > 0
 
+def save_load(object: SaveableObject) -> SaveableObject:
+    object.save(SAVE_DIR)
+    new_object = type(object).load(SAVE_DIR)
+    assert type(new_object) == type(object)
+    return new_object
+
+def generic_save_load_test(object: SaveableObject, excluded_attrs: List[str] = []) -> Tuple[SaveableObject, SaveableObject]:
+    original = deepcopy(object)
+    copy = save_load(object)
+    for attr in vars(original):
+        if attr in excluded_attrs:
+            continue
+        original_attr = getattr(original, attr)
+        copy_attr = getattr(copy, attr)
+        error = f"original.{attr} != copy.{attr}, ({original_attr} != {copy_attr})"
+        try:
+            assert original_attr == copy_attr, error
+        except ValueError:
+            assert type(original_attr) == type(copy_attr), error
+    return original, copy
+    
 class EpochCounter(callbacks.Callback):
     def on_train_begin(self, *args, **kwargs):
         self.counter = 0
