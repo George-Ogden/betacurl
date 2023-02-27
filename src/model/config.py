@@ -13,11 +13,11 @@ class ModelConfig(Config):
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 128
+    hidden_size: int = 32
+    dropout: float = .1
 
 @dataclass
 class FCNNConfig(MLPModelConfig):
-    dropout: float = .1
     hidden_layers: int = 3
     def __post_init__(self):
         assert self.hidden_layers >= 1

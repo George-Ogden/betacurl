@@ -14,6 +14,6 @@ class DenseModelFactory(ModelFactory):
         return keras.Sequential(name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
-                layers.Dense(output_size, activation=config.output_activation)
+                layers.Dense(output_size, activation=config.output_activation, kernel_regularizer="l2")
             ]
         )

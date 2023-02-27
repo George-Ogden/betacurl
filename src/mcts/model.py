@@ -47,15 +47,15 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 output_activation="linear"
             )
         )
-        self.feature_extractor = keras.Sequential(
-            [
-                layers.Rescaling(
-                    scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
-                    offset=-self.observation_range.mean(axis=0),
-                ),
-                self.feature_extractor
-            ]
-        )
+        # self.feature_extractor = keras.Sequential(
+        #     [
+        #         layers.Rescaling(
+        #             scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
+        #             offset=-self.observation_range.mean(axis=0),
+        #         ),
+        #         self.feature_extractor
+        #     ]
+        # )
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
@@ -130,14 +130,14 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         model = SaveableMultiModel.load(directory)
         model.model = models.load_model(model.get_model_filename(directory))
 
-    def predict_values(self, observation: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
+    def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool=False) -> Union[tf.Tensor, np.ndarray]:
         batch_throughput = True
         if observation.ndim == len(self.observation_shape):
             batch_throughput = False
             observation = np.expand_dims(observation, 0)
 
-        features = self.feature_extractor(observation)
-        values = self.value_head(features)
+        features = self.feature_extractor(observation, training=training)
+        values = self.value_head(features, training=training)
 
         if not batch_throughput:
             values = tf.squeeze(values, 0).numpy()
@@ -150,7 +150,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         observations: tf.Tensor,
         rewards: tf.Tensor
     ) -> tf.Tensor:
-        value_predictions = self.predict_values(observations)
+        value_predictions = self.predict_values(observations, training=False)
         advantages = rewards - value_predictions
         return advantages * tf.sign(players)
 
@@ -160,8 +160,8 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         values: tf.Tensor,
         advantages: tf.Tensor
     ) -> tf.Tensor:
-        predicted_distribution = self.generate_distribution(observations)
-        predicted_values = self.predict_values(observations)
+        predicted_distribution = self.generate_distribution(observations, training=True)
+        predicted_values = self.predict_values(observations, training=True)
 
         policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(predicted_distribution.log_prob(actions), axis=-1))
         value_loss = losses.mean_squared_error(values, predicted_values)
@@ -172,14 +172,14 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             loss += self.ent_coeff * entropy_loss
         return loss
 
-    def generate_distribution(self, observation: Union[tf.Tensor, np.ndarray]) -> distributions.Distribution:
+    def generate_distribution(self, observation: Union[tf.Tensor, np.ndarray], training: bool=False) -> distributions.Distribution:
         batch_throughput = True
         if observation.ndim == len(self.observation_shape):
             batch_throughput = False
             observation = np.expand_dims(observation, 0)
 
-        features = self.feature_extractor(observation)
-        raw_actions = self.policy_head(features)
+        features = self.feature_extractor(observation, training=training)
+        raw_actions = self.policy_head(features, training=training)
 
         if not batch_throughput:
             raw_actions = tf.squeeze(raw_actions, 0).numpy()

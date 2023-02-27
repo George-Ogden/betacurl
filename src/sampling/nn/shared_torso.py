@@ -57,7 +57,8 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         target_policy, target_values = self.target_model(
             self.preprocess_observations(
                 observations
-            ), training=False
+            ),
+            training=False
         )
         target_distribution = self.generate_distribution(target_policy)
 
@@ -68,7 +69,8 @@ class SharedTorsoSamplingEvaluatingStrategy(GaussianSamplingStrategy, NNEvaluati
         predicted_policy, predicted_values = self.model(
             self.preprocess_observations(
                 observations
-            )
+            ),
+            training=True
         )
         
         predicted_distribution = self.generate_distribution(predicted_policy)

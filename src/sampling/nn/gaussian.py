@@ -60,7 +60,8 @@ class GaussianSamplingStrategy(CustomDecorator, NNSamplingStrategy):
             self.model(
                 self.preprocess_observations(
                     observations
-                )
+                ),
+                training=True
             )
         )
         
@@ -97,7 +98,8 @@ class GaussianSamplingStrategy(CustomDecorator, NNSamplingStrategy):
             self.target_model(
                 self.preprocess_observations(
                     observations
-                ), training=False
+                ),
+                training=False
             )
         )
     

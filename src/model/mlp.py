@@ -14,7 +14,8 @@ class MLPModelFactory(ModelFactory):
         return keras.Sequential(name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
-                layers.Dense(config.hidden_size, activation="relu"),
-                layers.Dense(output_size, activation=config.output_activation)
+                layers.Dense(config.hidden_size, activation="relu", kernel_regularizer="l2"),
+                layers.Dropout(config.dropout),
+                layers.Dense(output_size, activation=config.output_activation, kernel_regularizer="l2")
             ]
         )
