@@ -3,8 +3,8 @@ import numpy as np
 
 from pytest import mark
 
-from src.game import MCTSPlayer, MCTSPlayerConfig
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, WideningMCTS, WideningMCTSConfig
+from src.game import MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.curling import Curling, SingleEndCurlingGame
 from src.game import Arena, RandomPlayer
 
@@ -114,5 +114,34 @@ def test_config_is_used():
     assert player.mcts.cpuct == .15
     assert player.mcts.cpw == .8
     assert player.mcts.kappa == .2
+
+    assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
+
+def test_mcts_config_is_used():
+    observation_shape = stub_game.game_spec.observation_spec.shape
+    player = NNMCTSPlayer(
+        stub_game.game_spec,
+        config=NNMCTSPlayerConfig(
+            num_simulations=5,
+            scaling_spec=np.ones(observation_shape),
+            mcts_config=NNMCTSConfig(
+                max_rollout_depth=4,
+                cpuct=3.4
+            )
+        )
+    )
+
+    stub_game.reset()
+    player.move(stub_game)
+
+    assert player.config.num_simulations == 5
+    assert player.config.mcts_config.cpuct == 3.4
+
+    assert player.simulations == 5
+    assert player.mcts.cpuct == 3.4
+    assert player.mcts.max_depth == 4
+    assert isinstance(player.mcts, NNMCTS)
+    assert player.scaling_spec.shape[:len(observation_shape)] == observation_shape
+    assert (player.scaling_spec.reshape(-1)[:np.prod(observation_shape)] == 1).all()
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
