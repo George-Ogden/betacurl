@@ -181,7 +181,7 @@ class Coach(SaveableObject):
         self.player = self.load_player(directory)
         return self
 
-    @staticmethod
-    def transform_history_for_training(training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+    @classmethod
+    def transform_history_for_training(cls, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         total_reward = 0.
         return [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]

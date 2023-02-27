@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from ...model import TrainingConfig
 from ...utils import Config
 
-from ..player import SamplingEvaluatingPlayerConfig
+from ..player import NNMCTSPlayerConfig, SamplingEvaluatingPlayerConfig
 
 @dataclass
 class CoachConfig(Config):
@@ -28,3 +28,8 @@ class CoachConfig(Config):
     model_filenames: str = "model-{:06}"
     player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
     training_config: TrainingConfig = TrainingConfig()
+
+@dataclass
+class MCTSCoachConfig(CoachConfig):
+    player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
+    use_intermediate_states: bool = True

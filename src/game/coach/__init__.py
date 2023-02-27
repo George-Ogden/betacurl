@@ -1,3 +1,4 @@
+from .config import CoachConfig, MCTSCoachConfig
 from .shared_torso import SharedTorsoCoach
-from .config import CoachConfig
+from .mcts import MCTSCoach
 from .coach import Coach

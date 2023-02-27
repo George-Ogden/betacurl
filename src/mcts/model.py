@@ -165,8 +165,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(predicted_distribution.log_prob(actions), axis=-1))
         value_loss = losses.mean_squared_error(values, predicted_values)
-        entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
-        return policy_loss + self.vf_coeff * value_loss + self.ent_coeff * entropy_loss
+        loss = policy_loss + self.vf_coeff * value_loss
+        if self.ent_coeff != 0:
+            # entropy is main cause of NaNs in training
+            entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
+            loss += self.ent_coeff * entropy_loss
+        return loss
 
     def generate_distribution(self, observation: Union[tf.Tensor, np.ndarray]) -> distributions.Distribution:
         batch_throughput = True
