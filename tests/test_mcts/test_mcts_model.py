@@ -1,8 +1,9 @@
+import tensorflow as tf
 import numpy as np
 
 from pytest import mark
 
-from src.model import DenseModelFactory
+from src.model import DenseModelFactory, MLPModelFactory, MLPModelConfig
 from src.mcts import MCTSModel, MCTSModelConfig
 
 from tests.utils import StubGame
@@ -94,3 +95,39 @@ def test_config_is_used():
     assert model.vf_coeff == .5
     assert model.ent_coeff == .1
     assert model.max_grad_norm == 1.
+
+def test_deterministic_outside_training():
+    model = MCTSModel(
+        game_spec=game_spec
+    )
+
+    observation = np.ones_like(game.get_observation())
+    features = model.feature_extractor(observation, training=False)
+    features2 = model.feature_extractor(observation, training=False)
+    assert tf.reduce_all(features == features2)
+
+    value = model.predict_values(observation, training=False)
+    value2 = model.predict_values(observation, training=False)
+    assert tf.reduce_all(value == value2)
+
+    dist = model.generate_distribution(observation, training=False)
+    dist2 = model.generate_distribution(observation, training=False)
+
+    assert tf.reduce_all(dist.loc == dist2.loc)
+    assert tf.reduce_all(dist.scale == dist2.scale)
+
+def test_non_deterministic_during_training():
+    observation = np.ones_like(game.get_observation())
+
+    features = model.feature_extractor(observation, training=True)
+    features2 = model.feature_extractor(observation, training=True)
+    assert not tf.reduce_all(features == features2)
+
+    value = model.predict_values(observation, training=True)
+    value2 = model.predict_values(observation, training=True)
+    assert not tf.reduce_all(value == value2)
+
+    dist = model.generate_distribution(observation, training=True)
+    dist2 = model.generate_distribution(observation, training=True)
+    assert not tf.reduce_all(dist.loc == dist2.loc)
+    assert not tf.reduce_all(dist.scale == dist2.scale)
