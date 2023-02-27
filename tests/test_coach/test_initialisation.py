@@ -4,13 +4,13 @@ import numpy as np
 import time
 import os
 
-from src.game import Coach, CoachConfig, SamplingEvaluatingPlayerConfig, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
+from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
 from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplerConfig, SharedTorsoSamplerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import Learnable, TrainingConfig
 
+from tests.utils import find_hidden_size, BinaryStubGame, StubGame, SparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
-from tests.utils import find_hidden_size, StubGame, SparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
@@ -230,3 +230,70 @@ def test_shared_coach_saves_separate_attributes():
     assert sampler_evaluator.target_kl == .15
     
     assert find_hidden_size(sampler_evaluator.model.layers)
+
+@requires_cleanup
+def test_mcts_saves_config():
+    game = BinaryStubGame()
+    coach = MCTSCoach(
+        game=game,
+        config=MCTSCoachConfig(
+            **config_dict
+        )
+    )
+
+    assert not os.path.exists(SAVE_DIR)
+    for k, v in config_dict.items():
+        if k in special_cases:
+            continue
+        assert getattr(coach, k) == v
+
+    # special cases
+    assert coach.win_threshold == 2
+    assert coach.num_eval_games == 4
+    assert coach.learning_patience == 4
+
+    assert isinstance(coach.player, NNMCTSPlayer)
+    assert isinstance(coach.best_player, NNMCTSPlayer)
+    assert type(coach.game) == BinaryStubGame
+
+@requires_cleanup
+def test_mcts_coach_avoids_intermediate_states():
+    game = BinaryStubGame()
+    coach = MCTSCoach(
+        game=game,
+        config=MCTSCoachConfig(
+            use_intermediate_states=False,
+            **necessary_config
+        )
+    )
+
+    arena = Arena([coach.player.dummy_constructor] * 2, coach.game)
+    result, history = arena.play_game(display=False, return_history=True)
+    transformed_history = coach.transform_history_for_training(history)
+    observations = [bytes(observation) for player, observation, *data in history]
+    for player, observation, action, reward in transformed_history:
+        assert bytes(observation) in observations
+        assert reward == result
+
+@requires_cleanup
+def test_mcts_coach_includes_intermediate_states():
+    game = BinaryStubGame()
+    coach = MCTSCoach(
+        game=game,
+        config=MCTSCoachConfig(
+            use_intermediate_states=True,
+            **necessary_config
+        )
+    )
+
+    arena = Arena([coach.player.dummy_constructor] * 2, coach.game)
+    result, history = arena.play_game(display=False, return_history=True)
+    transformed_history = coach.transform_history_for_training(history)
+    matches = non_matches = 0
+    for *data, reward in transformed_history:
+        if reward == result:
+            matches += 1
+        else:
+            non_matches += 1
+    assert non_matches > 0
+    assert non_matches > matches / 2

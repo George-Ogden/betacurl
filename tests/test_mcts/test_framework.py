@@ -2,14 +2,14 @@ from copy import deepcopy
 import numpy as np
 
 from dm_env.specs import BoundedArray
-from typing import Tuple
+from typing import Optional, Tuple
 from pytest import mark
 
 from src.mcts.base import Node, Transition
 from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.game import Game, GameSpec
 
-from tests.utils import MDPStubGame, MDPSparseStubGame
+from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 
 class MDPStubGameDeterministic(MDPStubGame):
     def get_random_move(self):
@@ -329,14 +329,7 @@ def test_puct_with_rewards():
     assert r_s > .5
 
 def test_freezing():
-    class BinaryGame(MDPSparseStubGame):
-        def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
-            """win: +1, loss: -1"""
-            super()._step(action, display)
-            reward = float(self.get_observation()[0])
-            if self.current_round == self.max_round - 1:
-                return np.sign(reward)
-    game = BinaryGame()
+    game = BinaryStubGame()
     game.reset()
     mcts = FixedMCTS(
         game,

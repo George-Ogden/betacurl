@@ -110,6 +110,14 @@ class MDPSparseStubGame(SparseStubGame):
     def _get_observation(self)-> np.ndarray:
         return np.array((self.score[0] - self.score[1], self.current_round))
 
+class BinaryStubGame(MDPSparseStubGame):
+    def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
+        """win: +1, loss: -1"""
+        super()._step(action, display)
+        reward = float(self.get_observation()[0])
+        if self.current_round == self.max_round - 1:
+            return np.sign(reward)
+
 class GoodPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.maximum

@@ -1,19 +1,17 @@
-from glob import glob
 from copy import copy
+from glob import glob
 import os
 
 from pytest import mark
 
-from pytest import mark
-
-from src.game import Arena, Coach, CoachConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
+from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
 from src.sampling import RandomSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
 from src.model import  TrainingConfig
 
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
-from tests.utils import StubGame, SparseStubGame
+from tests.utils import BinaryStubGame, StubGame, SparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
@@ -253,3 +251,46 @@ def test_shared_model_learns():
 
     # cleanup
     SparseStubGame.max_move = max_move
+
+@mark.probabilistic
+@mark.slow
+@requires_cleanup
+def test_mcts_model_learns():
+    max_move = BinaryStubGame.max_move
+    BinaryStubGame.max_move = 1
+    game = BinaryStubGame()
+    coach = MCTSCoach(
+        game=game,
+        config=MCTSCoachConfig(
+            resume_from_checkpoint=False,
+            num_games_per_episode=100,
+            num_iterations=2,
+            training_config=TrainingConfig(
+                lr=1e-3,
+                training_epochs=2
+            ),
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=3
+            ),
+            use_intermediate_states=False
+        )
+    )
+
+    coach.learn()
+
+    arena = Arena(
+        game=game,
+        players=[
+            coach.best_player.dummy_constructor, NNMCTSPlayer(
+                game_spec=game.game_spec,
+                config=NNMCTSPlayerConfig(
+                    num_simulations=3
+                )
+            ).dummy_constructor
+        ]
+    )
+    wins, losses = arena.play_games(100)
+    assert wins >= 60
+
+    # cleanup
+    BinaryStubGame.max_move = max_move
