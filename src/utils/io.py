@@ -19,8 +19,10 @@ class SaveableObject:
 
         with open(self.get_path(directory), "wb") as f:
             pickle.dump(self, f)
+
         for object in separate_objects:
-            object.save(directory)
+            if object is not None:
+                object.save(directory)
 
         for attribute, object in zip(self.SEPARATE_ATTRIBUTES, separate_objects):
             setattr(self, attribute, object)
@@ -32,11 +34,18 @@ class SaveableObject:
             object = pickle.load(f)
         
         for attribute in cls.SEPARATE_ATTRIBUTES:
-            setattr(
-                object,
-                attribute,
-                getattr(object, attribute).load(directory)
-            )
+            if getattr(object, attribute) is type(None):
+                setattr(
+                    object,
+                    attribute,
+                    None
+                )
+            else:
+                setattr(
+                    object,
+                    attribute,
+                    getattr(object, attribute).load(directory)
+                )
         return object
 
     @classmethod

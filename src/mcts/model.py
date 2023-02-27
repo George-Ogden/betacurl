@@ -2,8 +2,10 @@ from tensorflow.keras import callbacks, layers, losses, models
 from tensorflow_probability import distributions
 from tensorflow import keras
 import tensorflow as tf
-from copy import copy
 import numpy as np
+
+from copy import copy
+import os
 
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -46,15 +48,15 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 output_activation="linear"
             )
         )
-        # self.feature_extractor = keras.Sequential(
-        #     [
-        #         layers.Rescaling(
-        #             scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
-        #             offset=-self.observation_range.mean(axis=0),
-        #         ),
-        #         self.feature_extractor
-        #     ]
-        # )
+        self.feature_extractor = keras.Sequential(
+            [
+                layers.Rescaling(
+                    scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
+                    offset=-self.observation_range.mean(axis=0),
+                ),
+                self.feature_extractor
+            ]
+        )
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
@@ -93,22 +95,14 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         )
 
         input = keras.Input(self.observation_shape)
-        self.model = models.Model(
+        self.model = keras.Model(
             inputs=input,
             outputs=[
                 self.policy_head(self.feature_extractor(input)),
                 self.value_head(self.feature_extractor(input)),
             ]
         )
-
-    def save(self, directory: str):
-        SaveableMultiModel.save(self, directory)
-        CustomDecorator.save(self, directory)
-
-    @classmethod
-    def load(cls, directory: str) -> "Self":
-        model = SaveableMultiModel.load(directory)
-        model.model = models.load_model(model.get_model_filename(directory))
+        self.model(np.random.randn(1, *self.observation_shape))
 
     def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool=False) -> Union[tf.Tensor, np.ndarray]:
         batch_throughput = True

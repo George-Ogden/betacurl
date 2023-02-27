@@ -36,7 +36,7 @@ class NNMCTS(WideningMCTS):
                 break
         else:
             if self.model is None:
-                returns += np.random.randn()
+                returns += 0.
             else:
                 returns += self.model.predict_values(game.get_observation())
         return returns

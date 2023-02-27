@@ -10,6 +10,7 @@ from .config import NNMCTSPlayerConfig
 from .mcts import MCTSPlayer
 
 class NNMCTSPlayer(MCTSPlayer, Learnable):
+    SEPARATE_ATTRIBUTES = ["model"]
     def __init__(
         self,
         game_spec: GameSpec,

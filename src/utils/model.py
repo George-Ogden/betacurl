@@ -1,4 +1,4 @@
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model, save_model
 from tensorflow import keras
 import os
 
@@ -8,27 +8,32 @@ from .io import SaveableObject
 
 class SaveableModel(SaveableObject):
     model: keras.Model = None
+    DEFAULT_FILENAME = "model.pickle"
     DEFAULT_MODEL_FILE: str = "model.h5"
     def save(self, directory: str):
         model = self.model
         self.model = None
 
         super().save(directory)
-        model.save(self.get_model_filename(directory))
+        if model is not None:
+            save_model(model, self.get_model_filename(directory))
 
         self.model = model
 
     @classmethod
     def load(cls, directory: str) -> "Self":
         model = super().load(directory)
-        model.model = load_model(model.get_model_filename(directory))
+        if os.path.exists(model.get_model_filename(directory)):
+            model.model = load_model(model.get_model_filename(directory))
+        else:
+            model.model = None
         return model
 
     @classmethod
     def get_model_filename(cls, directory):
         return os.path.join(directory,cls.DEFAULT_MODEL_FILE)
 
-class SaveableMultiModel(SaveableObject):
+class SaveableMultiModel(SaveableModel):
     DEFAULT_FILENAME = "model.pickle"
     MODELS: Dict[str, str] = {} # dictionary from variable name to filename
     def save(self, directory: str):
@@ -40,7 +45,8 @@ class SaveableMultiModel(SaveableObject):
         super().save(directory)
 
         for attr, filename in self.MODELS.items():
-            models[attr].save(os.path.join(directory, filename))
+            if models[attr] is not None:
+                save_model(models[attr], os.path.join(directory, filename))
 
             setattr(self, attr, models[attr])
 
@@ -48,9 +54,12 @@ class SaveableMultiModel(SaveableObject):
     def load(cls, directory: str) -> "Self":
         model = super().load(directory)
         for attr, filename in model.MODELS.items():
-            setattr(
-                model,
-                attr,
-                load_model(os.path.join(directory, filename))
-            )
+            if os.path.exists(os.path.join(directory, filename)):
+                setattr(
+                    model,
+                    attr,
+                    load_model(os.path.join(directory, filename))
+                )
+            else:
+                setattr(model, attr, None)
         return model

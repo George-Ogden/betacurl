@@ -45,8 +45,10 @@ class MCTSCoach(Coach):
             best_player = self.load_player(self.best_checkpoint_path)
         else:
             best_player = NNMCTSPlayer(
-                self.game.game_spec
+                self.game.game_spec,
+                self.config.player_config
             )
+
         self.current_best = best_player
         return best_player
 
