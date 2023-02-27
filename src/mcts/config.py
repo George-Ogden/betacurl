@@ -26,5 +26,5 @@ class MCTSModelConfig(Config):
     max_grad_norm: float = .5
 
 @dataclass
-class NNMCTSConfig(Config):
+class NNMCTSConfig(WideningMCTSConfig):
     max_rollout_depth: int = 4

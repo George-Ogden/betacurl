@@ -1,6 +1,6 @@
 from tensorflow.keras import callbacks, layers, losses, models
 from tensorflow_probability import distributions
-from tensorflow import data, keras
+from tensorflow import keras
 import tensorflow as tf
 from copy import copy
 import numpy as np

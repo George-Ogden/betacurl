@@ -1,5 +1,7 @@
+import numpy as np
+
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Optional, Union
 
 from ...sampling import SamplerConfig
 from ...mcts import MCTSConfig
@@ -23,3 +25,7 @@ class MCTSPlayerConfig(Config):
     def __post_init__(self):
         # one simulation doesn't generate any actions
         assert self.num_simulations >= 2
+
+@dataclass
+class NNMCTSPlayerConfig(MCTSPlayerConfig):
+    scaling_spec: Optional[np.ndarray] = None

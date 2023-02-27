@@ -7,11 +7,11 @@ import numpy as np
 
 from typing import Dict, Optional, Tuple
 
+from .widening import WideningMCTS
 from .config import NNMCTSConfig
 from .model import MCTSModel
-from .fixed import FixedMCTS
 
-class NNMCTS(FixedMCTS):
+class NNMCTS(WideningMCTS):
     CONFIG_CLASS = NNMCTSConfig
     def __init__(
         self,
