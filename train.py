@@ -1,6 +1,5 @@
-from src.game import CoachConfig, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
-from src.sampling import SharedTorsoSamplerConfig
-from src.curling import CURLING_GAME
+from src.game import MCTSCoach, MCTSCoachConfig
+from src.curling import StoneThrow, CURLING_GAME
 import wandb
 
 from simple_parsing.docstring import get_attribute_docstring
@@ -8,11 +7,7 @@ from typing import get_type_hints
 from dataclasses import asdict, is_dataclass
 import argparse
 
-initial_config = CoachConfig(
-    player_config=SamplingEvaluatingPlayerConfig(
-        sampler_config=SharedTorsoSamplerConfig()
-    )
-)
+initial_config = MCTSCoachConfig()
 
 def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
@@ -27,8 +22,9 @@ def main(args):
                 setattr(config, attribute, getattr(args, attribute))
     coach_config = initial_config
     set_attributes(coach_config)
+    coach_config.player_config.scaling_spec = StoneThrow.random_parameters
 
-    coach = SharedTorsoCoach(
+    coach = MCTSCoach(
         game=CURLING_GAME,
         config=coach_config
     )
