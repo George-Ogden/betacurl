@@ -1,11 +1,10 @@
-from tensorflow.keras import callbacks, layers, losses, models
+from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
 from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
 from copy import copy
-import os
 
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -94,6 +93,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
         )
 
+        self.setup_model()
+
+    def setup_model(self):
         input = keras.Input(self.observation_shape)
         self.model = keras.Model(
             inputs=input,
@@ -164,6 +166,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         stds = tf.exp(log_stds)
 
         return distributions.TruncatedNormal(means, stds, *self.action_range)
+
+    @classmethod
+    def load(cls, directory: str) -> "Self":
+        model = super().load(directory)
+        model.setup_model()
+        return model
     
     def learn(
         self,

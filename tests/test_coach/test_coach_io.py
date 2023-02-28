@@ -263,7 +263,7 @@ def test_with_mcts_coach(capsys):
         game=stub_game,
         config=MCTSCoachConfig(
             **necessary_config,
-            num_games_per_episode=1,
+            num_games_per_episode=2,
             num_iterations=2,
             evaluation_games=4,
             player_config=NNMCTSPlayerConfig(
@@ -290,7 +290,7 @@ def test_with_mcts_coach(capsys):
     coach.learn()
     
     assert coach.num_iterations == 3
-    assert coach.num_games_per_episode == 2
+    assert coach.num_games_per_episode == 1
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
     
     output = capsys.readouterr()

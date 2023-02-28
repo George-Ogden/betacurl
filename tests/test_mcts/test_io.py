@@ -64,6 +64,7 @@ def test_nn_player_io_with_model():
     player.move(game)
 
     model = player.model
+    assert model.model is not None
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
 
@@ -75,3 +76,4 @@ def test_nn_player_io_with_model():
     assert tf.reduce_all(model.generate_distribution(observation).loc == copy.generate_distribution(observation).loc)
     assert tf.reduce_all(model.generate_distribution(observation).scale == copy.generate_distribution(observation).scale)
     assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
+    assert copy.model is not None
