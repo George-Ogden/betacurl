@@ -84,7 +84,8 @@ def test_config_is_used():
             feature_size=10,
             vf_coeff=.5,
             ent_coeff=.1,
-            max_grad_norm=1.
+            max_grad_norm=1.,
+            clip_range=1.5
         )
     )
 
@@ -95,6 +96,7 @@ def test_config_is_used():
     assert model.vf_coeff == .5
     assert model.ent_coeff == .1
     assert model.max_grad_norm == 1.
+    assert model.clip_range == 1.5
 
 def test_deterministic_outside_training():
     model = MCTSModel(
