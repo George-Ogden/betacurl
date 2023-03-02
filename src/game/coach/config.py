@@ -9,15 +9,15 @@ from ..player import NNMCTSPlayerConfig, SamplingEvaluatingPlayerConfig
 class CoachConfig(Config):
     resume_from_checkpoint: bool = False
     """continue training from previous checkpoint"""
-    num_games_per_episode: int = 100
+    num_games_per_episode: int = 25
     """number of self-play games per model update"""
     num_iterations: int = 100
     """total number of training iterations"""
-    train_buffer_length: int = 20
+    train_buffer_length: int = 5
     """maximum number of games to store in buffer"""
-    evaluation_games: int = 20
+    evaluation_games: int = 10
     """number of games to determine best model"""
-    win_threshold: float = .6
+    win_threshold: float = .65
     """proportion of wins that a new model must win to be considered the best"""
     save_directory: str = "output"
     """directory to save logs, model, files, etc. to"""
@@ -32,4 +32,4 @@ class CoachConfig(Config):
 @dataclass
 class MCTSCoachConfig(CoachConfig):
     player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
-    use_intermediate_states: bool = True
+    use_intermediate_states: bool = False
