@@ -4,7 +4,7 @@ import numpy as np
 from src.model import ModelConfig, DenseModelFactory, BEST_MODEL_FACTORY
 from src.utils import SaveableModel, SaveableMultiModel, SaveableObject
 
-from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.config import cleanup, requires_cleanup
 from tests.utils import generic_save_test, save_load
 
 @requires_cleanup

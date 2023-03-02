@@ -61,12 +61,12 @@ def test_value_learns():
     model = MCTSModel(
         game_spec,
         config=MCTSModelConfig(
-            vf_coeff=1000.,
+            vf_coeff=1000,
             ent_coeff=0.,
-        )
+        ),
     )
 
-    model.learn(training_data, stub_game.get_symmetries)
+    model.learn(training_data, stub_game.no_symmetries)
 
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
 
@@ -88,16 +88,17 @@ def test_model_losses_converge():
     model = MCTSModel(
         game_spec,
         config=MCTSModelConfig(
-            vf_coeff=1.,
-            ent_coeff=.1,
+            vf_coeff=100.,
+            ent_coeff=1e-4,
         )
     )
 
     model.learn(
         training_data,
-        stub_game.get_symmetries,
+        stub_game.no_symmetries,
         training_config=TrainingConfig(
-            training_epochs=100
+            training_epochs=10,
+            lr=1e-3
         )
     )
 

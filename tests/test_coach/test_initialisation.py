@@ -286,7 +286,7 @@ def test_mcts_coach_includes_intermediate_states():
         )
     )
 
-    arena = Arena([coach.player.dummy_constructor] * 2, coach.game)
+    arena = Arena([coach.best_player.dummy_constructor] * 2, coach.game)
     result, history = arena.play_game(display=False, return_history=True)
     transformed_history = coach.transform_history_for_training(history)
     matches = non_matches = 0
