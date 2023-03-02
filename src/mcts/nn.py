@@ -1,6 +1,4 @@
 from tensorflow_probability import distributions
-from tensorflow.keras import layers
-from tensorflow import keras
 from dm_env import StepType
 import tensorflow as tf
 import numpy as np
@@ -51,4 +49,7 @@ class NNMCTS(WideningMCTS):
         distribution = self.planned_actions[encoding]
         action = distribution.sample()
         prob = distribution.prob(action)
-        return action, prob
+        return (
+            tf.clip_by_value(action,self.action_spec.minimum, self.action_spec.maximum),
+            prob
+        )

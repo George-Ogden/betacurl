@@ -165,7 +165,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         log_stds = tf.squeeze(log_stds, -1)
         stds = tf.exp(log_stds)
 
-        return distributions.TruncatedNormal(means, stds, *self.action_range)
+        return distributions.Normal(means, stds)
 
     @classmethod
     def load(cls, directory: str) -> "Self":
