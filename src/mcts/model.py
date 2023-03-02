@@ -39,6 +39,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         self.max_grad_norm = config.max_grad_norm
         self.vf_coeff = config.vf_coeff
         self.ent_coeff = config.ent_coeff
+        self.clip_range = config.clip_range
 
         self.feature_extractor = model_factory.create_model(
             input_shape=self.observation_shape,
@@ -139,7 +140,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
 
-        policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(predicted_distribution.log_prob(actions), axis=-1))
+        log_probs = predicted_distribution.log_prob(actions)
+        clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+        policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
         value_loss = losses.mean_squared_error(values, predicted_values)
         loss = policy_loss + self.vf_coeff * value_loss
         if self.ent_coeff != 0:
