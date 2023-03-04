@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from src.game import Arena, MCTSPlayer, NNMCTSPlayer
-from src.mcts import MCTSModel
+from src.mcts import MCTSModel, SamplingMCTSModel
 
 from tests.utils import MDPStubGame, generic_save_load_test, generic_save_test, save_load
 from tests.config import cleanup, requires_cleanup
@@ -43,6 +43,21 @@ def test_nn_player_io_without_model():
 def test_mcts_model_io():
     game.reset()
     model = MCTSModel(game.game_spec)
+    model.predict_values(game.get_observation())
+    model.generate_distribution(game.get_observation())
+
+    generic_save_test(model)
+    copy = save_load(model)
+
+    observation = np.random.randn(*game.game_spec.observation_spec.shape)
+    assert tf.reduce_all(model.generate_distribution(observation).loc == copy.generate_distribution(observation).loc)
+    assert tf.reduce_all(model.generate_distribution(observation).scale == copy.generate_distribution(observation).scale)
+    assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
+
+@requires_cleanup
+def test_mcts_sampling_model_io():
+    game.reset()
+    model = SamplingMCTSModel(game.game_spec)
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
 
