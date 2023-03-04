@@ -34,6 +34,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         self.observation_range = np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
         self.observation_shape = observation_spec.shape
 
+
         self.config = copy(config)
         self.feature_size = config.feature_size
         self.max_grad_norm = config.max_grad_norm
@@ -41,6 +42,31 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         self.ent_coeff = config.ent_coeff
         self.clip_range = config.clip_range
 
+        self.setup_model(scaling_spec, model_factory)
+
+    def pre_setup_model(self, scaling_spec):
+        if scaling_spec is None:
+            self.scaling_spec = np.stack(
+                (self.action_range.mean(axis=0), np.zeros(self.action_shape)),
+                axis=-1
+            )
+        elif scaling_spec.ndim == 1:
+            self.scaling_spec = np.stack(
+                (scaling_spec, np.zeros(self.action_shape)),
+                axis=-1
+            )
+        else:
+            self.scaling_spec = scaling_spec.copy()
+            self.scaling_spec[:, 1] = np.log(scaling_spec[:, 1])
+
+        assert self.scaling_spec.shape == self.action_shape + (2,)
+
+    def setup_model(self, scaling_spec: np.ndarray, model_factory: ModelFactory):
+        self.pre_setup_model(scaling_spec)
+        self._setup_model(model_factory)
+        self.post_setup_model()
+
+    def _setup_model(self, model_factory):
         self.feature_extractor = model_factory.create_model(
             input_shape=self.observation_shape,
             output_shape=self.feature_size,
@@ -74,29 +100,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             )
         )
 
-        if scaling_spec is None:
-            self.scaling_spec = np.stack(
-                (self.action_range.mean(axis=0), np.zeros(self.action_shape)),
-                axis=-1
-            )
-        elif scaling_spec.ndim == 1:
-            self.scaling_spec = np.stack(
-                (scaling_spec, np.zeros(self.action_shape)),
-                axis=-1
-            )
-        else:
-            self.scaling_spec = scaling_spec.copy()
-            self.scaling_spec[:, 1] = np.log(scaling_spec[:, 1])
-
-        assert self.scaling_spec.shape == self.action_shape + (2,)
-
         self.policy_head = keras.Sequential(
             [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
         )
 
-        self.setup_model()
-
-    def setup_model(self):
+    def post_setup_model(self):
         input = keras.Input(self.observation_shape)
         self.model = keras.Model(
             inputs=input,
@@ -172,8 +180,8 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
     @classmethod
     def load(cls, directory: str) -> "Self":
-        model = super().load(directory)
-        model.setup_model()
+        model: MCTSModel = super().load(directory)
+        model.post_setup_model()
         return model
     
     def learn(

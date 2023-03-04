@@ -1,0 +1,91 @@
+from tensorflow.keras import callbacks, layers, losses
+from tensorflow_probability import distributions
+from tensorflow import keras
+import tensorflow as tf
+import numpy as np
+
+from copy import copy
+
+from typing import Callable, List, Optional, Tuple, Union
+
+from ..model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ..utils import SaveableMultiModel
+
+from .model import MCTSModel
+from .config import SamplingMCTSModelConfig
+
+class SamplingMCTSModel(MCTSModel):
+    MODELS = {
+        "feature_extractor": "feature_extractor.h5",
+        "policy_head": "policy.h5",
+        "value_head": "value.h5",
+        "observation_head": "observation.h5"
+    }
+    def __init__(
+        self,
+        game_spec: "GameSpec",
+        scaling_spec: Optional[np.ndarray] = None,
+        model_factory: ModelFactory = BEST_MODEL_FACTORY,
+        config: SamplingMCTSModelConfig = SamplingMCTSModelConfig()
+    ):
+        super().__init__(
+            game_spec=game_spec,
+            scaling_spec=scaling_spec,
+            model_factory=model_factory,
+            config=config
+        )
+
+    def _setup_model(self, model_factory: ModelFactory):
+        super()._setup_model(model_factory)
+
+        inputs = [
+            keras.Input(self.feature_size),
+            keras.Input(self.action_shape),
+        ]
+
+        self.observation_head = DenseModelFactory.create_model(
+            input_shape=(self.feature_size + np.prod(self.action_shape)),
+            output_shape=self.feature_size,
+            config=DenseModelFactory.CONFIG_CLASS(
+                output_activation="linear"
+            )
+        )
+
+        self.observation_head = keras.Model(
+            inputs=inputs,
+            outputs=self.observation_head(
+                layers.Concatenate()(
+                    [   
+                        inputs[0],
+                        layers.Reshape(
+                            (np.prod(self.action_shape, dtype=int),)
+                        )(
+                            inputs[1]
+                        )
+                    ]
+                )
+            )
+        )
+
+    def post_setup_model(self):
+        inputs = [
+            keras.Input(self.observation_shape),
+            self.observation_head.inputs
+        ]
+
+        self.model = keras.Model(
+            inputs=inputs,
+            outputs=[
+                self.policy_head(self.feature_extractor(inputs[0])),
+                self.value_head(self.feature_extractor(inputs[0])),
+                self.observation_head.outputs,
+            ]
+        )
+
+        self.model([
+            np.random.randn(1, *self.observation_shape),
+            [
+                np.random.randn(1, self.feature_size),
+                np.random.randn(1, *self.action_shape)
+            ]
+        ])
