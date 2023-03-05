@@ -89,3 +89,26 @@ class SamplingMCTSModel(MCTSModel):
                 np.random.randn(1, *self.action_shape)
             ]
         ])
+    
+    def predict_action_values(self, observation: Union[tf.Tensor, np.ndarray], actions: Union[tf.Tensor, np.ndarray], training: bool=False) -> Union[tf.Tensor, np.ndarray]:
+        batch_throughput = True
+        assert observation.shape == self.observation_shape
+        if actions.ndim == len(self.action_shape):
+            batch_throughput = False
+            actions = np.expand_dims(actions, 0)
+
+        observation = tf.expand_dims(observation, 0)
+
+        feature = self.feature_extractor(observation, training=training)
+        features = tf.tile(feature, (len(actions), 1))
+        next_features = self.observation_head(
+            [features, actions],
+            training=training
+        )
+
+        values = self.value_head(next_features, training=training)
+
+        if not batch_throughput:
+            values = tf.squeeze(values, 0).numpy()
+
+        return values

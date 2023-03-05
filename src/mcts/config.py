@@ -27,12 +27,8 @@ class MCTSModelConfig(Config):
     clip_range: float = 2.
 
 @dataclass
-class SamplingMCTSModelConfig(Config):
-    feature_size: int = 32
-    vf_coeff: float = 10.
-    ent_coeff: float = 1e-3
-    max_grad_norm: float = .5
-    clip_range: float = 2.
+class SamplingMCTSModelConfig(MCTSModelConfig):
+    ...
 
 @dataclass
 class NNMCTSConfig(WideningMCTSConfig):
