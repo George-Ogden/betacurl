@@ -224,3 +224,44 @@ def test_best_custom_model_restored():
             break
     else:
         assert False, "validation loss did not match expected loss"
+
+def test_histories_merge():
+    model1 = StubModel()
+    model2 = StubModel()
+    model3 = StubModel()
+
+    input_data = np.random.randn(10000)
+    output_data = -input_data
+    
+    history1 = model1.fit(
+        input_data, output_data
+    )
+
+    history2 = model2.fit(
+        input_data, output_data,
+        training_config=TrainingConfig(
+            training_epochs=4,
+            metrics=["mape"]
+        )
+    )
+
+    history3 = model3.fit(
+        input_data, output_data,
+        training_config=TrainingConfig(
+            batch_size=1024,
+            metrics=[]
+        )
+    )
+
+    history = CustomModel.merge(history1, history2, history3)
+    assert history.validation_data is None
+    assert history.params["epochs"] == history1.params["epochs"] + history2.params["epochs"] + history3.params["epochs"]
+    assert history.params["steps"] == history1.params["steps"] + history2.params["steps"] + history3.params["steps"]
+    assert history.epoch == history1.epoch + history2.epoch + history3.epoch
+    
+    assert history.history["loss"] == history1.history["loss"] + history2.history["loss"] + history3.history["loss"]
+    assert history.history["mape"] == history2.history["mape"]
+    assert history.history["mae"] == history1.history["mae"]
+    assert history.history["val_loss"] == history1.history["val_loss"] + history2.history["val_loss"] + history3.history["val_loss"]
+    assert history.history["val_mae"] == history1.history["val_mae"]
+    assert history.history["val_mape"] == history2.history["val_mape"]
