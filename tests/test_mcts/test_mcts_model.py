@@ -1,10 +1,11 @@
+from tensorflow_probability import distributions
 import tensorflow as tf
 import numpy as np
 
 from pytest import mark
 
+from src.mcts import MCTSModel, MCTSModelConfig, SamplingMCTSModel, SamplingMCTSModelConfig
 from src.model import DenseModelFactory
-from src.mcts import MCTSModel, MCTSModelConfig, SamplingMCTSModel
 
 from tests.utils import StubGame
 
@@ -100,6 +101,40 @@ def test_config_is_used():
     assert model.ent_coeff == .1
     assert model.max_grad_norm == 1.
     assert model.clip_range == 1.5
+
+def test_config_is_used_in_sampling_model():
+    model = SamplingMCTSModel(
+        game_spec=game_spec,
+        model_factory=DenseModelFactory,
+        config=SamplingMCTSModelConfig(
+            feature_size=10,
+            vf_coeff=.5,
+            ent_coeff=.1,
+            max_grad_norm=1.,
+            clip_range=1.5,
+            num_samples=4
+        )
+    )
+
+    assert model.feature_size == 10
+    features = model.feature_extractor(np.random.randn(20, 1))
+    assert features.shape == (20, 10)
+
+    assert model.vf_coeff == .5
+    assert model.ent_coeff == .1
+    assert model.max_grad_norm == 1.
+    assert model.clip_range == 1.5
+    assert model.num_samples == 4
+
+    num_observations = 0
+    def stub_predict_action_values(self, observation, training=False):
+        nonlocal num_observations
+        num_observations = len(observation)
+        return np.zeros(len(observation))
+    model.predict_action_values = stub_predict_action_values.__get__(model)
+    
+    model.sample(distributions.Normal(loc=0., scale=1.))
+    assert num_observations == 4
 
 def test_deterministic_outside_training():
     model = MCTSModel(
