@@ -43,11 +43,13 @@ class NNMCTS(WideningMCTS):
         if self.model is None:
             return (self.game.get_random_move(), 1.)
 
+        # cache distribution
         encoding = self.encode(observation)
         if encoding not in self.planned_actions:
             self.planned_actions[encoding] = self.model.generate_distribution(observation)
+
         distribution = self.planned_actions[encoding]
-        action = distribution.sample()
+        action = self.model.sample(distribution)
         prob = distribution.prob(action)
         return (
             tf.clip_by_value(action,self.action_spec.minimum, self.action_spec.maximum),

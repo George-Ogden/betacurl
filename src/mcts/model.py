@@ -178,6 +178,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         return distributions.Normal(means, stds)
 
+    def sample(self, distribution: distributions.Distribution) -> tf.Tensor:
+        return distribution.sample()
+
     @classmethod
     def load(cls, directory: str) -> "Self":
         model: MCTSModel = super().load(directory)

@@ -35,6 +35,8 @@ class SamplingMCTSModel(MCTSModel):
             config=config
         )
 
+        self.num_samples = config.num_samples
+
     def _setup_model(self, model_factory: ModelFactory):
         super()._setup_model(model_factory)
 
@@ -112,3 +114,8 @@ class SamplingMCTSModel(MCTSModel):
             values = tf.squeeze(values, 0).numpy()
 
         return values
+
+    def sample(self, distribution: distributions.Distribution) -> tf.Tensor:
+        samples = distribution.sample(self.num_samples)
+        predicted_values = self.predict_action_values(samples)
+        return samples[tf.argmax(predicted_values)]
