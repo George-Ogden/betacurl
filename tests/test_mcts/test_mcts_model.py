@@ -3,8 +3,8 @@ import numpy as np
 
 from pytest import mark
 
-from src.model import DenseModelFactory, MLPModelFactory, MLPModelConfig
-from src.mcts import MCTSModel, MCTSModelConfig
+from src.model import DenseModelFactory
+from src.mcts import MCTSModel, MCTSModelConfig, SamplingMCTSModel
 
 from tests.utils import StubGame
 
@@ -15,6 +15,9 @@ move_spec = game_spec.move_spec
 observation_spec = game_spec.observation_spec
 
 model = MCTSModel(
+    game_spec=game_spec,
+)
+sampling_model = SamplingMCTSModel(
     game_spec=game_spec,
 )
 
@@ -133,3 +136,36 @@ def test_non_deterministic_during_training():
     dist2 = model.generate_distribution(observation, training=True)
     assert not tf.reduce_all(dist.loc == dist2.loc)
     assert not tf.reduce_all(dist.scale == dist2.scale)
+
+def test_action_value_predictions():
+    observation = np.random.randn(*observation_spec.shape)
+
+    values = sampling_model.predict_values(observation, training=False)
+
+    actions = [np.random.rand(*move_spec.shape) for _ in range(5)]
+    assert tf.reduce_all(
+            sampling_model.predict_action_values(
+                observation,
+                np.array(actions)
+            ) != values
+        )
+
+def test_action_value_predictions_no_change():
+    observation = np.random.randn(*observation_spec.shape)
+
+    values = sampling_model.predict_values(observation, training=False)
+
+    observation_head = sampling_model.observation_head
+    sampling_model.observation_head = lambda x, training=False: x[0]
+    actions = [np.random.rand(*move_spec.shape) for _ in range(5)]
+    assert np.allclose(
+        sampling_model.predict_action_values(
+            observation,
+            np.array(actions)
+        ),
+        values
+    )
+
+
+    # reset head
+    sampling_model.observation_head = observation_head
