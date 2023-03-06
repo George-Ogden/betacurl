@@ -152,7 +152,15 @@ def test_custom_model_fits():
     input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)
     training_data = [((x, y), float(int(x) ^ int(y))) for x, y in input_data] * 100
     dataset = model.create_dataset(training_data)
-    history = model.fit(dataset)
+
+    history = model.fit(
+        dataset,
+        training_config=TrainingConfig(
+            training_epochs=20,
+            lr=1e-2
+        )
+    )
+
     assert np.allclose(
         model.model(input_data),
         [int(x) ^ int(y) for x,y in input_data],

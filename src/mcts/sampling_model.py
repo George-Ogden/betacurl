@@ -1,12 +1,12 @@
-from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
+from tensorflow.keras import callbacks, layers
 from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
 from typing import Callable, List, Optional, Tuple, Union
 
-from ..model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ..model import MLPModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 
 from .model import MCTSModel
 from .config import SamplingMCTSModelConfig
@@ -42,10 +42,10 @@ class SamplingMCTSModel(MCTSModel):
             keras.Input(self.action_shape),
         ]
 
-        self.observation_head = DenseModelFactory.create_model(
+        self.observation_head = MLPModelFactory.create_model(
             input_shape=(self.feature_size + np.prod(self.action_shape)),
             output_shape=self.feature_size,
-            config=DenseModelFactory.CONFIG_CLASS(
+            config=MLPModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
         )
