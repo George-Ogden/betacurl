@@ -4,10 +4,11 @@ import numpy as np
 import time
 import os
 
-from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
+from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, SamplingEvaluatingPlayerConfig, SamplingMCTSCoach, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
 from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplerConfig, SharedTorsoSamplerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import Learnable, TrainingConfig
+from src.mcts import SamplingMCTSModel
 
 from tests.utils import find_hidden_size, BinaryStubGame, StubGame, SparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -297,3 +298,32 @@ def test_mcts_coach_includes_intermediate_states():
             non_matches += 1
     assert non_matches > 0
     assert non_matches > matches / 2
+
+@requires_cleanup
+def test_sampling_mcts_saves_config():
+    game = BinaryStubGame()
+    coach = SamplingMCTSCoach(
+        game=game,
+        config=MCTSCoachConfig(
+            **(
+                config_dict
+            )
+        )
+    )
+
+    assert not os.path.exists(SAVE_DIR)
+    for k, v in config_dict.items():
+        if k in special_cases:
+            continue
+        assert getattr(coach, k) == v
+
+    # special cases
+    assert coach.win_threshold == 2
+    assert coach.num_eval_games == 4
+    assert coach.learning_patience == 4
+
+    assert isinstance(coach.player, NNMCTSPlayer)
+    assert isinstance(coach.best_player, NNMCTSPlayer)
+    assert type(coach.game) == BinaryStubGame
+
+    assert coach.player.ModelClass == SamplingMCTSModel
