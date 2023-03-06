@@ -94,7 +94,7 @@ def test_observation_learns():
         )
     )
 
-    history = model.learn(training_data, stub_game.get_symmetries, transitions=transitions)
+    history = model.learn([training_data, transitions], stub_game.get_symmetries)
     second_epoch_index = history.epoch[1:].index(0) + 1
     assert history.history["val_mae"][0] > history.history["val_mae"][-1]
     assert history.history["val_loss"][second_epoch_index] > history.history["val_loss"][-1]

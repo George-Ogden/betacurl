@@ -119,11 +119,18 @@ class SamplingMCTSModel(MCTSModel):
 
     def learn(
             self,
-            training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+            training_history: List[Union[Tuple[int, np.ndarray, np.ndarray, float], Tuple[np.ndarray, np.ndarray, np.ndarray]]],
             augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
             training_config: TrainingConfig = TrainingConfig(),
-            transitions: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = None # this is at the end to avoid breaking the API if unused
         ) -> callbacks.History:
+        # interleaved history needs flattening
+        training_history, transitions = (
+            [move for history in training_history[::2] for move in history],
+            [transition for history in training_history[1::2] for transition in history]
+        )
+        if len(transitions) > 0 and len(transitions[0]) != 3:
+            training_history.append(transitions)
+
         history = super().learn(training_history, augmentation_function, training_config)
         
         if transitions is not None:
