@@ -4,12 +4,9 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from copy import copy
-
 from typing import Callable, List, Optional, Tuple, Union
 
-from ..model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ..utils import SaveableMultiModel
+from ..model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 
 from .model import MCTSModel
 from .config import SamplingMCTSModelConfig
@@ -119,3 +116,40 @@ class SamplingMCTSModel(MCTSModel):
         samples = distribution.sample(self.num_samples)
         predicted_values = self.predict_action_values(samples)
         return samples[tf.argmax(predicted_values)]
+
+    def learn(
+            self,
+            training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+            augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
+            training_config: TrainingConfig = TrainingConfig(),
+            transitions: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = None # this is at the end to avoid breaking the API if unused
+        ) -> callbacks.History:
+        history = super().learn(training_history, augmentation_function, training_config)
+        
+        if transitions is not None:
+            # save model
+            model = self.model
+            # overwrite model to use APIs
+            self.model = self.observation_head
+            self.compile_model(training_config)
+
+            # prepare dataset
+            primary_dataset = self.create_dataset(transitions).batch(training_config.batch_size)
+
+            # extract latent variables (these are frozen)
+            latent_variables = [((self.feature_extractor(initial_observation), action), self.feature_extractor(final_observation)) for initial_observation, action, final_observation in primary_dataset]
+
+            # fit the model with the old history
+            X, Y, train_options = self.pre_fit(*zip(*latent_variables), training_config, convert_to_numpy=False)
+            X0, X1, Y = [tf.concat(X, axis=0) for X in [*zip(*X), Y]]
+
+            observation_history = self.model.fit([X0, X1], Y, **train_options)
+            history = self.merge(history, observation_history)
+
+            # restore model
+            self.model = model
+        
+        return history
+
+    def compute_loss(self, observations: np.ndarray, actions: tf.Tensor, values: tf.Tensor, advantages: tf.Tensor) -> tf.Tensor:
+        return super().compute_loss(observations, actions, values, advantages)

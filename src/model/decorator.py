@@ -35,13 +35,22 @@ class ModelDecorator(SaveableModel, Learnable):
     @staticmethod
     def merge(*items: List[Any]):
         assert len(items) > 0
-        shared_item = deepcopy(items[0])
+        try:
+            # some things don't like being deepcopied
+            shared_item = deepcopy(items[0])
+        except (TypeError, ValueError):
+            shared_item = copy(items[0])
+
         using_dict = isinstance(shared_item, dict)
         for item in items[1:]:
             for k, w in (item if using_dict else vars(item)).items():
                 v = shared_item.get(k, None) if using_dict else getattr(shared_item, k, None)
                 if v is None:
-                    v = w
+                    try:
+                        # some things don't like being deepcopied
+                        v = deepcopy(w)
+                    except (TypeError, ValueError):
+                        v = copy(w)
                 else:
                     # "Irrefutable pattern is allowed only for the last case statement"
                     # when matching `type(v)`
