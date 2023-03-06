@@ -3,7 +3,7 @@ import numpy as np
 
 from pytest import mark
 
-from src.mcts import MCTSModel, MCTSModelConfig
+from src.mcts import MCTSModel, MCTSModelConfig, SamplingMCTSModel, SamplingMCTSModelConfig
 from src.model import TrainingConfig
 from src.game import Arena
 
@@ -20,6 +20,7 @@ arena = Arena(game=stub_game, players=[GoodPlayer, BadPlayer])
 result, history = arena.play_game(display=False, training=True, return_history=True)
 training_data = [(*other_data, result) for *other_data, reward in history]
 training_data *= 100
+transitions = [(observation, action, next_observation) for (_, observation, action, _), (_, next_observation, *_)  in zip(history[:-1], history[1:])] * 100
 
 def test_correct_advantages():
     model = MCTSModel(
@@ -82,6 +83,21 @@ def test_entropy_increases():
 
     model.learn(training_data, stub_game.get_symmetries)
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).scale > 1.)
+
+@mark.probabilistic
+def test_observation_learns():
+    model = SamplingMCTSModel(
+        game_spec,
+        config=SamplingMCTSModelConfig(
+            vf_coeff=100.,
+            ent_coeff=1e-4,
+        )
+    )
+
+    history = model.learn(training_data, stub_game.get_symmetries, transitions=transitions)
+    second_epoch_index = history.epoch[1:].index(0) + 1
+    assert history.history["val_mae"][0] > history.history["val_mae"][-1]
+    assert history.history["val_loss"][second_epoch_index] > history.history["val_loss"][-1]
 
 @mark.probabilistic
 def test_model_losses_converge():
