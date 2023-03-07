@@ -46,7 +46,7 @@ class MCTSCoach(Coach):
         else:
             best_player = NNMCTSPlayer(
                 self.game.game_spec,
-                self.config.player_config
+                config=self.config.player_config
             )
 
         self.current_best = best_player

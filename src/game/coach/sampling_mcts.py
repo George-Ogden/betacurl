@@ -34,6 +34,14 @@ class SamplingMCTSCoach(MCTSCoach):
             config=config
         )
 
+    @property
+    def best_player(self):
+        best_player = super().best_player
+        if best_player.ModelClass != SamplingMCTSModel:
+            best_player.ModelClass = SamplingMCTSModel
+        return best_player
+        
+
     def transform_history_for_training(
         self,
         training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]
