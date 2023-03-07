@@ -4,11 +4,11 @@ import numpy as np
 import time
 import os
 
-from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, SamplingEvaluatingPlayerConfig, SamplingMCTSCoach, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
+from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig, SamplingEvaluatingPlayerConfig, SamplingMCTSCoach, SharedTorsoCoach, SharedTorsoSamplingEvaluatingPlayer
 from src.sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplerConfig, SharedTorsoSamplerConfig
 from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
 from src.model import Learnable, TrainingConfig
-from src.mcts import SamplingMCTSModel
+from src.mcts import NNMCTSConfig, SamplingMCTSModel
 
 from tests.utils import find_hidden_size, BinaryStubGame, StubGame, SparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -238,7 +238,15 @@ def test_mcts_saves_config():
     coach = MCTSCoach(
         game=game,
         config=MCTSCoachConfig(
-            **config_dict
+            **config_dict,
+            player_config=NNMCTSPlayerConfig(
+                mcts_config=NNMCTSConfig(
+                    max_rollout_depth=2,
+                    cpuct=2.
+                ),
+                num_simulations=4,
+                scaling_spec=np.ones(game.game_spec.move_spec.shape)
+            )
         )
     )
 
@@ -256,6 +264,26 @@ def test_mcts_saves_config():
     assert isinstance(coach.player, NNMCTSPlayer)
     assert isinstance(coach.best_player, NNMCTSPlayer)
     assert type(coach.game) == BinaryStubGame
+
+    coach.player.move(game)
+    assert coach.player.simulations == 4
+    assert coach.player.mcts.cpuct == 2
+    assert coach.player.mcts.max_depth == 2
+    assert coach.player.mcts.get_node(game.get_observation()).num_visits in (3, 4)
+    assert (
+        (
+            coach.player.scaling_spec.shape == (2,) + game.game_spec.move_spec.shape
+            and (coach.player.scaling_spec[0] == 1).all()
+        ) or (
+            coach.player.scaling_spec.shape == game.game_spec.move_spec.shape
+            and (coach.player.scaling_spec == 1).all()
+        )
+    )
+
+    best_player = coach.best_player
+    assert best_player.simulations == 4
+    assert best_player.config.mcts_config.cpuct == 2.
+    assert best_player.config.mcts_config.max_rollout_depth == 2
 
 @requires_cleanup
 def test_mcts_coach_avoids_intermediate_states():
@@ -305,8 +333,14 @@ def test_sampling_mcts_saves_config():
     coach = SamplingMCTSCoach(
         game=game,
         config=MCTSCoachConfig(
-            **(
-                config_dict
+            **config_dict,
+            player_config=NNMCTSPlayerConfig(
+                mcts_config=NNMCTSConfig(
+                    max_rollout_depth=2,
+                    cpuct=2.
+                ),
+                num_simulations=4,
+                scaling_spec=np.ones(game.game_spec.move_spec.shape)
             )
         )
     )
@@ -322,8 +356,28 @@ def test_sampling_mcts_saves_config():
     assert coach.num_eval_games == 4
     assert coach.learning_patience == 4
 
+    assert coach.player.ModelClass == SamplingMCTSModel
     assert isinstance(coach.player, NNMCTSPlayer)
     assert isinstance(coach.best_player, NNMCTSPlayer)
     assert type(coach.game) == BinaryStubGame
 
-    assert coach.player.ModelClass == SamplingMCTSModel
+    coach.player.move(game)
+    assert coach.player.simulations == 4
+    assert coach.player.mcts.cpuct == 2
+    assert coach.player.mcts.max_depth == 2
+    assert coach.player.mcts.get_node(game.get_observation()).num_visits in (3, 4)
+    assert (
+        (
+            coach.player.scaling_spec.shape == (2,) + game.game_spec.move_spec.shape
+            and (coach.player.scaling_spec[0] == 1).all()
+        ) or (
+            coach.player.scaling_spec.shape == game.game_spec.move_spec.shape
+            and (coach.player.scaling_spec == 1).all()
+        )
+    )
+
+    best_player = coach.best_player
+    assert best_player.simulations == 4
+    assert best_player.config.mcts_config.cpuct == 2.
+    assert best_player.config.mcts_config.max_rollout_depth == 2
+    assert best_player.ModelClass == SamplingMCTSModel
