@@ -28,7 +28,7 @@ class MCTSModelConfig(Config):
 
 @dataclass
 class SamplingMCTSModelConfig(MCTSModelConfig):
-    num_samples: int = 64 # power of 2 better for batch size
+    num_samples: int = 16 # power of 2 better for batch size
 
 @dataclass
 class NNMCTSConfig(WideningMCTSConfig):

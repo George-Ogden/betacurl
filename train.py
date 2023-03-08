@@ -1,4 +1,4 @@
-from src.game import MCTSCoach, MCTSCoachConfig
+from src.game import SamplingMCTSCoach, MCTSCoachConfig
 from src.curling import StoneThrow, CURLING_GAME
 import wandb
 
@@ -24,7 +24,7 @@ def main(args):
     set_attributes(coach_config)
     coach_config.player_config.scaling_spec = StoneThrow.random_parameters
 
-    coach = MCTSCoach(
+    coach = SamplingMCTSCoach(
         game=CURLING_GAME,
         config=coach_config
     )
