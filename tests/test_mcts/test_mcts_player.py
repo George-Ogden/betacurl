@@ -6,7 +6,7 @@ from pytest import mark
 from src.game import MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.curling import Curling, SingleEndCurlingGame
-from src.game import Arena, RandomPlayer
+from src.game import Arena, Game, RandomPlayer
 
 from tests.utils import StubGame, SparseStubGame
 
@@ -14,7 +14,7 @@ class StubMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         return self.game.game_spec.move_spec.minimum
 
-    def _get_action_probs(self, game: "Game", temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
         return np.array([game.game_spec.move_spec.minimum]), np.array((1.,))
 
 stub_game = StubGame()
