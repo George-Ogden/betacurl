@@ -1,4 +1,5 @@
 from .player import MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, Player, RandomPlayer
-from .coach import Coach, CoachConfig, MCTSCoach, MCTSCoachConfig
+from .config import CoachConfig
+from .coach import Coach, Coach
 from .game import Game, GameSpec
 from .arena import Arena
