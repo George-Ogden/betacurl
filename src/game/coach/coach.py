@@ -6,11 +6,9 @@ import os
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
-from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
-from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
 from ...utils import SaveableObject
 
-from ..player import Player, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
+from ..player import Player, RandomPlayer
 from ..game import Game, GameSpec
 from ..arena import Arena
 
@@ -22,15 +20,11 @@ class Coach(SaveableObject):
     def __init__(
         self,
         game: Game,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
         self.setup_player(
             game_spec=game.game_spec,
-            SamplingStrategyClass=SamplingStrategyClass,
-            EvaluationStrategyClass=EvaluationStrategyClass,
             config=config.player_config
         )
 
@@ -60,15 +54,10 @@ class Coach(SaveableObject):
     def setup_player(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
-        config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+        config
     ):
-        self.player = SamplingEvaluatingPlayer(
-            game_spec=game_spec,
-            SamplingStrategyClass=SamplingStrategyClass,
-            EvaluationStrategyClass=EvaluationStrategyClass,
-            config=config
+        self.player = RandomPlayer(
+            game_spec
         )
 
     @property
@@ -149,16 +138,7 @@ class Coach(SaveableObject):
         if os.path.exists(self.best_checkpoint_path):
             return self.load_player(self.best_checkpoint_path)
         else:
-            return SamplingEvaluatingPlayer(
-                self.game.game_spec,
-                SamplingStrategyClass=RandomSamplingStrategy,
-                EvaluationStrategyClass=EvaluationStrategy,
-                config=SamplingEvaluatingPlayerConfig(
-                    num_train_samples=self.player_config.num_train_samples,
-                    num_eval_samples=self.player_config.num_eval_samples,
-                    epsilon=self.player_config.epsilon,
-                )
-            )
+            return RandomPlayer(self.game.game_spec)
 
     def save_model(self, current_iteration, wins):
         if not os.path.exists(self.save_directory):
@@ -172,8 +152,8 @@ class Coach(SaveableObject):
             self.save(self.best_checkpoint_path)
 
     @classmethod
-    def load_player(cls, directory: str) -> SamplingEvaluatingPlayer:
-        return SamplingEvaluatingPlayer.load(directory)
+    def load_player(cls, directory: str) -> Player:
+        return RandomPlayer.load(directory)
 
     @classmethod
     def load(cls, directory: str) -> "Self":

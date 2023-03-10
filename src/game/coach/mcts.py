@@ -17,8 +17,6 @@ class MCTSCoach(Coach):
     ):
         super().__init__(
             game=game,
-            SamplingStrategyClass=None,
-            EvaluationStrategyClass=None,
             config=config
         )
         self.use_intermediate_states = config.use_intermediate_states
@@ -26,8 +24,6 @@ class MCTSCoach(Coach):
     def setup_player(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass = None,
-        EvaluationStrategyClass = None,
         config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     ):
         self.player = NNMCTSPlayer(

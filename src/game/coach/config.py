@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from ...model import TrainingConfig
 from ...utils import Config
 
-from ..player import NNMCTSPlayerConfig, SamplingEvaluatingPlayerConfig
+from ..player import NNMCTSPlayerConfig
 
 @dataclass
 class CoachConfig(Config):
@@ -26,7 +26,7 @@ class CoachConfig(Config):
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
-    player_config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+    player_config: ...
     training_config: TrainingConfig = TrainingConfig()
 
 @dataclass
