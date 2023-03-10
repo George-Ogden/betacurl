@@ -7,6 +7,7 @@ from pytest import mark
 from src.game import Arena, Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SamplingMCTSCoach, SharedTorsoCoach
 from src.sampling import RandomSamplingStrategy, SamplingStrategy
 from src.evaluation import EvaluationStrategy
+from src.mcts import SamplingMCTSModel
 from src.model import  TrainingConfig
 
 from src.sampling.range import MaxSamplingStrategy, MinSamplingStrategy
@@ -305,12 +306,13 @@ def test_sampling_mcts_model_learns():
     coach = SamplingMCTSCoach(
         game=game,
         config=MCTSCoachConfig(
+            **necessary_config,
             resume_from_checkpoint=False,
             num_games_per_episode=100,
             num_iterations=2,
             training_config=TrainingConfig(
                 lr=1e-3,
-                training_epochs=2
+                training_epochs=10
             ),
             player_config=NNMCTSPlayerConfig(
                 num_simulations=3
@@ -321,6 +323,7 @@ def test_sampling_mcts_model_learns():
 
     coach.learn()
 
+    assert isinstance(coach.player.model, SamplingMCTSModel)
     arena = Arena(
         game=game,
         players=[
