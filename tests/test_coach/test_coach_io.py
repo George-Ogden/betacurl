@@ -7,13 +7,11 @@ import time
 from pytest import mark
 import os
 
-from src.game import Coach, CoachConfig, MCTSCoach, MCTSCoachConfig, NNMCTSPlayerConfig, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig, SharedTorsoCoach
-from src.sampling import GaussianSamplingStrategy, NNSamplerConfig, NNSamplingStrategy, RandomSamplingStrategy
-from src.evaluation import EvaluationStrategy, NNEvaluationStrategy
+from src.game import Coach, CoachConfig, Coach, CoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.model import TrainingConfig
 
 from tests.config import cleanup, cleanup_dir, requires_cleanup, SAVE_DIR
-from tests.utils import StubGame, SparseStubGame
+from tests.utils import MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
@@ -42,15 +40,13 @@ config_dict = dict(
 custom_training_config = copy(config_dict["training_config"])
 custom_training_config.training_epochs = 5
 
-stub_game = StubGame(6)
-sparse_stub_game = SparseStubGame(6)
+stub_game = MDPStubGame(6)
+sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
 boring_coach = Coach(
     game=stub_game,
-    SamplingStrategyClass=RandomSamplingStrategy,
-    EvaluationStrategyClass=EvaluationStrategy,
     config=CoachConfig(
         **config_dict
     )
@@ -60,8 +56,6 @@ boring_coach = Coach(
 def test_checkpoint_restored_correctly():
     coach = Coach(
         stub_game,
-        SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(resume_from_checkpoint=True, **necessary_config)
     )
     coach.player.dummy_variable = 15
@@ -69,8 +63,6 @@ def test_checkpoint_restored_correctly():
 
     new_coach = Coach(
         stub_game,
-        SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(resume_from_checkpoint=True, **necessary_config)
     )
     iteration = new_coach.load_checkpoint()
@@ -81,8 +73,6 @@ def test_checkpoint_restored_correctly():
 def test_checkpoint_restores_in_training():
     coach = Coach(
         stub_game,
-        SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
             resume_from_checkpoint=True,
             num_iterations=4,
@@ -105,32 +95,9 @@ def test_checkpoint_restores_in_training():
     assert coach.dummy_variable == 25
 
 @requires_cleanup
-def test_latent_variable_stored_and_saved():
-    coach = Coach(
-        game=stub_game,
-        SamplingStrategyClass=NNSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
-        config=CoachConfig(
-            player_config=SamplingEvaluatingPlayerConfig(
-                sampler_config=NNSamplerConfig(
-                    latent_size=100
-                )
-            ),
-            **necessary_config
-        )
-    )
-    assert coach.player.sampler.latent_size == 100
-    coach.save_model(0, 0)
-    del coach.player.sampler.latent_size
-    coach.load_checkpoint()
-    assert coach.player.sampler.latent_size == 100
-
-@requires_cleanup
 def test_training_history_restored():
     coach = Coach(
         game=stub_game,
-        SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
             train_buffer_length=25,
             num_iterations=4,
@@ -147,8 +114,6 @@ def test_training_history_restored():
 def test_best_player_saves_and_loads():
     coach = Coach(
         game=stub_game,
-        SamplingStrategyClass=RandomSamplingStrategy,
-        EvaluationStrategyClass=EvaluationStrategy,
         config=CoachConfig(
             train_buffer_length=25,
             num_iterations=1,
@@ -158,7 +123,7 @@ def test_best_player_saves_and_loads():
     )
     coach.learn()
 
-    champion = SamplingEvaluatingPlayer(stub_game.game_spec)
+    champion = NNMCTSPlayer(stub_game.game_spec)
     champion.dummy_variable = 22
 
     player = coach.player
@@ -171,97 +136,10 @@ def test_best_player_saves_and_loads():
 
 @mark.slow
 @requires_cleanup
-def test_with_gaussian_strategy(capsys):
+def test_reloading_mcts_coach(capsys):
     coach = Coach(
         game=stub_game,
-        SamplingStrategyClass=GaussianSamplingStrategy,
-        EvaluationStrategyClass=NNEvaluationStrategy,
         config=CoachConfig(
-            **necessary_config,
-            num_games_per_episode=1,
-            num_iterations=2,
-            player_config=SamplingEvaluatingPlayerConfig(
-                num_eval_samples=1,
-                num_train_samples=1
-            )
-        )
-    )
-    coach.learn()
-    capsys.readouterr()
-
-    coach = Coach(
-        game=stub_game,
-        SamplingStrategyClass=GaussianSamplingStrategy,
-        EvaluationStrategyClass=NNEvaluationStrategy,
-        config=CoachConfig(
-            **necessary_config,
-            num_games_per_episode=2,
-            num_iterations=3,
-            resume_from_checkpoint=True,
-            player_config=SamplingEvaluatingPlayerConfig(
-                num_eval_samples=1,
-                num_train_samples=1
-            )
-        )
-    )
-    coach.learn()
-    
-    assert coach.num_iterations == 3
-    assert coach.num_games_per_episode == 2
-    assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
-    
-    output = capsys.readouterr()
-    assert "starting iteration 2" in output.out.lower()
-    assert not "starting iteration 1" in output.out.lower()
-
-@mark.slow
-@requires_cleanup
-def test_with_st_coach(capsys):
-    coach = SharedTorsoCoach(
-        game=stub_game,
-        config=CoachConfig(
-            **necessary_config,
-            num_games_per_episode=1,
-            num_iterations=2,
-            player_config=SamplingEvaluatingPlayerConfig(
-                num_eval_samples=1,
-                num_train_samples=1
-            )
-        )
-    )
-    coach.learn()
-    capsys.readouterr()
-
-    coach = SharedTorsoCoach(
-        game=stub_game,
-        config=CoachConfig(
-            **necessary_config,
-            num_games_per_episode=2,
-            num_iterations=3,
-            resume_from_checkpoint=True,
-            player_config=SamplingEvaluatingPlayerConfig(
-                num_eval_samples=1,
-                num_train_samples=1
-            )
-        )
-    )
-    assert isinstance(coach, SharedTorsoCoach)
-    coach.learn()
-    
-    assert coach.num_iterations == 3
-    assert coach.num_games_per_episode == 2
-    assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
-    
-    output = capsys.readouterr()
-    assert "starting iteration 2" in output.out.lower()
-    assert not "starting iteration 1" in output.out.lower()
-
-@mark.slow
-@requires_cleanup
-def test_with_mcts_coach(capsys):
-    coach = MCTSCoach(
-        game=stub_game,
-        config=MCTSCoachConfig(
             **necessary_config,
             num_games_per_episode=2,
             num_iterations=2,
@@ -274,9 +152,9 @@ def test_with_mcts_coach(capsys):
     coach.learn()
     capsys.readouterr()
 
-    coach = MCTSCoach(
+    coach = Coach(
         game=stub_game,
-        config=MCTSCoachConfig(
+        config=CoachConfig(
             **necessary_config,
             num_games_per_episode=1,
             num_iterations=3,
