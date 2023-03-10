@@ -6,13 +6,12 @@ import os
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
-from ...utils import SaveableObject
+from ..utils import SaveableObject
 
-from . import Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..game import Game, GameSpec
-from ..arena import Arena
-
-from ..coach.config import CoachConfig
+from .player import Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from .game import Game, GameSpec
+from .config import CoachConfig
+from .arena import Arena
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
@@ -161,7 +160,7 @@ class Coach(SaveableObject):
 
     @classmethod
     def load_player(cls, directory: str) -> NNMCTSPlayer:
-        return NNMCTSPlayerConfig.load(directory)
+        return NNMCTSPlayer.load(directory)
 
     @classmethod
     def load(cls, directory: str) -> "Self":
@@ -170,7 +169,8 @@ class Coach(SaveableObject):
         return self
 
     def transform_history_for_training(self, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
-        history = super().transform_history_for_training(training_data)
+        total_reward = 0.
+        history = [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
         if self.use_intermediate_states:
             mcts = self.current_best.mcts
             mcts.freeze()

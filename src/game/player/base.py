@@ -2,13 +2,13 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from ...utils import SaveableObject
+from ...utils import Config, SaveableObject
 
 from ..game import Game, GameSpec
 
 class Player(SaveableObject, metaclass=ABCMeta):
     DEFAULT_FILENAME = "player.pickle"
-    def __init__(self, game_spec: GameSpec):
+    def __init__(self, game_spec: GameSpec, config: Config = None):
         self.game_spec = game_spec
         self.train()
 
