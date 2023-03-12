@@ -6,15 +6,12 @@ import os
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
-from ...sampling import NNSamplingStrategy, RandomSamplingStrategy, SamplingStrategy
-from ...evaluation import EvaluationStrategy, NNEvaluationStrategy
-from ...utils import SaveableObject
+from ..utils import SaveableObject
 
-from ..player import Player, SamplingEvaluatingPlayer, SamplingEvaluatingPlayerConfig
-from ..game import Game, GameSpec
-from ..arena import Arena
-
+from .player import Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from .game import Game, GameSpec
 from .config import CoachConfig
+from .arena import Arena
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
@@ -22,15 +19,11 @@ class Coach(SaveableObject):
     def __init__(
         self,
         game: Game,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
         self.setup_player(
             game_spec=game.game_spec,
-            SamplingStrategyClass=SamplingStrategyClass,
-            EvaluationStrategyClass=EvaluationStrategyClass,
             config=config.player_config
         )
 
@@ -56,18 +49,15 @@ class Coach(SaveableObject):
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
+        self.use_intermediate_states = config.use_intermediate_states
 
     def setup_player(
         self,
         game_spec: GameSpec,
-        SamplingStrategyClass: Type[SamplingStrategy] = NNSamplingStrategy,
-        EvaluationStrategyClass: Type[EvaluationStrategy] = NNEvaluationStrategy,
-        config: SamplingEvaluatingPlayerConfig = SamplingEvaluatingPlayerConfig()
+        config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     ):
-        self.player = SamplingEvaluatingPlayer(
+        self.player = NNMCTSPlayer(
             game_spec=game_spec,
-            SamplingStrategyClass=SamplingStrategyClass,
-            EvaluationStrategyClass=EvaluationStrategyClass,
             config=config
         )
 
@@ -147,18 +137,15 @@ class Coach(SaveableObject):
     @property
     def best_player(self):
         if os.path.exists(self.best_checkpoint_path):
-            return self.load_player(self.best_checkpoint_path)
+            best_player = self.load_player(self.best_checkpoint_path)
         else:
-            return SamplingEvaluatingPlayer(
+            best_player = NNMCTSPlayer(
                 self.game.game_spec,
-                SamplingStrategyClass=RandomSamplingStrategy,
-                EvaluationStrategyClass=EvaluationStrategy,
-                config=SamplingEvaluatingPlayerConfig(
-                    num_train_samples=self.player_config.num_train_samples,
-                    num_eval_samples=self.player_config.num_eval_samples,
-                    epsilon=self.player_config.epsilon,
-                )
+                self.config.player_config
             )
+
+        self.current_best = best_player
+        return best_player
 
     def save_model(self, current_iteration, wins):
         if not os.path.exists(self.save_directory):
@@ -172,8 +159,8 @@ class Coach(SaveableObject):
             self.save(self.best_checkpoint_path)
 
     @classmethod
-    def load_player(cls, directory: str) -> SamplingEvaluatingPlayer:
-        return SamplingEvaluatingPlayer.load(directory)
+    def load_player(cls, directory: str) -> NNMCTSPlayer:
+        return NNMCTSPlayer.load(directory)
 
     @classmethod
     def load(cls, directory: str) -> "Self":
@@ -181,7 +168,15 @@ class Coach(SaveableObject):
         self.player = self.load_player(directory)
         return self
 
-    @classmethod
-    def transform_history_for_training(cls, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+    def transform_history_for_training(self, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         total_reward = 0.
-        return [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
+        history = [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
+        if self.use_intermediate_states:
+            mcts = self.current_best.mcts
+            mcts.freeze()
+            history += [
+                (node.game.player_deltas[node.game.to_play], node.game.get_observation(), transition.action,  transition.expected_return)
+                for node in mcts.nodes.values()
+                for transition in node.transitions.values()
+            ]
+        return history
