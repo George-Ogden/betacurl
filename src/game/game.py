@@ -1,7 +1,7 @@
 from copy import deepcopy
 import numpy as np
 
-from dm_env._environment import StepType, TimeStep
+from dm_env import StepType, TimeStep
 from typing import List, Optional, Tuple
 from abc import ABCMeta, abstractmethod
 from dm_env.specs import BoundedArray
@@ -110,3 +110,6 @@ class Game(metaclass=ABCMeta):
     @property
     def player_delta(self) -> int:
         return self.player_deltas[self.to_play]
+
+    def get_random_move(self):
+        return np.random.uniform(low=self.game_spec.move_spec.minimum, high=self.game_spec.move_spec.maximum)

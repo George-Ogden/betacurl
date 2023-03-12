@@ -1,5 +1,5 @@
+from .decorator import CustomDecorator, Learnable, ModelDecorator
 from .config import ModelConfig, MLPModelConfig, TrainingConfig
-from .decorator import Learnable, ModelDecorator
 from .fcnn import MultiLayerModelFactory
 from .dense import DenseModelFactory
 from .mlp import MLPModelFactory

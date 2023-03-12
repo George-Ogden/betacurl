@@ -3,14 +3,14 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import DenseModelFactory, MultiLayerModelFactory, ModelFactory, MLPModelFactory, BEST_MODEL_FACTORY
+from src.model import DenseModelFactory, ModelConfig, ModelFactory, MLPModelFactory, MultiLayerModelFactory, BEST_MODEL_FACTORY
 
 from tests.utils import find_hidden_size
 
 def generic_factory_test(Factory: ModelFactory):
     model = Factory.create_model(
-        input_size=2,
-        output_size=3,
+        input_shape=2,
+        output_shape=3,
         config=Factory.CONFIG_CLASS(
             output_activation="sigmoid",
             hidden_size=63
@@ -33,26 +33,40 @@ def test_multi_layer_factory():
 
 def test_config_applied_to_multi_layer_model():
     short_model = MultiLayerModelFactory.create_model(
-        input_size=1,
-        output_size=1,
+        input_shape=1,
+        output_shape=1,
         config=MultiLayerModelFactory.CONFIG_CLASS(
             dropout=.2,
             hidden_layers=2
         )
     )
     long_model = MultiLayerModelFactory.create_model(
-        input_size=1,
-        output_size=1,
+        input_shape=1,
+        output_shape=1,
         config=MultiLayerModelFactory.CONFIG_CLASS(
             dropout=.2,
             hidden_layers=3
         )
     )
-    for layer in short_model.layers:
-        if isinstance(layer, layers.Dropout):
-            assert layer.rate == .2
 
-    assert len(long_model.layers) > len(short_model.layers)
+    def check_dropout(model):
+        for layer in model.layers:
+            if isinstance(layer, layers.Dropout):
+                assert layer.rate == .2
+            elif hasattr(layer, "layers"):
+                check_dropout(layer)
+    check_dropout(short_model)
+    check_dropout(long_model)
+
+
+    def count_layers(model):
+        sum = len(model.layers)
+        for layer in model.layers:
+            if hasattr(layer, "layers"):
+                sum += count_layers(layer)
+        return sum
+
+    assert count_layers(long_model) > count_layers(short_model)
 
 def test_general_distinctness():
     name1 = ModelFactory.get_name()
@@ -65,3 +79,29 @@ def test_model_uniqueness():
         for _ in range(10):
             names.add(Model.get_name())
     assert len(names) == 30
+
+def test_shaped_tensors():
+    model = DenseModelFactory.create_model(
+        input_shape=(2, 4),
+        output_shape=(3,5),
+        config=ModelConfig(
+            output_activation="sigmoid"
+        )
+    )
+    batch = np.random.randn(8, 2, 4)
+    output = model(batch)
+    assert output.shape == (8, 3, 5)
+    assert (0 <= output).numpy().all() and (output <= 1).numpy().all()
+
+def test_empty_tensors():
+    model = DenseModelFactory.create_model(
+        input_shape=(),
+        output_shape=(),
+        config=ModelConfig(
+            output_activation="sigmoid"
+        )
+    )
+    batch = np.random.randn(8)
+    output = model(batch)
+    assert output.shape == (8)
+    assert (0 <= output).numpy().all() and (output <= 1).numpy().all()

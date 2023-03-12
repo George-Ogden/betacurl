@@ -1,15 +1,33 @@
-from tensorflow.keras import Model
+from tensorflow.keras import layers
+from tensorflow import keras
+import numpy as np
 
 from abc import ABCMeta, abstractclassmethod
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 from .config import ModelConfig
 
 class ModelFactory(metaclass=ABCMeta):
     NAME: str = ""
     _model_count: int = 0
+    CONFIG_CLASS: ModelConfig = ModelConfig
+    @classmethod
+    def create_model(cls, input_shape: Union[int, Tuple[int]], output_shape: Union[int, Tuple[int]], config: Optional[ModelConfig] = None) -> keras.Model:
+        if config is None:
+            config = cls.CONFIG_CLASS()
+        input_size = np.prod(input_shape, dtype=int)
+        output_size = np.prod(output_shape, dtype=int)
+        return keras.Sequential(
+            [
+                keras.Input(np.reshape(input_shape, -1)),
+                layers.Reshape((input_size,)),
+                cls._create_model(input_size, output_size, config=config),
+                layers.Reshape(np.reshape(output_shape, -1)),
+            ]
+        )
+
     @abstractclassmethod
-    def create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()) -> Model:
+    def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()) -> keras.Model:
         ...
 
     @classmethod

@@ -5,28 +5,32 @@ from tqdm.keras import TqdmCallback
 from typing import Any, ClassVar, Dict, List, Optional
 from dataclasses import dataclass, field
 
+from ..utils import Config
+
 @dataclass
-class ModelConfig:
-    output_activation:  str = "sigmoid"
+class ModelConfig(Config):
+    output_activation: str = "sigmoid"
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 128
+    hidden_size: int = 32
+    dropout: float = .1
 
 @dataclass
 class FCNNConfig(MLPModelConfig):
-    dropout: float = .1
     hidden_layers: int = 3
+    def __post_init__(self):
+        assert self.hidden_layers >= 1
 
 @dataclass
-class TrainingConfig:
-    training_epochs: int = 20
+class TrainingConfig(Config):
+    training_epochs: int = 10
     """number of epochs to train each model for"""
     batch_size: int = 64
     """training batch size"""
     training_patience: int = 7
     """number of epochs without improvement during training (0 to ignore)"""
-    lr: float = 1e-2
+    lr: float = 1e-3
     """model learning rate"""
     validation_split: float = 0.1
     """proportion of data to validate on"""

@@ -1,14 +1,14 @@
 import numpy as np
 
-from typing import Callable, Iterable, List, Optional, Tuple, Union
-from dm_env._environment import StepType
+from typing import Iterable, List, Optional, Tuple, Type, Union
+from dm_env import StepType
 from tqdm import trange
 
-from .game import Game, GameSpec
+from .game import Game
 from .player.base import Player
 
 class Arena():
-    def __init__(self, players: Iterable[Callable[[GameSpec], Player]], game: Game) -> None:
+    def __init__(self, players: Iterable[Type[Player]], game: Game) -> None:
         assert len(players) == 2, "only two player games allowed"
         self.players: List[Player] = [Player(game.game_spec) for Player in players]
         self.game = game

@@ -1,11 +1,13 @@
-from tensorflow.keras import layers
+from tensorflow.keras import layers, losses
 from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
 from pytest import mark
 
-from src.model import ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
+from src.model import CustomDecorator, ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
+
+from tests.utils import EpochCounter
 
 config = MLPModelConfig(
     output_activation="sigmoid", hidden_size=8
@@ -13,13 +15,28 @@ config = MLPModelConfig(
 
 class StubModel(ModelDecorator):
     def __init__(self):
-        self.model = BEST_MODEL_FACTORY.create_model(input_size=1, output_size=1)
+        self.model = BEST_MODEL_FACTORY.create_model(input_shape=1, output_shape=1)
+
+    def learn(self, *args, **kwargs):
+        ...
+
+class CustomModel(CustomDecorator):
+    def __init__(self):
+        self.model = BEST_MODEL_FACTORY.create_model(input_shape=2, output_shape=())
+    
+    def compute_loss(self, input: tf.Tensor, output: tf.Tensor) -> tf.Tensor:
+        return losses.mean_squared_error(
+            self.model(
+                input
+            ),
+            output
+        )
 
     def learn(self, *args, **kwargs):
         ...
 
 def test_forward():
-    model = MLPModelFactory.create_model(input_size=2, output_size=1, config=config)
+    model = MLPModelFactory.create_model(input_shape=2, output_shape=1, config=config)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)
@@ -27,7 +44,7 @@ def test_forward():
     assert tf.reduce_all(output < 1)
 
 def test_without_config():
-    model = MLPModelFactory.create_model(input_size=2, output_size=1)
+    model = MLPModelFactory.create_model(input_shape=2, output_shape=1)
     input = tf.random.normal((16, 2))
     output = model(input)
     assert output.shape == (16, 1)
@@ -123,7 +140,93 @@ def test_best_model_restored():
         )
     )
     history = model.fit(np.array((.5,)), np.array((1.,)), training_config=config)
-    assert history.epoch == list(range(6))
+    val_loss = history.history["val_loss"]
     final_loss = model.model.evaluate(np.array((.5,)), np.array((0.,)))[0]
-    assert np.allclose(history.history["val_loss"][0], final_loss)
-    assert history.history["val_loss"][-1] > final_loss
+    
+    assert np.argmin(val_loss) == len(val_loss) - 6
+    assert np.allclose(val_loss[-6], final_loss)
+
+@mark.probabilistic
+def test_custom_model_fits():
+    model = CustomModel()
+    input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)
+    training_data = [((x, y), float(int(x) ^ int(y))) for x, y in input_data] * 100
+    dataset = model.create_dataset(training_data)
+    history = model.fit(
+        dataset,
+        training_config=TrainingConfig(
+            lr=1e-1,
+            training_epochs=20
+        )
+    )
+    assert np.allclose(
+        model.model(input_data),
+        [int(x) ^ int(y) for x,y in input_data],
+        atol=.1
+    )
+
+def test_custom_model_uses_config():
+    model = CustomModel()
+    input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)
+    training_data = [((x, y), float(int(x) ^ int(y))) for x, y in input_data] * 100
+    dataset = model.create_dataset(training_data)
+    counter = EpochCounter()
+    history = model.fit(
+        dataset,
+        training_config=TrainingConfig(
+            training_epochs=10,
+            batch_size=32,
+            lr=1e-1,
+            training_patience=0,
+            additional_callbacks=[counter],
+            optimizer_type="SGD",
+            optimizer_kwargs={
+                "clipnorm": 1.,
+                "momentum": .1,
+            }
+        )
+    )
+
+    optimizer = model.model.optimizer
+    assert history.params["steps"] == np.ceil(len(training_data) * .9 / 32)
+    assert counter.counter == 10
+    assert optimizer.clipnorm == 1.
+    assert optimizer.learning_rate == 1e-1
+    assert optimizer.momentum == 0.1
+
+@mark.probabilistic
+def test_best_custom_model_restored():
+    model = CustomModel()
+    input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)
+    training_data = [((x, y), float(int(x) ^ int(y))) for x, y in input_data]
+    dataset = model.create_dataset(training_data)
+    counter = EpochCounter()
+    history = model.fit(
+        dataset,
+        training_config=TrainingConfig(
+            training_epochs=100,
+            batch_size=32,
+            lr=1e-1,
+            validation_split=.25,
+            training_patience=5,
+            additional_callbacks=[counter],
+            optimizer_type="SGD",
+            optimizer_kwargs={
+                "clipnorm": 1.,
+                "momentum": .1,
+            }
+        )
+    )
+
+    val_loss = history.history["val_loss"]
+    assert np.argmin(val_loss) == len(val_loss) - 6
+    for item in training_data:
+        input, output = item
+        loss = model.compute_loss(
+            np.array([input]),
+            np.array([output])
+        )
+        if np.allclose(loss, val_loss[-6]):
+            break
+    else:
+        assert False, "validation loss did not match expected loss"

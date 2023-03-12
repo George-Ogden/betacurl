@@ -1,4 +1,4 @@
-from dm_env._environment import StepType
+from dm_env import StepType
 import numpy as np
 
 from pytest import mark

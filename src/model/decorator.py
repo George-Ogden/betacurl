@@ -1,11 +1,13 @@
-from tensorflow.keras import callbacks
+from tensorflow.keras import callbacks, utils
 from tensorflow import data
+import tensorflow as tf
+from copy import copy
 import numpy as np
 
-from abc import abstractmethod, ABCMeta
 from typing import Any, Dict, List, Tuple
+from abc import abstractmethod, ABCMeta
 
-from ..io import SaveableModel
+from ..utils import SaveableModel
 
 from .config import TrainingConfig
 
@@ -20,7 +22,7 @@ class ModelDecorator(SaveableModel, Learnable):
 
     def normalise_outputs(self, outputs: np.ndarray) -> np.ndarray:
         return outputs
-    
+
     def compile_model(self, training_config: TrainingConfig):
         compile_options = {
             "optimizer": training_config.optimizer,
@@ -29,7 +31,7 @@ class ModelDecorator(SaveableModel, Learnable):
             **(training_config.compile_kwargs or {})
         }
         self.model.compile(**compile_options)
-    
+
     @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
         transposed_data = tuple(np.array(data, dtype=np.float32) for data in zip(*dataset))
@@ -74,3 +76,61 @@ class ModelDecorator(SaveableModel, Learnable):
         X = self.normalise_inputs(X)
         Y = self.normalise_outputs(Y)
         return X, Y, train_options
+
+class CustomDecorator(ModelDecorator):
+    @abstractmethod
+    def compute_loss(self, *batch: List[tf.Tensor]) -> tf.Tensor:
+        ...
+
+    def train_step(self, batch: np.ndarray, optimizer: tf.optimizers.Optimizer) -> np.ndarray:
+        with tf.GradientTape() as tape:
+            loss = self.compute_loss(*batch)
+        grads = tape.gradient(loss, self.model.trainable_variables)
+        optimizer.apply_gradients(
+            zip(
+                [
+                    tf.where(tf.math.is_nan(grad), tf.zeros_like(grad), grad)
+                    for grad in grads
+                ],
+                self.model.trainable_variables
+            )
+        )
+        return loss
+
+    def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()) -> callbacks.History:
+        training_config = copy(training_config)
+        train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
+        batch_size = training_config.batch_size
+        training_config.metrics = []
+
+        self.compile_model(training_config)
+        optimizer = self.model.optimizer
+
+        history = callbacks.History()
+        callback = callbacks.CallbackList(
+            training_config.callbacks + [history],
+            model=self.model,
+            add_history=False,
+            add_progbar=training_config.verbose != 0,
+            verbose=training_config.verbose,
+            epochs=training_config.training_epochs,
+            steps=(len(train_dataset) - 1) // training_config.batch_size + 1,
+        )
+
+        self.model.stop_training = False
+        callback.on_train_begin()
+        for epoch in range(training_config.training_epochs):
+            callback.on_epoch_begin(epoch)
+            loss = 0
+            for step, batch in enumerate(train_dataset.batch(batch_size)):
+                callback.on_train_batch_begin(step)
+                loss += self.train_step(batch, optimizer)
+                callback.on_train_batch_end(step)
+            val_loss = 0
+            for step, batch in enumerate(val_dataset.batch(batch_size)):
+                val_loss += self.compute_loss(*batch)
+            callback.on_epoch_end(epoch, {"loss": loss / len(train_dataset), "val_loss": val_loss / len(val_dataset)})
+            if self.model.stop_training:
+                break
+        callback.on_train_end()
+        return history
