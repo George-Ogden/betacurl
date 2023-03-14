@@ -36,7 +36,7 @@ class ModelDecorator(SaveableModel, Learnable):
     def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
         try:
             return tf.constant(data, dtype=dtype)
-        except:
+        except ValueError:
             return tf.ragged.constant(data, dtype=dtype)
 
     @staticmethod

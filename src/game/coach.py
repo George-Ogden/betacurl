@@ -49,7 +49,6 @@ class Coach(SaveableObject):
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
-        self.use_intermediate_states = config.use_intermediate_states
 
     def setup_player(
         self,
@@ -127,7 +126,6 @@ class Coach(SaveableObject):
         wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
         return wins, losses
 
-
     def evaluate(self) -> int:
         champion = self.best_player
         wins, losses = self.benchmark(champion.dummy_constructor)
@@ -168,15 +166,24 @@ class Coach(SaveableObject):
         self.player = self.load_player(directory)
         return self
 
-    def transform_history_for_training(self, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+    def transform_history_for_training(
+            self,
+            training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]
+        ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
-        history = [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
-        if self.use_intermediate_states:
-            mcts = self.current_best.mcts
-            mcts.freeze()
-            history += [
-                (node.game.player_deltas[node.game.to_play], node.game.get_observation(), transition.action,  transition.expected_return)
-                for node in mcts.nodes.values()
-                for transition in node.transitions.values()
-            ]
+        mcts = self.current_best.mcts
+        mcts.freeze()
+        history = [
+            (
+                player,
+                observation,
+                action,
+                total_reward := total_reward + (reward or 0),
+                [
+                    (transition.action, transition.advantage)
+                    for transition in mcts.get_node(observation).transitions.values()
+                ]
+            )
+            for player, observation, action, reward in reversed(training_data)
+        ]
         return history

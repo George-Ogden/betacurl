@@ -26,6 +26,5 @@ class CoachConfig(Config):
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
     model_filenames: str = "model-{:06}"
-    use_intermediate_states: bool = False
     player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     training_config: TrainingConfig = TrainingConfig()

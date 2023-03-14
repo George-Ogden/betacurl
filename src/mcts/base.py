@@ -46,7 +46,7 @@ class MCTS(metaclass=ABCMeta):
 
     @staticmethod
     def encode(state: np.ndarray) -> bytes:
-        return state.tobytes()
+        return state.astype(np.float32).tobytes()
 
     @abstractmethod
     def select_action(self, observation: np.ndarray) -> np.ndarray:
