@@ -133,9 +133,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
     def compute_loss(self,
         observations: np.ndarray,
-        actions: tf.Tensor,
+        actions: tf.RaggedTensor,
         values: tf.Tensor,
-        advantages: tf.Tensor
+        advantages: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
@@ -178,23 +178,30 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
     
     def learn(
         self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
         training_data = [
-            (augmented_player,
-            augmented_observation,
-            augmented_action,
-            augmented_reward
-        ) for (player, observation, action, reward) in training_history 
-            for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
-        primary_dataset = self.create_dataset(training_data).batch(training_config.batch_size)
-
-        batched_transform = [(observation, action, reward) + (self.compute_advantages(players=player, observations=observation, rewards=reward),) for player, observation, action, reward in primary_dataset]
-        flattened_transform = [np.concatenate(data, axis=0) for data in zip(*batched_transform)]
-        secondary_dataset = self.create_dataset(zip(*flattened_transform))
+            (
+                augmented_observation,
+                augmented_action,
+                augmented_reward,
+                advantage,
+            ) for player, observation, action, reward, policy in training_data
+                for (augmented_player, augmented_observation, augmented_action, augmented_reward), (augmented_action, advantage)
+            in zip(
+                augmentation_function(player, observation, action, reward),
+                (
+                    (augmented_action, advantage) 
+                     for action, advantage in policy
+                        for augmented_player, augmented_observation, augmented_action, augmented_reward 
+                        in augmentation_function(player, observation, action, reward)
+                )
+            )
+        ]
+        dataset = self.create_dataset(training_data)
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
         
-        return self.fit(secondary_dataset, training_config)
+        return self.fit(dataset, training_config)

@@ -34,7 +34,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
 
     def learn(
         self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ):

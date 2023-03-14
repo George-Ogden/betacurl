@@ -168,9 +168,9 @@ class MCTS(metaclass=ABCMeta):
         this can only be done once the values no longer update
         """
         for node in self.nodes.values():
+            visits = [transition.num_visits for transition in node.transitions.values()]
+            mean = np.mean(visits)
+            scale = max(np.std(visits), 1.)
             for transition in node.transitions.values():
-                # apply Bayes Theorem to the expected return to add uncertainty
-                transition.expected_return = (
-                    self.nodes[transition.next_state].expected_return
-                    if not transition.termination else 0
-                ) * transition.num_visits / (2 + transition.num_visits) + transition.reward
+                # rescale visits to perform REINFORCE with baseline
+                transition.advantage = (transition.num_visits - mean) / scale
