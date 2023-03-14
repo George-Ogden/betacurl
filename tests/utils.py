@@ -53,6 +53,9 @@ class StubGame(Game):
 
         return delta
 
+    def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return [(player, observation, action, reward), (1-player, -observation, action, -reward)]
+
 class SparseStubGame(StubGame):
     """stub game with reward only on last step"""
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:
@@ -88,6 +91,9 @@ class MDPStubGame(StubGame):
 
     def _get_observation(self)-> np.ndarray:
         return np.array((self.score[0] - self.score[1], self.current_round))
+
+    def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+        return Game.no_symmetries(player, observation, action, reward)
 
 class MDPSparseStubGame(SparseStubGame):
     def __init__(self, rounds: int = 6):

@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 
 from src.model import DenseModelFactory, MLPModelFactory, MLPModelConfig
-from src.mcts import MCTSModel, MCTSModelConfig
+from src.mcts import MCTSModel, MCTSModelConfig, NNMCTS
 
 from tests.utils import StubGame
 
@@ -133,3 +133,35 @@ def test_non_deterministic_during_training():
     dist2 = model.generate_distribution(observation, training=True)
     assert not tf.reduce_all(dist.loc == dist2.loc)
     assert not tf.reduce_all(dist.scale == dist2.scale)
+
+def test_training_transform():
+    game = StubGame(2)
+    game.reset(0)
+    move = np.ones(move_spec.shape)
+    training_data = [(
+        1, game.get_observation(), 7 * move, 1., [
+            (move * 3, 3),
+            (move * 5, 5),
+            (move * 7, 7)
+        ],
+    )]
+    game.step(move * 7)
+    training_data.append((
+        0, game.get_observation(), 6 * move, 1., [
+            (move * 4, 4),
+            (move * 6, 6)
+        ],
+    ))
+
+    class DummyMCTSModel(MCTSModel):
+        def fit(self, dataset, training_config):
+            self.dataset = dataset
+    
+    model = DummyMCTSModel(game_spec)
+    model.learn(
+        training_data, game.get_symmetries
+    )
+    for observation, actions, values, advantages in model.dataset:
+        assert (observation[0] % 2 == 0) ^ tf.reduce_all(actions % 2 == 0)
+        assert tf.reduce_all(actions == advantages)
+        assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
