@@ -1,4 +1,4 @@
-from tensorflow.keras import callbacks, utils
+from tensorflow.keras import callbacks
 from tensorflow import data
 import tensorflow as tf
 from copy import copy
@@ -34,7 +34,7 @@ class ModelDecorator(SaveableModel, Learnable):
 
     @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
-        transposed_data = tuple(SaveableModel.to_tensor(data, dtype=tf.float32) for data in zip(*dataset))
+        transposed_data = tuple(tf.constant(data, dtype=tf.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
     def fit(
@@ -99,7 +99,11 @@ class CustomDecorator(ModelDecorator):
 
     def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()) -> callbacks.History:
         training_config = copy(training_config)
-        train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
+
+        # shuffle manually to avoid ragged tensors
+        dataset.shuffle(len(dataset))
+        val_dataset = dataset.take(int(training_config.validation_split * len(dataset)))
+        train_dataset = dataset.skip(int(training_config.validation_split * len(dataset)))
         batch_size = training_config.batch_size
         train_dataset.shuffle(len(train_dataset), reshuffle_each_iteration=True)
         training_config.metrics = []

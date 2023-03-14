@@ -1,6 +1,6 @@
 from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
-from tensorflow import keras
+from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
@@ -133,17 +133,23 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
     def compute_loss(self,
         observations: np.ndarray,
-        actions: tf.RaggedTensor,
+        action_groups: tf.RaggedTensor,
         values: tf.Tensor,
-        advantages: tf.RaggedTensor
+        advantage_groups: tf.RaggedTensor
     ) -> tf.Tensor:
+        policy_loss = 0.
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
+        distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
 
-        log_probs = predicted_distribution.log_prob(actions)
-        clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-        policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+        for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
+            distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
+            log_probs = distribution.log_prob(actions.to_tensor())
+            clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+            policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+
         value_loss = losses.mean_squared_error(values, predicted_values)
+
         loss = policy_loss + self.vf_coeff * value_loss
         if self.ent_coeff != 0:
             # entropy is main cause of NaNs in training
@@ -208,7 +214,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             )
         ]
 
-        dataset = self.create_dataset(training_data)
+        tensor_types = [tf.constant, tf.ragged.constant, tf.constant, tf.ragged.constant]
+        raw_data = tuple(tensor_type(data, dtype=tf.float32) for tensor_type, data in zip(tensor_types, zip(*training_data)))
+        dataset = data.Dataset.from_tensor_slices(raw_data)
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
         
