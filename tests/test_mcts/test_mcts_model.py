@@ -164,4 +164,6 @@ def test_training_transform():
     for observation, actions, values, advantages in model.dataset:
         assert (observation[0] % 2 == 0) ^ tf.reduce_all(actions % 2 == 0)
         assert tf.reduce_all(actions == advantages)
-        assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
+        for action, advantage in zip(actions, advantages):
+            seen_actions.update(list(action.numpy()))
+            assert tf.reduce_all(action == advantage)

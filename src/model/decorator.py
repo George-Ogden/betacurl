@@ -34,7 +34,7 @@ class ModelDecorator(SaveableModel, Learnable):
 
     @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
-        transposed_data = tuple(np.array(data, dtype=np.float32) for data in zip(*dataset))
+        transposed_data = tuple(SaveableModel.to_tensor(data, dtype=tf.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
     def fit(
@@ -101,6 +101,7 @@ class CustomDecorator(ModelDecorator):
         training_config = copy(training_config)
         train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
         batch_size = training_config.batch_size
+        train_dataset.shuffle(len(train_dataset), reshuffle_each_iteration=True)
         training_config.metrics = []
 
         self.compile_model(training_config)

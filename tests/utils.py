@@ -54,7 +54,7 @@ class StubGame(Game):
         return delta
 
     def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
-        return [(player, observation, action, reward), (1-player, -observation, action, -reward)]
+        return [(player, observation, action, reward), (-player, -observation, action, -reward)]
 
 class SparseStubGame(StubGame):
     """stub game with reward only on last step"""
