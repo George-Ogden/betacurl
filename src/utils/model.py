@@ -1,9 +1,8 @@
 from tensorflow.keras.models import load_model, save_model
 from tensorflow import keras
-import tensorflow as tf
 import os
 
-from typing import Any, Dict, Optional
+from typing import Dict
 
 from .io import SaveableObject
 
@@ -33,13 +32,6 @@ class SaveableModel(SaveableObject):
     @classmethod
     def get_model_filename(cls, directory):
         return os.path.join(directory,cls.DEFAULT_MODEL_FILE)
-
-    @staticmethod
-    def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
-        try:
-            return tf.constant(data, dtype=dtype)
-        except:
-            return tf.ragged.constant(data, dtype=dtype)
 
 class SaveableMultiModel(SaveableModel):
     DEFAULT_FILENAME = "model.pickle"

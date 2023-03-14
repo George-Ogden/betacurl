@@ -121,32 +121,28 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         return values
 
-    def compute_advantages(
-        self,
-        players: tf.Tensor,
-        observations: tf.Tensor,
-        rewards: tf.Tensor
-    ) -> tf.Tensor:
-        value_predictions = self.predict_values(observations, training=False)
-        advantages = rewards - value_predictions
-        return advantages * tf.sign(players)
-
     def compute_loss(self,
         observations: np.ndarray,
         action_groups: tf.RaggedTensor,
         values: tf.Tensor,
         advantage_groups: tf.RaggedTensor
     ) -> tf.Tensor:
-        policy_loss = 0.
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
-        distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
+        
+        if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
+            policy_loss = 0.
+            distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
 
-        for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
-            distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
-            log_probs = distribution.log_prob(actions.to_tensor())
+            for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
+                distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
+                log_probs = distribution.log_prob(actions.to_tensor())
+                clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+                policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+        else:
+            log_probs = predicted_distribution.log_prob(action_groups)
             clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-            policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+            policy_loss = -tf.reduce_mean(advantage_groups * tf.reduce_sum(clipped_log_probs, axis=-1))
 
         value_loss = losses.mean_squared_error(values, predicted_values)
 
@@ -191,12 +187,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         training_data = [
             (
                 augmented_observation,
-                augmented_action,
+                augmented_actions,
                 augmented_reward,
-                advantage
+                advantages
             ) for player, observation, action, reward, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_reward),
-                    (augmented_action, advantage)
+                    (augmented_actions, advantages)
             in zip(
                 augmentation_function(player, observation, action, reward),
                 [
@@ -214,9 +210,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             )
         ]
 
-        tensor_types = [tf.constant, tf.ragged.constant, tf.constant, tf.ragged.constant]
-        raw_data = tuple(tensor_type(data, dtype=tf.float32) for tensor_type, data in zip(tensor_types, zip(*training_data)))
-        dataset = data.Dataset.from_tensor_slices(raw_data)
+        dataset = self.create_dataset(training_data)
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
         

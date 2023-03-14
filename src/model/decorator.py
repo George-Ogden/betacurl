@@ -4,7 +4,7 @@ import tensorflow as tf
 from copy import copy
 import numpy as np
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 from abc import abstractmethod, ABCMeta
 
 from ..utils import SaveableModel
@@ -33,8 +33,15 @@ class ModelDecorator(SaveableModel, Learnable):
         self.model.compile(**compile_options)
 
     @staticmethod
+    def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
+        try:
+            return tf.constant(data, dtype=dtype)
+        except:
+            return tf.ragged.constant(data, dtype=dtype)
+
+    @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
-        transposed_data = tuple(tf.constant(data, dtype=tf.float32) for data in zip(*dataset))
+        transposed_data = tuple(ModelDecorator.to_tensor(data, dtype=tf.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
     def fit(
