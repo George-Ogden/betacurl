@@ -187,19 +187,27 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 augmented_observation,
                 augmented_action,
                 augmented_reward,
-                advantage,
+                advantage
             ) for player, observation, action, reward, policy in training_data
-                for (augmented_player, augmented_observation, augmented_action, augmented_reward), (augmented_action, advantage)
+                for (augmented_player, augmented_observation, augmented_action, augmented_reward),
+                    (augmented_action, advantage)
             in zip(
                 augmentation_function(player, observation, action, reward),
-                (
-                    (augmented_action, advantage) 
-                     for action, advantage in policy
-                        for augmented_player, augmented_observation, augmented_action, augmented_reward 
-                        in augmentation_function(player, observation, action, reward)
-                )
+                [
+                    zip(*policy)
+                    for policy in zip(*[
+                        [
+                            (augmented_action, advantage)
+                            for augmented_player, augmented_observation, augmented_action, augmented_reward 
+                            in augmentation_function(player, observation, action, reward)
+                        ]
+                        for action, advantage in policy
+                    ])
+                ],
+                strict=True
             )
         ]
+
         dataset = self.create_dataset(training_data)
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
