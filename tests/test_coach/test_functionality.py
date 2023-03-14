@@ -1,14 +1,16 @@
 from copy import copy
 from glob import glob
+import numpy as np
 import os
 
 from pytest import mark
 
-from src.game import Arena, Coach, CoachConfig, Coach, CoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
-from src.model import  TrainingConfig
+from src.game import Arena, Coach, CoachConfig, Coach, CoachConfig, Game, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.mcts import MCTS, MCTSConfig
+from src.model import TrainingConfig
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
-from tests.utils import BadPlayer, BinaryStubGame, GoodPlayer, MDPStubGame, MDPSparseStubGame
+from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
@@ -49,6 +51,25 @@ boring_coach = Coach(
     )
 )
 
+class FixedValueMCTS(MCTS):
+    def __init__(self, game: "Game", config: MCTSConfig = MCTSConfig(), move = None):
+        super().__init__(game, config)
+        self.move = move
+
+    def select_action(self, observation: np.ndarray) -> np.ndarray:
+        return self.move.copy()
+
+    def _get_action_probs(self, game: Game, temperature: float):
+        return np.array([self.select_action(None)]), np.array([1.])
+
+class GoodMCTS(FixedValueMCTS):
+    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
+        super().__init__(game, config, move=game.game_spec.move_spec.maximum)
+
+class BadMCTS(FixedValueMCTS):
+    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
+        super().__init__(game, config, move=game.game_spec.move_spec.minimum)
+
 class BadPlayerCoach(Coach):
     @property
     def best_player(self):
@@ -57,9 +78,10 @@ class BadPlayerCoach(Coach):
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = -stub_game.max_move
-            best_player = BadPlayer(
+            best_player = MCTSPlayer(
                 self.game.game_spec,
-                config
+                MCTSClass=BadMCTS,
+                config=config
             )
 
         self.current_best = best_player
@@ -73,25 +95,14 @@ class GoodPlayerCoach(Coach):
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = stub_game.max_move * 2
-            best_player = GoodPlayer(
+            best_player = MCTSPlayer(
                 self.game.game_spec,
-                config
+                MCTSClass=GoodMCTS,
+                config=config
             )
 
         self.current_best = best_player
         return best_player
-
-def test_reward_transformed_correctly():
-    transform = set(boring_coach.transform_history_for_training(
-        [(1, 0, 0, 0), (-1, 10, 10, 1), (1, 20, 20, 2), (-1, 30, 30, 3)],
-    ))
-    assert transform == set([(1, 0, 0, 6), (-1, 10, 10, 6), (1, 20, 20, 5), (-1, 30, 30, 3)])
-
-def test_reward_transformed_correctly_with_None():
-    transform = set(boring_coach.transform_history_for_training(
-        [(1, 0, 0, None), (-1, 10, 10, None), (1, 20, 20, None), (-1, 30, 30, 3)],
-    ))
-    assert transform == set([(1, 0, 0, 3), (-1, 10, 10, 3), (1, 20, 20, 3), (-1, 30, 30, 3)])
 
 @requires_cleanup
 def test_no_default_best():
@@ -120,7 +131,7 @@ def test_sparse_game_for_coaching():
         )
     )
     coach.learn()
-    assert isinstance(coach.best_player, GoodPlayer)
+    assert coach.best_player.MCTSClass == GoodMCTS
 
     coach = BadPlayerCoach(
         game=sparse_stub_game,
@@ -134,7 +145,7 @@ def test_sparse_game_for_coaching():
         )
     )
     coach.learn()
-    assert not isinstance(coach.best_player, BadPlayer)
+    assert coach.best_player.MCTSClass != BadMCTS
 
 @requires_cleanup
 def test_learning_patience():
@@ -151,7 +162,7 @@ def test_learning_patience():
         )
     )
     coach.learn()
-    assert isinstance(coach.best_player, GoodPlayer)
+    assert coach.best_player.MCTSClass == GoodMCTS
     assert len(glob(f"{SAVE_DIR}/*")) == 5
 
 @requires_cleanup
@@ -192,8 +203,7 @@ def test_model_learns():
             ),
             player_config=NNMCTSPlayerConfig(
                 num_simulations=3
-            ),
-            use_intermediate_states=False
+            )
         )
     )
 

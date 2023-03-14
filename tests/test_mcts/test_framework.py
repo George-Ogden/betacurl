@@ -1,13 +1,11 @@
 from copy import deepcopy
 import numpy as np
 
-from dm_env.specs import BoundedArray
-from typing import Optional, Tuple
 from pytest import mark
 
-from src.mcts.base import Node, Transition
 from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSConfig, WideningMCTS, WideningMCTSConfig
-from src.game import Game, GameSpec
+from src.mcts.base import Node, Transition
+from src.game import Game
 
 from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 
@@ -25,14 +23,14 @@ class SimpleMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         return np.tile(game.max_move / 2, move_spec.shape)
 
-    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_action_probs(self, game: Game, temperature: float):
         return np.array([self.select_action(None)]), np.array([1.])
 
 class RandomMCTS(MCTS):
     def select_action(self, observation: np.ndarray) -> np.ndarray:
         return np.random.rand(*move_spec.shape)
 
-    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_action_probs(self, game: Game, temperature: float):
         actions = self.get_actions(game.get_observation())
         values = np.array([(action.reward + self.nodes[action.next_state].expected_return) * self.game.player_delta for action in actions])
         if temperature == 0:
@@ -338,10 +336,18 @@ def test_freezing():
         ),
     )
 
-    for i in range(11):
+    for i in range(101):
         mcts.search()
 
     mcts.freeze()
     for node in mcts.nodes.values():
-        for transition in node.transitions.values():
-            assert np.allclose(np.abs(transition.expected_return), 1 / 3)
+        if node.num_visits < 20:
+            continue
+
+        advantages = [transition.advantage for transition in node.transitions.values()]
+        assert np.allclose(np.mean(advantages), 0.)
+        assert np.std(advantages) <= 1.
+
+        n = 10
+        r_s = 1 - 6 * np.linalg.norm(np.argsort(advantages) - np.argsort([transition.action.min() for transition in node.transitions.values()])) / (n * (n ** 2 - 1))
+        assert r_s > .5

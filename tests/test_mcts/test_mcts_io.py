@@ -60,7 +60,7 @@ def test_nn_player_io_with_model():
         game.game_spec
     )
     player.move(game)
-    player.learn(history, game.no_symmetries)
+    player.learn([(*data, [(data[2], 0.)]) for data in history] * 10, game.no_symmetries)
     player.move(game)
 
     model = player.model
