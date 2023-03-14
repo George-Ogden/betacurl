@@ -85,8 +85,9 @@ def test_model_losses_converge():
     assert tf.reduce_any(distribution.scale > .1)
     assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
 
+@mark.slow
 @mark.probabilistic
-def test_model_learn_from_multiple_actions():
+def test_model_learns_from_multiple_actions():
     game = StubGame(2)
     game.reset(0)
     move = np.ones(game_spec.move_spec.shape) / 10

@@ -1,10 +1,6 @@
-import tensorflow as tf
-
 from glob import glob
 from copy import copy
 import time
-
-from pytest import mark
 import os
 
 from src.game import Coach, CoachConfig, Coach, CoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig
@@ -77,7 +73,10 @@ def test_checkpoint_restores_in_training():
             resume_from_checkpoint=True,
             num_iterations=4,
             num_games_per_episode=2,
-            **necessary_config
+            **necessary_config,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4
+            )
         )
     )
     coach.dummy_variable = 25
@@ -134,7 +133,6 @@ def test_best_player_saves_and_loads():
     best_player = coach.best_player
     assert best_player.dummy_variable == 22
 
-@mark.slow
 @requires_cleanup
 def test_reloading_mcts_coach(capsys):
     coach = Coach(
