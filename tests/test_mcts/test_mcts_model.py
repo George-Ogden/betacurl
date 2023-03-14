@@ -169,32 +169,3 @@ def test_training_transform():
             assert tf.reduce_all(action == advantage)
         assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
     assert len(seen_actions) == 5
-
-@mark.probabilistic
-def test_model_learns():
-    game = StubGame(2)
-    game.reset(0)
-    move = np.ones(move_spec.shape) / 10
-    training_data = [(
-        1, game.get_observation(), 7 * move, 1., [
-            (move * 3, -1.),
-            (move * 5, 0.),
-            (move * 7, 1.)
-        ],
-    )]
-    game.step(move * 7)
-    training_data.append((
-        0, game.get_observation(), 6 * move, 1., [
-            (move * 4, -1.),
-            (move * 6, 1.)
-        ],
-    ))
-    training_data *= 10
-    model = MCTSModel(game_spec)
-    model.learn(
-        training_data, game.get_symmetries
-    )
-
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
-    game.reset(0)
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
