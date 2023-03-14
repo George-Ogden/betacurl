@@ -118,7 +118,7 @@ def test_deterministic_outside_training():
     assert tf.reduce_all(dist.loc == dist2.loc)
     assert tf.reduce_all(dist.scale == dist2.scale)
 
-def test_non_deterministic_during_training():
+def test_non_deterministic_during_trainiwng():
     observation = np.ones_like(game.get_observation())
 
     features = model.feature_extractor(observation, training=True)
@@ -161,9 +161,40 @@ def test_training_transform():
     model.learn(
         training_data, game.get_symmetries
     )
+    seen_actions = set()
     for observation, actions, values, advantages in model.dataset:
         assert (observation[0] % 2 == 0) ^ tf.reduce_all(actions % 2 == 0)
-        assert tf.reduce_all(actions == advantages)
         for action, advantage in zip(actions, advantages):
             seen_actions.update(list(action.numpy()))
             assert tf.reduce_all(action == advantage)
+        assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
+    assert len(seen_actions) == 5
+
+@mark.probabilistic
+def test_model_learns():
+    game = StubGame(2)
+    game.reset(0)
+    move = np.ones(move_spec.shape) / 10
+    training_data = [(
+        1, game.get_observation(), 7 * move, 1., [
+            (move * 3, -1.),
+            (move * 5, 0.),
+            (move * 7, 1.)
+        ],
+    )]
+    game.step(move * 7)
+    training_data.append((
+        0, game.get_observation(), 6 * move, 1., [
+            (move * 4, -1.),
+            (move * 6, 1.)
+        ],
+    ))
+    training_data *= 10
+    model = MCTSModel(game_spec)
+    model.learn(
+        training_data, game.get_symmetries
+    )
+
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
+    game.reset(0)
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
