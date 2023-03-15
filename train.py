@@ -1,4 +1,4 @@
-from src.game import MCTSCoach, MCTSCoachConfig
+from src.game import Coach, CoachConfig
 from src.curling import StoneThrow, CURLING_GAME
 import wandb
 
@@ -7,7 +7,7 @@ from typing import get_type_hints
 from dataclasses import asdict, is_dataclass
 import argparse
 
-initial_config = MCTSCoachConfig()
+initial_config = CoachConfig()
 
 def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
@@ -24,7 +24,7 @@ def main(args):
     set_attributes(coach_config)
     coach_config.player_config.scaling_spec = StoneThrow.random_parameters
 
-    coach = MCTSCoach(
+    coach = Coach(
         game=CURLING_GAME,
         config=coach_config
     )
