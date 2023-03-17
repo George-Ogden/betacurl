@@ -170,6 +170,8 @@ class MCTS(metaclass=ABCMeta):
         this can only be done once the values no longer update
         """
         for node in self.nodes.values():
+            if len(node.transitions) < 2:
+                continue
             visits = [transition.num_visits for transition in node.transitions.values()]
             mean = np.mean(visits)
             scale = max(np.std(visits), 1.)
