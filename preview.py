@@ -1,5 +1,7 @@
-from src.game import Arena, CoachConfig, NNMCTSPlayer
-from src.curling import CURLING_GAME
+from src.player import NNMCTSPlayer
+from src.game import CURLING_GAME
+from src.coach import CoachConfig
+from src.player import Arena
 
 import argparse
 import os
