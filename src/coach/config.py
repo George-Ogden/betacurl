@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
+from ..player import NNMCTSPlayerConfig
 from ..model import TrainingConfig
 from ..utils import Config
-
-from .player import NNMCTSPlayerConfig
 
 @dataclass
 class CoachConfig(Config):

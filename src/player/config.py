@@ -3,8 +3,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
-from ...mcts import MCTSConfig
-from ...utils import Config
+from ..mcts import MCTSConfig
+from ..utils import Config
 
 @dataclass
 class MCTSPlayerConfig(Config):

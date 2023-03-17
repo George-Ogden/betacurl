@@ -4,8 +4,8 @@ from typing import Iterable, List, Optional, Tuple, Type, Union
 from dm_env import StepType
 from tqdm import trange
 
-from .game import Game
-from .player.base import Player
+from ..game.game import Game
+from .base import Player
 
 class Arena():
     def __init__(self, players: Iterable[Type[Player]], game: Game) -> None:

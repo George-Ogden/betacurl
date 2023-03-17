@@ -2,8 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
-from ...utils import Config, SaveableObject
-
+from ..utils import Config, SaveableObject
 from ..game import Game, GameSpec
 
 class Player(SaveableObject, metaclass=ABCMeta):
