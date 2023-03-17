@@ -28,7 +28,6 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
-    train_buffer_length=1,
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
@@ -125,7 +124,6 @@ def test_sparse_game_for_coaching():
         game=sparse_stub_game,
         config=CoachConfig(
             num_iterations=1,
-            train_buffer_length=1,
             num_games_per_episode=2,
             evaluation_games=10,
             win_threshold=.6,
@@ -139,7 +137,6 @@ def test_sparse_game_for_coaching():
         game=sparse_stub_game,
         config=CoachConfig(
             num_iterations=1,
-            train_buffer_length=1,
             num_games_per_episode=2,
             evaluation_games=10,
             win_threshold=.6,
@@ -155,7 +152,6 @@ def test_train_examples_cleared_after_win():
         game=sparse_stub_game,
         config=CoachConfig(
             num_iterations=1,
-            train_buffer_length=1,
             num_games_per_episode=2,
             evaluation_games=10,
             win_threshold=.6,
@@ -170,7 +166,6 @@ def test_train_examples_cleared_after_win():
         game=sparse_stub_game,
         config=CoachConfig(
             num_iterations=1,
-            train_buffer_length=1,
             num_games_per_episode=2,
             evaluation_games=10,
             win_threshold=.6,
@@ -187,7 +182,6 @@ def test_learning_patience():
         config=CoachConfig(
             num_iterations=10,
             successive_win_requirement=4,
-            train_buffer_length=20,
             num_games_per_episode=2,
             evaluation_games=10,
             win_threshold=.6,
@@ -204,7 +198,6 @@ def test_logs_format(capsys):
         game=stub_game,
         config=CoachConfig(
             num_iterations=5,
-            train_buffer_length=5,
             num_games_per_episode=2,
             evaluation_games=4,
             win_threshold=.6,

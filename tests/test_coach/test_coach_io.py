@@ -24,7 +24,6 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
-    train_buffer_length=1,
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
@@ -99,7 +98,6 @@ def test_training_history_restored():
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            train_buffer_length=25,
             num_iterations=4,
             num_games_per_episode=2,
             **necessary_config
@@ -115,7 +113,6 @@ def test_best_player_saves_and_loads():
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            train_buffer_length=25,
             num_iterations=1,
             evaluation_games=40,
             **necessary_config

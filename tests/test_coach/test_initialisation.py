@@ -22,7 +22,6 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
-    train_buffer_length=1,
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
