@@ -1,14 +1,14 @@
-from src.game import Arena, CoachConfig, SamplingEvaluatingPlayer
+from src.game import Arena, CoachConfig, NNMCTSPlayer
 from src.curling import CURLING_GAME
 
 import argparse
 import os
 
 def main(args):
-    player = SamplingEvaluatingPlayer.load(args.model_directory)
+    player = NNMCTSPlayer.load(args.model_directory)
     player.num_eval_samples = 50
-    arena = Arena(players=[player.dummy_constructor] * 2, game=CURLING_GAME)
-    arena.play_game(display=True, training=False)
+    arena = Arena(players=[player.dummy_constructor, NNMCTSPlayer], game=CURLING_GAME)
+    print(arena.play_game(display=True, training=False))
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
