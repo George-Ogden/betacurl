@@ -4,7 +4,8 @@ from dm_env.specs import BoundedArray
 import numpy as np
 import pytest
 
-from src.game import Arena, GameSpec, RandomPlayer
+from src.player import Arena, RandomPlayer
+from src.game import GameSpec
 
 from tests.utils import BadPlayer, GoodPlayer, StubGame
 

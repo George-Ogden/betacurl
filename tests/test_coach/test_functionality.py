@@ -5,12 +5,14 @@ import os
 
 from pytest import mark
 
-from src.game import Arena, Coach, CoachConfig, Coach, CoachConfig, Game, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.game import Game
+from src.coach import Coach, CoachConfig, Coach, CoachConfig
+from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.mcts import MCTS, MCTSConfig
 from src.model import TrainingConfig
 
-from tests.config import cleanup, requires_cleanup, SAVE_DIR
 from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
+from tests.config import cleanup, requires_cleanup, SAVE_DIR
 
 special_cases = dict(
     evaluation_games=4,

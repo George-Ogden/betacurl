@@ -6,8 +6,8 @@ from curling.enums import DisplayTime
 from curling.curling import Canvas
 from pytest import mark
 
-from src.curling import SingleEndCurlingGame, CURLING_GAME
-from src.game import Arena, Game, Player, RandomPlayer
+from src.game import Game, SingleEndCurlingGame, CURLING_GAME
+from src.player import Arena, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=.02)
 

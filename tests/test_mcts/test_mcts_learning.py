@@ -5,7 +5,7 @@ from pytest import mark
 
 from src.mcts import MCTSModel, MCTSModelConfig
 from src.model import TrainingConfig
-from src.game import Arena
+from src.player import Arena
 
 from tests.utils import BadPlayer, GoodPlayer, MDPStubGame, StubGame
 
