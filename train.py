@@ -1,5 +1,5 @@
-from src.game import Coach, CoachConfig
-from src.curling import StoneThrow, CURLING_GAME
+from src.coach import Coach, CoachConfig
+from src.game import StoneThrow, CURLING_GAME
 import wandb
 
 from simple_parsing.docstring import get_attribute_docstring
