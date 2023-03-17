@@ -155,6 +155,7 @@ class Coach(SaveableObject):
         if wins > self.win_threshold:
             print("Saving new best model")
             self.save(self.best_checkpoint_path)
+            del self.train_example_history[:]
 
     @classmethod
     def load_player(cls, directory: str) -> NNMCTSPlayer:
