@@ -40,7 +40,6 @@ class Coach(SaveableObject):
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
-        self.train_buffer_length = config.train_buffer_length
         self.num_eval_games = config.evaluation_games
         self.win_threshold = int(config.win_threshold * self.num_eval_games)
         self.resume_from_checkpoint = config.resume_from_checkpoint
@@ -100,9 +99,6 @@ class Coach(SaveableObject):
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
             self.train_example_history.append(train_examples)
-
-            while len(self.train_example_history) > self.train_buffer_length:
-                self.train_example_history.pop(0)
 
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 

@@ -12,8 +12,6 @@ class CoachConfig(Config):
     """number of self-play games per model update"""
     num_iterations: int = 100
     """total number of training iterations"""
-    train_buffer_length: int = 5
-    """maximum number of games to store in buffer"""
     evaluation_games: int = 10
     """number of games to determine best model"""
     win_threshold: float = .65
