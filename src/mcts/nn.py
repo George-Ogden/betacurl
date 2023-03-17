@@ -5,6 +5,8 @@ import numpy as np
 
 from typing import Dict, Optional, Tuple
 
+from ..game import Game
+
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
 from .model import MCTSModel
@@ -13,7 +15,7 @@ class NNMCTS(WideningMCTS):
     CONFIG_CLASS = NNMCTSConfig
     def __init__(
         self,
-        game: "Game",
+        game: Game,
         model: Optional[MCTSModel] = None,
         config: NNMCTSConfig = NNMCTSConfig()
     ):
@@ -24,7 +26,7 @@ class NNMCTS(WideningMCTS):
 
         self.planned_actions: Dict[bytes, distributions.Distribution] = {}
 
-    def rollout(self, game: "Game") -> float:
+    def rollout(self, game: Game) -> float:
         returns = 0.
         for _ in range(self.max_depth):
             action = game.get_random_move()
