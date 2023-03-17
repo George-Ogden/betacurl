@@ -148,6 +148,37 @@ def test_sparse_game_for_coaching():
     assert coach.best_player.MCTSClass != BadMCTS
 
 @requires_cleanup
+def test_train_examples_cleared_after_win():
+    coach = GoodPlayerCoach(
+        game=sparse_stub_game,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert coach.best_player.MCTSClass == GoodMCTS
+    assert len(coach.train_example_history) > 0
+
+    coach = BadPlayerCoach(
+        game=sparse_stub_game,
+        config=CoachConfig(
+            num_iterations=1,
+            train_buffer_length=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    coach.learn()
+    assert len(coach.train_example_history) == 0
+
+@requires_cleanup
 def test_learning_patience():
     coach = GoodPlayerCoach(
         game=sparse_stub_game,
