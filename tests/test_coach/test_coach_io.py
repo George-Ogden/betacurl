@@ -3,7 +3,8 @@ from copy import copy
 import time
 import os
 
-from src.game import Coach, CoachConfig, Coach, CoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.coach import Coach, CoachConfig, Coach, CoachConfig
+from src.player import NNMCTSPlayer, NNMCTSPlayerConfig
 from src.model import TrainingConfig
 
 from tests.config import cleanup, cleanup_dir, requires_cleanup, SAVE_DIR

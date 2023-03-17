@@ -6,7 +6,7 @@ from dm_env.specs import BoundedArray
 from dm_env import TimeStep
 
 from curling import Curling, SimulationConstants, Stone, StoneColor, StoneThrow
-from ..game.game import Game, GameSpec
+from .game import Game, GameSpec
 
 class SingleEndCurlingGame(Game):
     def __init__(self, simulation_constants: SimulationConstants = SimulationConstants()):

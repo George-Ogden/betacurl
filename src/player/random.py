@@ -1,8 +1,8 @@
+import numpy as np
+
 from ..game import Game, GameSpec
 
 from .base import Player
-
-import numpy as np
 
 class RandomPlayer(Player):
     def __init__(self, game_spec: GameSpec):

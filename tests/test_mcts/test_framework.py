@@ -346,7 +346,7 @@ def test_freezing():
 
         advantages = [transition.advantage for transition in node.transitions.values()]
         assert np.allclose(np.mean(advantages), 0.)
-        assert np.std(advantages) <= 1.
+        assert np.std(advantages) <= 1. + 1e-6
 
         n = 10
         r_s = 1 - 6 * np.linalg.norm(np.argsort(advantages) - np.argsort([transition.action.min() for transition in node.transitions.values()])) / (n * (n ** 2 - 1))

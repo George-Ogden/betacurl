@@ -7,9 +7,9 @@ import os
 from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
-from src.game import Game, GameSpec, MCTSPlayer, MCTSPlayerConfig, Player
 from src.utils import SaveableObject
-from src.mcts import MCTS
+from src.game import Game, GameSpec
+from src.player import Player
 
 from .config import SAVE_DIR
 

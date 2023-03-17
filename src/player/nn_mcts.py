@@ -1,9 +1,8 @@
 from typing import Callable, List, Optional, Tuple
 import numpy as np
 
-from ...model import Learnable, TrainingConfig
-from ...mcts import MCTSModel, NNMCTS
-
+from ..model import Learnable, TrainingConfig
+from ..mcts import MCTSModel, NNMCTS
 from ..game import Game, GameSpec
 
 from .config import NNMCTSPlayerConfig

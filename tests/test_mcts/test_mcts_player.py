@@ -4,10 +4,9 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.game import MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
-from src.game import Arena, Game, RandomPlayer
-from src.curling import SingleEndCurlingGame
+from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
+from src.game import Game, SingleEndCurlingGame
 
 from tests.utils import StubGame, SparseStubGame
 

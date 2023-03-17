@@ -5,8 +5,7 @@ from typing import Optional, Type
 from copy import deepcopy
 import numpy as np
 
-from ...mcts import MCTS, BEST_MCTS
-
+from ..mcts import MCTS, BEST_MCTS
 from ..game import Game, GameSpec
 
 from .config import MCTSPlayerConfig

@@ -1,4 +1,4 @@
-from tqdm import trange, tqdm
+from tqdm import trange
 import numpy as np
 import wandb
 import os
@@ -6,12 +6,11 @@ import os
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
+from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..game import Game, GameSpec
 from ..utils import SaveableObject
 
-from .player import Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from .game import Game, GameSpec
-from .config import CoachConfig
-from .arena import Arena
+from  .config import CoachConfig
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"

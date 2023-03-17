@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
 
+from ..game import Game
+
 from .config import MCTSConfig
 
 import numpy as np
@@ -20,7 +22,7 @@ class Transition:
 
 @dataclass
 class Node:
-    game: "Game" # partially completed game
+    game: Game # partially completed game
     total_return: float = 0
     num_visits: int = 1
     transitions: Dict[bytes, Transition] = field(default_factory=dict)
@@ -36,7 +38,7 @@ class Node:
 
 class MCTS(metaclass=ABCMeta):
     CONFIG_CLASS = MCTSConfig
-    def __init__(self, game: "Game", config: MCTSConfig = MCTSConfig()):
+    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         self.game = game
         self.action_spec = game.game_spec.move_spec
         self.nodes: Dict[bytes, Node] = {}
@@ -58,7 +60,7 @@ class MCTS(metaclass=ABCMeta):
     def get_actions(self, observation: np.ndarray) -> List[Transition]:
         return list(self.nodes[self.encode(observation)].transitions.values())
 
-    def _get_action_probs(self, game: "Game", temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
         observation = game.get_observation()
         actions = np.array([action.action for action in self.get_actions(observation)])
         visits = np.array([action.num_visits for action in self.get_actions(observation)])
@@ -70,7 +72,7 @@ class MCTS(metaclass=ABCMeta):
             probs = visits ** (1. / temperature)
         return actions, probs
 
-    def get_action_probs(self, game: Optional["Game"] = None, temperature: float = 1.) -> Tuple[np.ndarray, np.ndarray]:
+    def get_action_probs(self, game: Optional[Game] = None, temperature: float = 1.) -> Tuple[np.ndarray, np.ndarray]:
         """
         Returns:
             Tuple[np.ndarray, np.ndarray]: Tuple of (actions, probs) (probs sum to 1)
@@ -88,14 +90,14 @@ class MCTS(metaclass=ABCMeta):
     def set_node(self, observation: np.ndarray, node: Node):
         self.nodes[self.encode(observation)] = node
 
-    def rollout(self, game: "Game") -> float:
+    def rollout(self, game: Game) -> float:
         action = game.get_random_move()
         timestep = game.step(action)
         if timestep.step_type == StepType.LAST:
             return (timestep.reward or 0.)
         return (timestep.reward or 0.) + self.rollout(game)
 
-    def search(self, game: Optional["Game"] = None):
+    def search(self, game: Optional[Game] = None):
         if not game:
             game = self.game
         observation = game.get_observation()

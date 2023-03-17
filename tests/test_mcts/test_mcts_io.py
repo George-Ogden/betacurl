@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from src.game import Arena, MCTSPlayer, NNMCTSPlayer
+from src.player import Arena, MCTSPlayer, NNMCTSPlayer
 from src.mcts import MCTSModel
 
 from tests.utils import MDPStubGame, generic_save_load_test, generic_save_test, save_load

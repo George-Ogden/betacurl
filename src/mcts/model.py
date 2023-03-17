@@ -10,6 +10,7 @@ from typing import Callable, List, Optional, Tuple, Union
 
 from ..model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ..utils import SaveableMultiModel
+from ..game import GameSpec
 
 from .config import MCTSModelConfig
 
@@ -21,7 +22,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
     }
     def __init__(
         self,
-        game_spec: "GameSpec",
+        game_spec: GameSpec,
         scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: MCTSModelConfig = MCTSModelConfig()

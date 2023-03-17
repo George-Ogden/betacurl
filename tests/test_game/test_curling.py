@@ -5,8 +5,8 @@ import numpy as np
 from pytest import mark
 import pytest
 
-from src.curling import SingleEndCurlingGame, CURLING_GAME
-from src.game import Arena, Game, Player, RandomPlayer
+from src.game import Game, SingleEndCurlingGame, CURLING_GAME
+from src.player import Arena, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 

@@ -2,11 +2,11 @@ from copy import copy
 import numpy as np
 import os
 
-from src.game import Arena, Coach, CoachConfig, Coach, CoachConfig
+from src.coach import Coach, CoachConfig, Coach, CoachConfig
 from src.model import TrainingConfig
 
-from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
