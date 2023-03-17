@@ -1,10 +1,11 @@
+from curling import Curling, SimulationConstants, Stone, StoneColor
 from dm_env import StepType
 import numpy as np
 
 from pytest import mark
 import pytest
 
-from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, Stone, StoneColor, CURLING_GAME
+from src.curling import SingleEndCurlingGame, CURLING_GAME
 from src.game import Arena, Game, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=(.1, .02))
