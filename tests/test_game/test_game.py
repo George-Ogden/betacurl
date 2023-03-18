@@ -56,7 +56,7 @@ def test_correct_number_of_rounds_played_with_reset():
     assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
 
 def test_clone():
-    stub_game.reset()
+    stub_game.reset(0)
     assert stub_game.to_play == 0
     for _ in range(stub_game.max_round):
         action = random_player.move(stub_game)
