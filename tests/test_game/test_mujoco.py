@@ -31,7 +31,7 @@ def test_single_player():
         assert game.player_delta == 1
 
 def test_discount():
-    assert game.reset().discount < 1.
+    assert game.reset().discount is None
     for _ in range(game.max_round):
         assert game.step(player.move(game)).discount < 1.
 

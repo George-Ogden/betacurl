@@ -169,7 +169,7 @@ def test_transform():
         assert np.allclose(observation, game.get_observation())
         game.step(action)
         if previous_value is not None:
-            assert previous_value == value * .9
+            assert previous_value == value
         previous_value = value
 
 @requires_cleanup

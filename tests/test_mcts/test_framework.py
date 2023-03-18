@@ -374,3 +374,29 @@ def test_discount_during_mcts():
         previous_reward = np.abs(node.expected_return)
         time_step = game.step(game.get_random_move())
         assert time_step.discount == .9
+
+def test_discount_during_mcts():
+    game = MDPStubGame()
+    game.discount = .01
+    time_step = game.reset()
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=100
+        ),
+    )
+
+    previous_reward = None
+    while time_step.step_type != StepType.LAST:
+        for i in range(1000):
+            mcts.search(game)
+        node = mcts.get_node(game.get_observation())
+        if previous_reward is not None:
+            assert np.allclose(
+                node.expected_return,
+                np.sum([transition.reward * transition.num_visits for transition in node.transitions.values()]) / (node.num_visits - 1),
+                atol=game.max_move * (1/ 99 + 1 / 999)
+            )
+        previous_reward = np.abs(node.expected_return)
+        time_step = game.step(game.get_random_move())
+        assert time_step.discount == .01

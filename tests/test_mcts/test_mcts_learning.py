@@ -18,7 +18,7 @@ game_spec = stub_game.game_spec
 
 arena = Arena(game=stub_game, players=[GoodPlayer, BadPlayer])
 result, history = arena.play_game(display=False, training=True, return_history=True)
-training_data = [(player, observation, action, result, [(action, 1. if player == 1 else -1.)]) for player, observation, action, reward in history]
+training_data = [(player, observation, action, result, [(action, 1. if player == 1 else -1.)]) for player, observation, action, reward, discount in history]
 training_data *= 100
 
 @mark.probabilistic

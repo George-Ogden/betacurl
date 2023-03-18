@@ -24,21 +24,25 @@ def test_arena_logs(capsys):
 
 def test_predetermined_history_is_correct():
     total_reward, history = forced_arena.play_game(1, return_history=True)
-    for (prev_player_id, prev_observation, prev_action, prev_reward), (next_player_id, next_observation, next_action, next_reward) in zip(history[:-1], history[1:]):
+    for (prev_player_id, prev_observation, prev_action, prev_reward, prev_discount), (next_player_id, next_observation, next_action, next_reward, next_discount) in zip(history[:-1], history[1:]):
         assert (prev_player_id, next_player_id) in ((1, -1), (-1, 1))
         assert (prev_player_id == 1 and prev_reward == 10) or (prev_player_id == -1 and prev_reward == 0)
         assert (prev_player_id == 1 and (prev_action == 10).all()) or (prev_player_id == -1 and (prev_action == 0).all())
         assert prev_observation + prev_reward == next_observation
+        assert prev_discount == 1
+        assert next_discount == 1
     assert np.abs(next_reward) == np.min(next_action)
     assert stub_game.score[0] - stub_game.score[1] == total_reward
 
 def test_random_history_is_correct():
     total_reward, history = random_arena.play_game(return_history=True)
-    for (prev_player_id, prev_observation, prev_action, prev_reward), (next_player_id, next_observation, next_action, next_reward) in zip(history[:-1], history[1:]):
+    for (prev_player_id, prev_observation, prev_action, prev_reward, prev_discount), (next_player_id, next_observation, next_action, next_reward, next_discount) in zip(history[:-1], history[1:]):
         assert (prev_player_id, next_player_id) in ((1, -1), (-1, 1))
         assert np.abs(prev_reward) == np.min(prev_action)
         assert (prev_player_id == 1 and prev_reward >= 0) or (prev_player_id == -1 and prev_reward <= 0)
         assert (prev_observation + prev_reward - next_observation) < 1e-9
+        assert prev_discount == 1
+        assert next_discount == 1
     assert np.abs(next_reward) == np.min(next_action)
     assert (stub_game.score[0] - stub_game.score[1] - total_reward) < 1e-9
 
