@@ -42,9 +42,11 @@ class MujocoGame(Game):
     def _step(self, action: np.ndarray, display: bool = False) -> float:
         if display:
             print(self.get_observation())
-        return self.env.step(action).reward
+        # scale so that return is between 0 and 1
+        return self.env.step(action).reward * (1 - self.discount)
 
     def clone(self) -> "Self":
+        # reduce memory by only copying the parts that change
         clone = copy(self)
         clone.env = copy(self.env)
         clone.env._physics = deepcopy(self.env._physics)
