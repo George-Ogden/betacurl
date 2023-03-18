@@ -32,6 +32,7 @@ class Game(metaclass=ABCMeta):
     to_play: int = None
     max_round = 0
     player_deltas: List[int] = [1, -1]
+    discount = 1.
     eps: float = 1e-6 # used in the event of a "draw"
 
     @classproperty
@@ -64,7 +65,7 @@ class Game(metaclass=ABCMeta):
             step_type=self.get_step_type(),
             reward=reward,
             observation=self.get_observation(),
-            discount=1,
+            discount=self.discount,
         )
 
     @abstractmethod
@@ -88,12 +89,11 @@ class Game(metaclass=ABCMeta):
             step_type=StepType.FIRST,
             reward=None,
             observation=self.get_observation(),
-            discount=1
+            discount=self.discount
         )
 
-    def sample(self, action: np.ndarray) -> TimeStep:
-        game = deepcopy(self)
-        return game.step(action, display=False)
+    def clone(self) -> "Self":
+        return deepcopy(self)
 
     def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         return Game.no_symmetries(player, observation, action, reward)

@@ -91,11 +91,16 @@ class MCTS(metaclass=ABCMeta):
         self.nodes[self.encode(observation)] = node
 
     def rollout(self, game: Game) -> float:
-        action = game.get_random_move()
-        timestep = game.step(action)
-        if timestep.step_type == StepType.LAST:
-            return (timestep.reward or 0.)
-        return (timestep.reward or 0.) + self.rollout(game)
+        multiplier = 1.
+        reward = 0.
+        while multiplier > game.eps:
+            action = game.get_random_move()
+            timestep = game.step(action)
+            reward += (timestep.reward or 0.) * multiplier
+            if timestep.step_type == StepType.LAST:
+                break
+            multiplier *= timestep.discount
+        return reward
 
     def search(self, game: Optional[Game] = None):
         if not game:
@@ -170,8 +175,9 @@ class MCTS(metaclass=ABCMeta):
         this can only be done once the values no longer update
         """
         for node in self.nodes.values():
-            if len(node.transitions) < 2:
+            if not node.transitions:
                 continue
+
             visits = [transition.num_visits for transition in node.transitions.values()]
             mean = np.mean(visits)
             scale = max(np.std(visits), 1.)

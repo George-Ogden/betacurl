@@ -174,7 +174,7 @@ class Coach(SaveableObject):
                 player,
                 observation,
                 action,
-                total_reward := total_reward + (reward or 0),
+                total_reward := self.game.discount * total_reward + (reward or 0),
                 [
                     (transition.action, transition.advantage)
                     for transition in mcts.get_node(observation).transitions.values()
