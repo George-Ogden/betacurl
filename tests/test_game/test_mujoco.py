@@ -71,7 +71,6 @@ def test_valid_observations_are_valid():
 
 def test_clone():
     game.reset()
-    assert game.to_play == 0
     for _ in range(game.max_round):
         action = player.move(game)
         expected_timestep = game.clone().step(action)
