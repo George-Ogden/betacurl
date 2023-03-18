@@ -1,5 +1,6 @@
 from dm_control.rl.control import flatten_observation, FLAT_OBSERVATION_KEY
-from dm_env import Environment
+from dm_control.rl.control import Environment
+from copy import copy, deepcopy
 from dm_control import suite
 import numpy as np
 
@@ -42,3 +43,9 @@ class MujocoGame(Game):
         if display:
             print(self.get_observation())
         return self.env.step(action).reward
+
+    def clone(self) -> "Self":
+        clone = copy(self)
+        clone.env = copy(self.env)
+        clone.env._physics = deepcopy(self.env._physics)
+        return clone
