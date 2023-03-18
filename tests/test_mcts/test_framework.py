@@ -1,3 +1,4 @@
+from dm_env import StepType
 from copy import deepcopy
 import numpy as np
 
@@ -351,3 +352,25 @@ def test_freezing():
         n = 10
         r_s = 1 - 6 * np.linalg.norm(np.argsort(advantages) - np.argsort([transition.action.min() for transition in node.transitions.values()])) / (n * (n ** 2 - 1))
         assert r_s > .5
+
+def test_discount_during_mcts():
+    game = BinaryStubGame()
+    game.discount = .9
+    time_step = game.reset()
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=1
+        ),
+    )
+
+    previous_reward = None
+    while time_step.step_type != StepType.LAST:
+        for i in range(1):
+            mcts.search(game)
+        node = mcts.get_node(game.get_observation())
+        if previous_reward is not None:
+            assert np.allclose(np.abs(node.expected_return) * .9, previous_reward)
+        previous_reward = np.abs(node.expected_return)
+        time_step = game.step(game.get_random_move())
+        assert time_step.discount == .9

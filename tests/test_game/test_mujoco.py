@@ -30,6 +30,11 @@ def test_single_player():
         assert game.to_play == 0
         assert game.player_delta == 1
 
+def test_discount():
+    assert game.reset().discount < 1.
+    for _ in range(game.max_round):
+        assert game.step(player.move(game)).discount < 1.
+
 def test_valid_actions_are_valid():
     game = MujocoGame("point_mass", "easy")
     player = RandomPlayer(game.game_spec)
@@ -63,3 +68,15 @@ def test_valid_observations_are_valid():
 
     assert game.get_observation().dtype == game.game_spec.observation_spec.dtype
     game.validate_observation(game.get_observation())
+
+def test_clone():
+    game.reset()
+    assert game.to_play == 0
+    for _ in range(game.max_round):
+        action = player.move(game)
+        expected_timestep = game.clone().step(action)
+        timestep = game.step(action)
+        assert timestep.step_type == expected_timestep.step_type
+        assert (timestep.observation == expected_timestep.observation).all()
+        assert timestep.reward == expected_timestep.reward
+        assert timestep.discount == expected_timestep.discount

@@ -147,6 +147,32 @@ def test_sparse_game_for_coaching():
     assert coach.best_player.MCTSClass != BadMCTS
 
 @requires_cleanup
+def test_transform():
+    coach = Coach(
+        game=copy(sparse_stub_game),
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    game = coach.game
+    game.discount = .9
+    arena = Arena([coach.best_player.dummy_constructor] * 2, game=game)
+    result, game_history = arena.play_game(0, return_history=True)
+    game.reset(0)
+    history = coach.transform_history_for_training(game_history)
+    previous_value = None
+    for player, observation, action, value, *data in history[::-1]:
+        assert np.allclose(observation, game.get_observation())
+        game.step(action)
+        if previous_value is not None:
+            assert previous_value == value * .9
+        previous_value = value
+
+@requires_cleanup
 def test_train_examples_cleared_after_win():
     coach = GoodPlayerCoach(
         game=sparse_stub_game,
