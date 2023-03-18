@@ -15,8 +15,9 @@ import numpy as np
 @dataclass
 class Transition:
     action: np.ndarray
-    next_state: bytes
+    next_state: bytes # assume deterministic transition
     reward: float = 0. # assume deterministic reward
+    discount: float = 1.
     num_visits: int = 0
     termination: bool = False
 
@@ -99,7 +100,7 @@ class MCTS(metaclass=ABCMeta):
             reward += (timestep.reward or 0.) * multiplier
             if timestep.step_type == StepType.LAST:
                 break
-            multiplier *= timestep.discount
+            multiplier *= timestep.discount or 1.
         return reward
 
     def search(self, game: Optional[Game] = None):
@@ -122,7 +123,7 @@ class MCTS(metaclass=ABCMeta):
         if transition:
             next_state = transition.next_state
             # running the simulation is the expensive part
-            returns = transition.reward + (
+            returns = transition.reward + transition.discount * (
                 self.search(self.nodes[next_state].game)
                 if not transition.termination else 0
             )
@@ -133,12 +134,16 @@ class MCTS(metaclass=ABCMeta):
             transition = Transition(
                 action=action,
                 next_state=self.encode(timestep.observation),
-                reward=timestep.reward or 0,
+                reward=timestep.reward or 0.,
                 termination=timestep.step_type == StepType.LAST,
+                discount=timestep.discount or 1.,
                 num_visits=0
             )
             node.set_transition(action, transition)
             returns = transition.reward + (
+                transition.discount
+                or 1.
+            ) * (
                 self.search(game) 
                 if not transition.termination else 0
             )

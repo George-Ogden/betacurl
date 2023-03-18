@@ -13,12 +13,18 @@ class Arena():
         self.players: List[Player] = [Player(game.game_spec) for Player in players]
         self.game = game
 
-    def play_game(self, starting_player: Optional[int] = None, display: bool = False, return_history: bool = False, training: bool = False) -> Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, float]]]]:
+    def play_game(
+            self,
+            starting_player: Optional[int] = None,
+            display: bool = False,
+            return_history: bool = False,
+            training: bool = False
+        ) -> Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]]]:
         """
         Returns:
-            Union[int, Tuple[int, List[Tuple[np.ndarray, np.ndarray, float]]]]: return either
+            Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]]]: either
                 - the final result (return_history=False)
-                - a tuple of (reward, history), where history contains tuples of (player_id, observation, action, reward) at each time step
+                - a tuple of (reward, history), where history contains tuples of (player_id, observation, action, reward, discount) at each time step
         """
         for player in self.players:
             if training:
@@ -42,7 +48,7 @@ class Arena():
                 total_reward += reward
 
             if return_history:
-                history.append((player_delta, observation, action, reward))
+                history.append((player_delta, observation, action, reward, time_step.discount))
 
         assert total_reward != 0, "Games cannot end in a draw!"
 

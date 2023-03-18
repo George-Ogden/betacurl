@@ -164,7 +164,7 @@ class Coach(SaveableObject):
 
     def transform_history_for_training(
             self,
-            training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]
+            training_data: List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]
         ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
         mcts = self.current_best.mcts
@@ -174,12 +174,12 @@ class Coach(SaveableObject):
                 player,
                 observation,
                 action,
-                total_reward := self.game.discount * total_reward + (reward or 0),
+                total_reward := (discount or 1.) * total_reward + (reward or 0),
                 [
                     (transition.action, transition.advantage)
                     for transition in mcts.get_node(observation).transitions.values()
                 ]
             )
-            for player, observation, action, reward in reversed(training_data)
+            for player, observation, action, reward, discount in reversed(training_data)
         ]
         return history

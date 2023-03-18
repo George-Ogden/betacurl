@@ -65,7 +65,7 @@ class Game(metaclass=ABCMeta):
             step_type=self.get_step_type(),
             reward=reward,
             observation=self.get_observation(),
-            discount=self.discount,
+            discount=None if reward is None else self.discount,
         )
 
     @abstractmethod
@@ -89,7 +89,7 @@ class Game(metaclass=ABCMeta):
             step_type=StepType.FIRST,
             reward=None,
             observation=self.get_observation(),
-            discount=self.discount
+            discount=None
         )
 
     def clone(self) -> "Self":
