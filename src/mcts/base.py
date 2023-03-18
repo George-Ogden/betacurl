@@ -1,5 +1,5 @@
-from copy import copy, deepcopy
 from dm_env import StepType
+from copy import copy
 import numpy as np
 
 from typing import Dict, List, Optional, Tuple
@@ -109,7 +109,7 @@ class MCTS(metaclass=ABCMeta):
         observation = game.get_observation()
         if not (node := self.get_node(observation)):
             # game will be modified in rollout
-            returns = self.rollout(deepcopy(game))
+            returns = self.rollout(game.clone())
             node = Node(
                 game=game,
                 num_visits=1,
@@ -129,7 +129,7 @@ class MCTS(metaclass=ABCMeta):
             )
         else:
             # only copied when stepping
-            game = deepcopy(game)
+            game = game.clone()
             timestep = game.step(action)
             transition = Transition(
                 action=action,
