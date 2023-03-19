@@ -1,14 +1,14 @@
 from copy import copy
 import numpy as np
-import os
 
 from pytest import mark
+import os
 
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.coach import CoachConfig, SinglePlayerCoach
 from src.mcts import MCTS, MCTSConfig
-from src.model import TrainingConfig
 from src.game import Game, MujocoGame
+from src.model import TrainingConfig
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 
@@ -101,7 +101,7 @@ def test_model_learns():
         game=game,
         config=CoachConfig(
             resume_from_checkpoint=False,
-            num_games_per_episode=10,
+            num_games_per_episode=5,
             num_iterations=2,
             training_config=TrainingConfig(
                 lr=1e-3,
@@ -109,7 +109,8 @@ def test_model_learns():
             ),
             player_config=NNMCTSPlayerConfig(
                 num_simulations=15
-            )
+            ),
+            evaluation_games=10
         )
     )
 
@@ -126,5 +127,5 @@ def test_model_learns():
             ).dummy_constructor
         ]
     )
-    wins, losses = arena.play_games(10)
+    wins = coach.evaluate()
     assert wins >= 7
