@@ -1,7 +1,7 @@
 from dm_control.rl.control import flatten_observation, FLAT_OBSERVATION_KEY
 from dm_control.rl.control import Environment
-from copy import copy, deepcopy
 from dm_control import suite
+from copy import copy
 import numpy as np
 
 from .game import Game, GameSpec
@@ -16,7 +16,7 @@ class MujocoGame(Game):
             domain_name=domain_name,
             task_name=task_name,
             task_kwargs={
-                "time_limit": 60,
+                "time_limit": 20,
                 "random": True
             },
             environment_kwargs={

@@ -4,7 +4,9 @@ from typing import Iterable, List, Optional, Tuple, Type, Union
 from dm_env import StepType
 from tqdm import trange
 
+from ..mcts import Node, Transition
 from ..game.game import Game
+
 from .base import Player
 
 class Arena():
@@ -18,13 +20,8 @@ class Arena():
             display: bool = False,
             return_history: bool = False,
             training: bool = False
-        ) -> Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]]]:
-        """
-        Returns:
-            Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]]]: either
-                - the final result (return_history=False)
-                - a tuple of (reward, history), where history contains tuples of (player_id, observation, action, reward, discount) at each time step
-        """
+        ) -> Union[float, Tuple[float, List[Tuple[Node, Transition]]]]:
+        
         for player in self.players:
             if training:
                 player.train()
@@ -38,8 +35,9 @@ class Arena():
             player_index = self.game.to_play
             player_delta = self.game.player_delta
             player = players[player_index]
-            observation = self.game._get_observation()
             action = player.move(self.game)
+            node: Node = player.get_current_node(self.game)
+            transition = node.get_transition(action)
 
             time_step = self.game.step(action, display=display)
             reward = time_step.reward
@@ -47,7 +45,7 @@ class Arena():
                 total_reward += reward
 
             if return_history:
-                history.append((player_delta, observation, action, reward, time_step.discount))
+                history.append((node, transition))
 
         assert total_reward != 0, "Games cannot end in a draw!"
 

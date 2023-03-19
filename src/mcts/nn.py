@@ -26,13 +26,9 @@ class NNMCTS(WideningMCTS):
 
         self.planned_actions: Dict[bytes, distributions.Distribution] = {}
 
-    def rollout(self, game: Game, max_depth: Optional[int] = None) -> float:
+    def rollout(self, game: Game) -> float:
         returns = 0.
-        if max_depth is None:
-            max_depth = self.max_depth
-        else:
-            max_depth = min(max_depth, self.max_depth)
-        for _ in range(max_depth):
+        for _ in range(self.max_depth):
             action = game.get_random_move()
             timestep = game.step(action)
             returns += timestep.reward or 0.
