@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Optional
 
 from src.utils import ParserBuilder
 from src.utils.config import Config
@@ -105,3 +105,26 @@ def test_config_from_args():
     assert simple_config.a == "A"
     assert simple_config.b == 6
     assert simple_config.c == 3.
+
+def test_missing_values():
+    parser = ParserBuilder().add_argument(
+        name="name",
+        default="Name"
+    ).build()
+    args = parser.parse_args([])
+    assert args.name == "Name"
+
+    parser = ParserBuilder().add_argument(
+        name="name",
+        default=None
+    ).build()
+    args = parser.parse_args(["--name", "Name"])
+    assert args.name == "Name"
+
+    parser = ParserBuilder().add_argument(
+        name="number",
+        default=None,
+        type=int
+    ).build()
+    args = parser.parse_args(["--number", "8"])
+    assert args.number == 8
