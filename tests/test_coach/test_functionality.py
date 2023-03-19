@@ -235,9 +235,11 @@ def test_logs_format(capsys):
     )
     coach.learn()
 
-    output = capsys.readouterr()
-    assert not "{" in output
-    assert not "}" in output
+    captured = capsys.readouterr()
+    assert not "{" in captured.out
+    assert not "{" in captured.err
+    assert not "}" in captured.out
+    assert not "}" in captured.err
 
 @mark.probabilistic
 @mark.slow
