@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from simple_parsing.docstring import get_attribute_docstring
 from dataclasses import asdict, is_dataclass
 from typing import get_type_hints
@@ -12,7 +14,7 @@ class ParserBuilder:
         self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         self.attribute_docs = {}
 
-    def add_dataclass(self, config: Config) -> "Self":
+    def add_dataclass(self, config: Config) -> ParserBuilder:
         self.attribute_docs |= self.get_dataclass_attributes_doc(type(config))
         for attribute in asdict(config):
             value = getattr(config, attribute)
@@ -24,12 +26,12 @@ class ParserBuilder:
                     self.add_argument(attribute, value, help)
         return self
 
-    def add_argument(self, key: str, value: Any, help: Optional[str] = None, **additional_options) -> "Self":
-        if type(value) == bool:
+    def add_argument(self, name: str, default: Any, help: Optional[str] = None, **additional_options) -> ParserBuilder:
+        if type(default) == bool:
             additional_options["action"] = "store_true"
         else:
-            additional_options["type"] = type(value)
-        self.parser.add_argument(f"--{key}", default=value, help=help, **additional_options)
+            additional_options["type"] = type(default)
+        self.parser.add_argument(f"--{name}", default=default, help=help, **additional_options)
         return self
 
     @staticmethod
