@@ -7,8 +7,9 @@ from typing import List, Optional, Tuple, Type
 from copy import copy
 
 from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..game import Game, GameSpec
+from ..mcts import Node, Transition
 from ..utils import SaveableObject
+from ..game import Game, GameSpec
 
 from  .config import CoachConfig
 
@@ -164,22 +165,34 @@ class Coach(SaveableObject):
 
     def transform_history_for_training(
             self,
-            training_data: List[Tuple[int, np.ndarray, np.ndarray, Optional[float], Optional[float]]]
+            training_data: List[Tuple[Node, Transition]]
         ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
         mcts = self.current_best.mcts
-        mcts.freeze()
+        mcts.cleanup()
+        
+        for node, _ in training_data:
+            if not node.transitions:
+                continue
+
+            visits = [transition.num_visits for transition in node.transitions.values()]
+            mean = np.mean(visits)
+            scale = max(np.std(visits), 1.)
+            for transition in node.transitions.values():
+                # rescale visits to perform REINFORCE with baseline
+                transition.advantage = (transition.num_visits - mean) / scale
+
         history = [
             (
-                player,
-                observation,
-                action,
-                total_reward := (discount or 1.) * total_reward + (reward or 0),
+                node.game.player_delta,
+                node.game.get_observation(),
+                transition.action,
+                total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
                 [
                     (transition.action, transition.advantage)
-                    for transition in mcts.get_node(observation).transitions.values()
+                    for transition in node.transitions.values()
                 ]
             )
-            for player, observation, action, reward, discount in reversed(training_data)
+            for node, transition in reversed(training_data)
         ]
         return history

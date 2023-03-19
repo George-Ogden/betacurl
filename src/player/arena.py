@@ -21,7 +21,11 @@ class Arena():
             return_history: bool = False,
             training: bool = False
         ) -> Union[float, Tuple[float, List[Tuple[Node, Transition]]]]:
-        
+        """Returns:
+            Union[float, Tuple[float, List[Tuple[int, Node, Transition]]]]: either
+            - the final result (return_history=False)
+            - a tuple of (reward, history), where history contains tuples of (node, transition) that represents a path through the MCTS
+        """
         for player in self.players:
             if training:
                 player.train()
@@ -36,16 +40,15 @@ class Arena():
             player_delta = self.game.player_delta
             player = players[player_index]
             action = player.move(self.game)
-            node: Node = player.get_current_node(self.game)
-            transition = node.get_transition(action)
+            if return_history:
+                node: Node = player.get_current_node(self.game)
+                transition = node.get_transition(action)
+                history.append((node, transition))
 
             time_step = self.game.step(action, display=display)
             reward = time_step.reward
             if reward is not None:
                 total_reward += reward
-
-            if return_history:
-                history.append((node, transition))
 
         assert total_reward != 0, "Games cannot end in a draw!"
 

@@ -1,9 +1,10 @@
 from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
-from tensorflow import data, keras
+from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
+from dm_env.specs import BoundedArray
 from copy import copy
 
 from typing import Callable, List, Optional, Tuple, Union
@@ -32,7 +33,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0)
         self.action_shape = action_spec.shape
-        self.observation_range = np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
+        self.observation_range = (
+            np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
+            if isinstance(observation_spec, BoundedArray)
+            else None
+        )
         self.observation_shape = observation_spec.shape
 
         self.config = copy(config)
@@ -49,15 +54,16 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 output_activation="linear"
             )
         )
-        self.feature_extractor = keras.Sequential(
-            [
-                layers.Rescaling(
-                    scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
-                    offset=-self.observation_range.mean(axis=0),
-                ),
-                self.feature_extractor
-            ]
-        )
+        if self.observation_range is not None:
+            self.feature_extractor = keras.Sequential(
+                [
+                    layers.Rescaling(
+                        scale=2./np.diff(self.observation_range, axis=0).squeeze(0),
+                        offset=-self.observation_range.mean(axis=0),
+                    ),
+                    self.feature_extractor
+                ]
+            )
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,

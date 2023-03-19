@@ -179,6 +179,8 @@ class MCTS(metaclass=ABCMeta):
         if game is None:
             game = self.game
         root = self.get_node(game.get_observation())
+        if not root:
+            return
         root.reachable = True
         queue = [root]
         while queue:
@@ -194,19 +196,3 @@ class MCTS(metaclass=ABCMeta):
                 del node.reachable
             else:
                 del self.nodes[key]
-
-    def freeze(self):
-        """
-        calculate values for actions
-        this can only be done once the values no longer update
-        """
-        for node in self.nodes.values():
-            if not node.transitions:
-                continue
-
-            visits = [transition.num_visits for transition in node.transitions.values()]
-            mean = np.mean(visits)
-            scale = max(np.std(visits), 1.)
-            for transition in node.transitions.values():
-                # rescale visits to perform REINFORCE with baseline
-                transition.advantage = (transition.num_visits - mean) / scale
