@@ -26,11 +26,12 @@ class ParserBuilder:
                     self.add_argument(attribute, value, help)
         return self
 
-    def add_argument(self, name: str, default: Any, help: Optional[str] = None, **additional_options) -> ParserBuilder:
-        if type(default) == bool:
-            additional_options["action"] = "store_true"
-        else:
-            additional_options["type"] = type(default)
+    def add_argument(self, name: str, default: Optional[Any] = None, help: Optional[str] = None, **additional_options) -> ParserBuilder:
+        if default is not None:
+            if type(default) == bool:
+                additional_options["action"] = "store_true"
+            else:
+                additional_options["type"] = type(default)
         self.parser.add_argument(f"--{name}", default=default, help=help, **additional_options)
         return self
 
