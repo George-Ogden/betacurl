@@ -147,9 +147,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
                 policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
         else:
-            log_probs = predicted_distribution.log_prob(action_groups)
+            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
             clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-            policy_loss = -tf.reduce_mean(advantage_groups * tf.reduce_sum(clipped_log_probs, axis=-1))
+            policy_loss = -tf.reduce_mean(advantage_groups * tf.reduce_sum(clipped_log_probs, axis=0))
 
         value_loss = losses.mean_squared_error(values, predicted_values)
 
