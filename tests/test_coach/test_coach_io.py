@@ -167,6 +167,6 @@ def test_reloading_mcts_coach(capsys):
     assert coach.num_games_per_episode == 1
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
     
-    output = capsys.readouterr()
-    assert "starting iteration 2" in output.out.lower()
-    assert not "starting iteration 1" in output.out.lower()
+    captured = capsys.readouterr()
+    assert "starting iteration 2" in captured.out.lower()
+    assert not "starting iteration 1" in captured.out.lower()
