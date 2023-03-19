@@ -49,5 +49,5 @@ class MujocoGame(Game):
         # reduce memory by only copying the parts that change
         clone = copy(self)
         clone.env = copy(self.env)
-        clone.env._physics = deepcopy(self.env._physics)
+        clone.env._physics = self.env._physics.copy(share_model=True)
         return clone

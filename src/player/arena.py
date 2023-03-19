@@ -9,7 +9,6 @@ from .base import Player
 
 class Arena():
     def __init__(self, players: Iterable[Type[Player]], game: Game) -> None:
-        assert len(players) == 2, "only two player games allowed"
         self.players: List[Player] = [Player(game.game_spec) for Player in players]
         self.game = game
 
@@ -57,13 +56,13 @@ class Arena():
         else:
             return total_reward
 
-    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, int]:
+    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, ...]:
         """
         Returns:
-            Tuple[int, int]: (number of games the first player won, number of games the second player won)
+            Tuple[int, ...]: (number of games each player won
         """
-        results = [0, 0]
+        results = [0] * self.game.num_players
         for i in trange(num_games, desc="Playing games"):
-            result = self.play_game(starting_player=i % 2, display=display, return_history=False, training=training)
-            results[0 if result > 0 else 1] += 1
+            result = self.play_game(starting_player=i % self.game.num_players, display=display, return_history=False, training=training)
+            results[self.game.player_deltas.index(np.sign(result))] += 1
         return tuple(results)

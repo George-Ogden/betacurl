@@ -39,6 +39,7 @@ class Node:
 
 class MCTS(metaclass=ABCMeta):
     CONFIG_CLASS = MCTSConfig
+    eps = 1e-3
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         self.game = game
         self.action_spec = game.game_spec.move_spec
@@ -91,25 +92,30 @@ class MCTS(metaclass=ABCMeta):
     def set_node(self, observation: np.ndarray, node: Node):
         self.nodes[self.encode(observation)] = node
 
-    def rollout(self, game: Game) -> float:
+    def rollout(self, game: Game, max_depth: Optional[int] = None) -> float:
         multiplier = 1.
         reward = 0.
-        while multiplier > game.eps:
+        while multiplier > game.eps and max_depth > 0:
             action = game.get_random_move()
             timestep = game.step(action)
             reward += (timestep.reward or 0.) * multiplier
             if timestep.step_type == StepType.LAST:
                 break
             multiplier *= timestep.discount or 1.
+            max_depth -= 1
         return reward
 
-    def search(self, game: Optional[Game] = None):
+    def search(self, game: Optional[Game] = None, max_depth: Optional[int] = None):
         if not game:
             game = self.game
+        if max_depth is not None and max_depth <= 0:
+            return 0.
+        if max_depth is None and game.discount < 1.:
+            max_depth = np.ceil(np.log(self.eps) / np.log(game.discount))
         observation = game.get_observation()
         if not (node := self.get_node(observation)):
             # game will be modified in rollout
-            returns = self.rollout(game.clone())
+            returns = self.rollout(game.clone(), max_depth-1 if max_depth else None)
             node = Node(
                 game=game,
                 num_visits=1,
@@ -124,7 +130,7 @@ class MCTS(metaclass=ABCMeta):
             next_state = transition.next_state
             # running the simulation is the expensive part
             returns = transition.reward + transition.discount * (
-                self.search(self.nodes[next_state].game)
+                self.search(self.nodes[next_state].game, max_depth - 1 if max_depth else None)
                 if not transition.termination else 0
             )
         else:
@@ -144,7 +150,7 @@ class MCTS(metaclass=ABCMeta):
                 transition.discount
                 or 1.
             ) * (
-                self.search(game) 
+                self.search(game, max_depth - 1 if max_depth else None)
                 if not transition.termination else 0
             )
         node.num_visits += 1
