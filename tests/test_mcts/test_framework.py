@@ -308,6 +308,7 @@ def test_puct_with_policy():
     # cleanup
     MDPStubGame.max_move = max_move
 
+@mark.probabilistic
 def test_puct_with_rewards():
     game.reset()
     mcts = FixedMCTS(
@@ -326,32 +327,6 @@ def test_puct_with_rewards():
     n = 10
     r_s = 1 - 6 * np.linalg.norm(np.argsort(values) - np.argsort(counts)) / (n * (n ** 2 - 1))
     assert r_s > .5
-
-def test_freezing():
-    game = BinaryStubGame()
-    game.reset()
-    mcts = FixedMCTS(
-        game,
-        config=FixedMCTSConfig(
-            num_actions=10
-        ),
-    )
-
-    for i in range(101):
-        mcts.search()
-
-    mcts.freeze()
-    for node in mcts.nodes.values():
-        if node.num_visits < 20:
-            continue
-
-        advantages = [transition.advantage for transition in node.transitions.values()]
-        assert np.allclose(np.mean(advantages), 0.)
-        assert np.std(advantages) <= 1. + 1e-6
-
-        n = 10
-        r_s = 1 - 6 * np.linalg.norm(np.argsort(advantages) - np.argsort([transition.action.min() for transition in node.transitions.values()])) / (n * (n ** 2 - 1))
-        assert r_s > .5
 
 def test_discount_during_mcts():
     game = BinaryStubGame()

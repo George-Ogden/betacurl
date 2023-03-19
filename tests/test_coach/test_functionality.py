@@ -5,8 +5,8 @@ import os
 
 from pytest import mark
 
-from src.coach import Coach, CoachConfig, Coach, CoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.coach import Coach, CoachConfig
 from src.mcts import MCTS, MCTSConfig
 from src.model import TrainingConfig
 from src.game import Game
@@ -165,7 +165,10 @@ def test_transform():
     game.reset(0)
     history = coach.transform_history_for_training(game_history)
     previous_value = None
+    p = None
     for player, observation, action, value, *data in history[::-1]:
+        assert p is None or p == player * -1
+        p = player
         assert np.allclose(observation, game.get_observation())
         game.step(action)
         if previous_value is not None:
