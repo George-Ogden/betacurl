@@ -1,5 +1,4 @@
 from copy import copy
-from glob import glob
 import numpy as np
 import os
 
