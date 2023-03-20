@@ -55,7 +55,7 @@ def test_checkpoint_restored_correctly():
         config=CoachConfig(resume_from_checkpoint=True, **necessary_config)
     )
     coach.player.dummy_variable = 15
-    coach.save_model(10, wins=0)
+    coach.save_model(10)
 
     new_coach = Coach(
         stub_game,
@@ -126,7 +126,8 @@ def test_best_player_saves_and_loads():
 
     player = coach.player
     coach.player = champion
-    coach.save_model(0, 40)
+    coach.save_model(0)
+    coach.save_best_model()
     coach.player = player
 
     best_player = coach.best_player
