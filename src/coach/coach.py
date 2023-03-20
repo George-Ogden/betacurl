@@ -89,7 +89,7 @@ class Coach(SaveableObject):
             start_iteration = self.load_checkpoint() or 0
 
         print("Starting the learning process")
-        self.save_model(current_iteration=start_iteration, wins=-1)
+        self.save_model(current_iteration=start_iteration)
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
@@ -105,9 +105,12 @@ class Coach(SaveableObject):
 
             self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
+            self.save_model(current_iteration=iteration + 1)
             wins = self.evaluate()
+            if wins > self.win_threshold:
+                self.save_best_model()
+
             wandb.log({"best_win_ratio": wins / self.num_eval_games})
-            self.save_model(current_iteration=iteration + 1, wins=wins)
             if self.update_patience(wins):
                 break
 
@@ -144,17 +147,17 @@ class Coach(SaveableObject):
         self.current_best = best_player
         return best_player
 
-    def save_model(self, current_iteration, wins):
+    def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
         print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
         self.save(self.get_checkpoint_path(current_iteration))
 
-        if wins > self.win_threshold:
-            print("Saving new best model")
-            self.save(self.best_checkpoint_path)
-            del self.train_example_history[:]
+    def save_best_model(self):
+        print("Saving new best model")
+        self.save(self.best_checkpoint_path)
+        del self.train_example_history[:]
 
     @classmethod
     def load_player(cls, directory: str) -> NNMCTSPlayer:
