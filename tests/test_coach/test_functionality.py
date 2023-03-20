@@ -7,7 +7,7 @@ from pytest import mark
 
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.coach import Coach, CoachConfig
-from src.mcts import MCTS, MCTSConfig
+from src.mcts import MCTS, MCTSConfig, NNMCTSConfig
 from src.model import TrainingConfig
 from src.game import Game
 
@@ -54,6 +54,7 @@ boring_coach = Coach(
 )
 
 class FixedValueMCTS(MCTS):
+    CONFIG_CLASS = NNMCTSConfig
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig(), move = None):
         super().__init__(game, config)
         self.move = move
