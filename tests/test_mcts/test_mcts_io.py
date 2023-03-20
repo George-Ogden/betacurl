@@ -7,9 +7,8 @@ from src.mcts import MCTSModel
 from tests.utils import MDPStubGame, generic_save_load_test, generic_save_test, save_load
 from tests.config import cleanup, requires_cleanup
 
+training_data = [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), 1.5, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)]) for i in range(6)]
 game = MDPStubGame(6)
-arena = Arena([MCTSPlayer] * 2, game)
-result, history = arena.play_game(return_history=True)
 game.reset()
 
 @requires_cleanup
@@ -60,7 +59,7 @@ def test_nn_player_io_with_model():
         game.game_spec
     )
     player.move(game)
-    player.learn([(*data, [(data[2], 0.)]) for data in history] * 10, game.no_symmetries)
+    player.learn(training_data * 10, game.no_symmetries)
     player.move(game)
 
     model = player.model

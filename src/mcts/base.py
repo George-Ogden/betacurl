@@ -1,5 +1,5 @@
-from copy import copy, deepcopy
 from dm_env import StepType
+from copy import copy
 import numpy as np
 
 from typing import Dict, List, Optional, Tuple
@@ -15,8 +15,9 @@ import numpy as np
 @dataclass
 class Transition:
     action: np.ndarray
-    next_state: bytes
+    next_state: bytes # assume deterministic transition
     reward: float = 0. # assume deterministic reward
+    discount: float = 1.
     num_visits: int = 0
     termination: bool = False
 
@@ -91,11 +92,16 @@ class MCTS(metaclass=ABCMeta):
         self.nodes[self.encode(observation)] = node
 
     def rollout(self, game: Game) -> float:
-        action = game.get_random_move()
-        timestep = game.step(action)
-        if timestep.step_type == StepType.LAST:
-            return (timestep.reward or 0.)
-        return (timestep.reward or 0.) + self.rollout(game)
+        multiplier = 1.
+        reward = 0.
+        while multiplier > game.eps:
+            action = game.get_random_move()
+            timestep = game.step(action)
+            reward += (timestep.reward or 0.) * multiplier
+            if timestep.step_type == StepType.LAST:
+                break
+            multiplier *= timestep.discount or 1.
+        return reward
 
     def search(self, game: Optional[Game] = None):
         if not game:
@@ -103,7 +109,7 @@ class MCTS(metaclass=ABCMeta):
         observation = game.get_observation()
         if not (node := self.get_node(observation)):
             # game will be modified in rollout
-            returns = self.rollout(deepcopy(game))
+            returns = self.rollout(game.clone())
             node = Node(
                 game=game,
                 num_visits=1,
@@ -117,24 +123,28 @@ class MCTS(metaclass=ABCMeta):
         if transition:
             next_state = transition.next_state
             # running the simulation is the expensive part
-            returns = transition.reward + (
+            returns = transition.reward + transition.discount * (
                 self.search(self.nodes[next_state].game)
                 if not transition.termination else 0
             )
         else:
             # only copied when stepping
-            game = deepcopy(game)
+            game = game.clone()
             timestep = game.step(action)
             transition = Transition(
                 action=action,
                 next_state=self.encode(timestep.observation),
-                reward=timestep.reward or 0,
+                reward=timestep.reward or 0.,
                 termination=timestep.step_type == StepType.LAST,
+                discount=timestep.discount or 1.,
                 num_visits=0
             )
             node.set_transition(action, transition)
             returns = transition.reward + (
-                self.search(game) 
+                transition.discount
+                or 1.
+            ) * (
+                self.search(game)
                 if not transition.termination else 0
             )
         node.num_visits += 1
@@ -164,17 +174,25 @@ class MCTS(metaclass=ABCMeta):
         values = u_values + q_values * self.game.player_delta
         return [action.action for action in actions][values.argmax()]
 
-    def freeze(self):
-        """
-        calculate values for actions
-        this can only be done once the values no longer update
-        """
-        for node in self.nodes.values():
-            if len(node.transitions) < 2:
-                continue
-            visits = [transition.num_visits for transition in node.transitions.values()]
-            mean = np.mean(visits)
-            scale = max(np.std(visits), 1.)
+    def cleanup(self, game: Optional[Game] = None):
+        """delete unreachable nodes"""
+        if game is None:
+            game = self.game
+        root = self.get_node(game.get_observation())
+        if not root:
+            return
+        root.reachable = True
+        queue = [root]
+        while queue:
+            node = queue.pop(0)
             for transition in node.transitions.values():
-                # rescale visits to perform REINFORCE with baseline
-                transition.advantage = (transition.num_visits - mean) / scale
+                neighbor = self.nodes.get(transition.next_state, None)
+                if neighbor and not getattr(neighbor, "reachable", False):
+                    neighbor.reachable = True
+                    queue.append(neighbor)
+
+        for key, node in list(self.nodes.items()):
+            if getattr(node, "reachable", False):
+                del node.reachable
+            else:
+                del self.nodes[key]

@@ -5,8 +5,8 @@ import os
 
 from pytest import mark
 
-from src.coach import Coach, CoachConfig, Coach, CoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.coach import Coach, CoachConfig
 from src.mcts import MCTS, MCTSConfig
 from src.model import TrainingConfig
 from src.game import Game
@@ -18,6 +18,7 @@ special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
     successive_win_requirement=4,
+    num_eval_simulations=5,
 )
 
 necessary_config = {
@@ -147,6 +148,35 @@ def test_sparse_game_for_coaching():
     assert coach.best_player.MCTSClass != BadMCTS
 
 @requires_cleanup
+def test_transform():
+    coach = Coach(
+        game=copy(sparse_stub_game),
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            win_threshold=.6,
+            **necessary_config
+        )
+    )
+    game = coach.game
+    game.discount = .9
+    arena = Arena([coach.best_player.dummy_constructor] * 2, game=game)
+    result, game_history = arena.play_game(0, return_history=True)
+    game.reset(0)
+    history = coach.transform_history_for_training(game_history)
+    previous_value = None
+    p = None
+    for player, observation, action, value, *data in history[::-1]:
+        assert p is None or p == player * -1
+        p = player
+        assert np.allclose(observation, game.get_observation())
+        game.step(action)
+        if previous_value is not None:
+            assert previous_value == value
+        previous_value = value
+
+@requires_cleanup
 def test_train_examples_cleared_after_win():
     coach = GoodPlayerCoach(
         game=sparse_stub_game,
@@ -193,6 +223,30 @@ def test_learning_patience():
     assert len(glob(f"{SAVE_DIR}/*")) == 5
 
 @requires_cleanup
+def test_eval_simulations_change():
+    coach = Coach(
+        game=sparse_stub_game,
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.0,
+            num_eval_simulations=5,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=20
+            ),
+            **necessary_config
+        )
+    )
+
+    coach.learn()
+    coach.evaluate()
+
+    assert coach.current_best.simulations == 5
+    assert coach.best_player.simulations == 20
+    assert coach.player.simulations == 20
+
+@requires_cleanup
 def test_logs_format(capsys):
     coach = Coach(
         game=stub_game,
@@ -206,9 +260,11 @@ def test_logs_format(capsys):
     )
     coach.learn()
 
-    output = capsys.readouterr()
-    assert not "{" in output
-    assert not "}" in output
+    captured = capsys.readouterr()
+    assert not "{" in captured.out
+    assert not "{" in captured.err
+    assert not "}" in captured.out
+    assert not "}" in captured.err
 
 @mark.probabilistic
 @mark.slow
@@ -229,7 +285,9 @@ def test_model_learns():
             ),
             player_config=NNMCTSPlayerConfig(
                 num_simulations=3
-            )
+            ),
+            num_eval_simulations=3
+            **necessary_config,
         )
     )
 

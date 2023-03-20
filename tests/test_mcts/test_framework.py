@@ -1,3 +1,4 @@
+from dm_env import StepType
 from copy import deepcopy
 import numpy as np
 
@@ -307,6 +308,7 @@ def test_puct_with_policy():
     # cleanup
     MDPStubGame.max_move = max_move
 
+@mark.probabilistic
 def test_puct_with_rewards():
     game.reset()
     mcts = FixedMCTS(
@@ -326,28 +328,50 @@ def test_puct_with_rewards():
     r_s = 1 - 6 * np.linalg.norm(np.argsort(values) - np.argsort(counts)) / (n * (n ** 2 - 1))
     assert r_s > .5
 
-def test_freezing():
+def test_discount_during_mcts():
     game = BinaryStubGame()
-    game.reset()
+    game.discount = .9
+    time_step = game.reset()
     mcts = FixedMCTS(
         game,
         config=FixedMCTSConfig(
-            num_actions=10
+            num_actions=1
         ),
     )
 
-    for i in range(101):
-        mcts.search()
+    previous_reward = None
+    while time_step.step_type != StepType.LAST:
+        for i in range(1):
+            mcts.search(game)
+        node = mcts.get_node(game.get_observation())
+        if previous_reward is not None:
+            assert np.allclose(np.abs(node.expected_return) * .9, previous_reward)
+        previous_reward = np.abs(node.expected_return)
+        time_step = game.step(game.get_random_move())
+        assert time_step.discount == .9
 
-    mcts.freeze()
-    for node in mcts.nodes.values():
-        if node.num_visits < 20:
-            continue
+def test_discount_during_mcts():
+    game = MDPStubGame()
+    game.discount = .01
+    time_step = game.reset()
+    mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            num_actions=100
+        ),
+    )
 
-        advantages = [transition.advantage for transition in node.transitions.values()]
-        assert np.allclose(np.mean(advantages), 0.)
-        assert np.std(advantages) <= 1. + 1e-6
-
-        n = 10
-        r_s = 1 - 6 * np.linalg.norm(np.argsort(advantages) - np.argsort([transition.action.min() for transition in node.transitions.values()])) / (n * (n ** 2 - 1))
-        assert r_s > .5
+    previous_reward = None
+    while time_step.step_type != StepType.LAST:
+        for i in range(1000):
+            mcts.search(game)
+        node = mcts.get_node(game.get_observation())
+        if previous_reward is not None:
+            assert np.allclose(
+                node.expected_return,
+                np.sum([transition.reward * transition.num_visits for transition in node.transitions.values()]) / (node.num_visits - 1),
+                atol=game.max_move * (1/ 99 + 1 / 999)
+            )
+        previous_reward = np.abs(node.expected_return)
+        time_step = game.step(game.get_random_move())
+        assert time_step.discount == .01

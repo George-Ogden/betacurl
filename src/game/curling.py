@@ -164,3 +164,9 @@ class SingleEndCurlingGame(Game):
             a_min=StoneThrow.bounds[:,0],
             a_max=StoneThrow.bounds[:,1]
         )
+
+    def clone(self) -> "Self":
+        clone = copy(self)
+        clone.curling = deepcopy(self.curling)
+        clone.simulation_constants = deepcopy(self.simulation_constants)
+        return clone

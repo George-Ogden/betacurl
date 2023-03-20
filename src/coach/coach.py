@@ -7,8 +7,9 @@ from typing import List, Optional, Tuple, Type
 from copy import copy
 
 from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..game import Game, GameSpec
+from ..mcts import Node, Transition
 from ..utils import SaveableObject
+from ..game import Game, GameSpec
 
 from  .config import CoachConfig
 
@@ -43,7 +44,7 @@ class Coach(SaveableObject):
         self.num_eval_games = config.evaluation_games
         self.win_threshold = int(config.win_threshold * self.num_eval_games)
         self.resume_from_checkpoint = config.resume_from_checkpoint
-        assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
+        self.eval_simulations = config.num_eval_simulations
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
@@ -92,10 +93,10 @@ class Coach(SaveableObject):
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
-            train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
+            train_arena = Arena([self.best_player.dummy_constructor] * self.game.num_players, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
             for i in trange(self.num_games_per_episode, desc="Playing episode"):
-                result, game_history = train_arena.play_game(starting_player=i % 2, return_history=True, training=True)
+                result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
             self.train_example_history.append(train_examples)
@@ -123,7 +124,10 @@ class Coach(SaveableObject):
 
     def evaluate(self) -> int:
         champion = self.best_player
+        champion.simulations = self.eval_simulations
+        self.player.simulations = self.eval_simulations
         wins, losses = self.benchmark(champion.dummy_constructor)
+        self.player.simulations = self.player_config.num_simulations
         print(f"Most recent model result: {wins}-{losses} (current-best)")
         return wins
 
@@ -164,22 +168,34 @@ class Coach(SaveableObject):
 
     def transform_history_for_training(
             self,
-            training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]
+            training_data: List[Tuple[Node, Transition]]
         ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
         mcts = self.current_best.mcts
-        mcts.freeze()
+        mcts.cleanup()
+        
+        for node, _ in training_data:
+            if not node.transitions:
+                continue
+
+            visits = [transition.num_visits for transition in node.transitions.values()]
+            mean = np.mean(visits)
+            scale = max(np.std(visits), 1.)
+            for transition in node.transitions.values():
+                # rescale visits to perform REINFORCE with baseline
+                transition.advantage = (transition.num_visits - mean) / scale
+
         history = [
             (
-                player,
-                observation,
-                action,
-                total_reward := total_reward + (reward or 0),
+                node.game.player_delta,
+                node.game.get_observation(),
+                transition.action,
+                total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
                 [
                     (transition.action, transition.advantage)
-                    for transition in mcts.get_node(observation).transitions.values()
+                    for transition in node.transitions.values()
                 ]
             )
-            for player, observation, action, reward in reversed(training_data)
+            for node, transition in reversed(training_data)
         ]
         return history
