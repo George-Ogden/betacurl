@@ -35,18 +35,18 @@ class ParserBuilder:
         self.parser.add_argument(f"--{name}", default=default, help=help, **additional_options)
         return self
 
-    @staticmethod
-    # modified from https://stackoverflow.com/a/66239222/12103577
-    def get_dataclass_attributes_doc(config: Type[Config]):
-        def get_attribute_unified_doc(some_dataclass: Type[Config], key: str) -> str:
-            """returns a string that chains the above-comment, inline-comment and docstring"""
-            all_docstrings = get_attribute_docstring(some_dataclass, key)
-            doc_list = asdict(all_docstrings).values()
-            return '\n'.join(doc_list).strip()
+    @classmethod
+    def get_docstring(cls, some_dataclass: Type[Config], key: str) -> str:
+        """returns a string that chains the above-comment, inline-comment and docstring"""
+        all_docstrings = get_attribute_docstring(some_dataclass, key)
+        return all_docstrings.docstring_below
 
+    @classmethod
+    # modified from https://stackoverflow.com/a/66239222/12103577
+    def get_dataclass_attributes_doc(cls, config: Type[Config]):
         attribute_docs = {}
         for key in get_type_hints(config).keys():
-            doc = get_attribute_unified_doc(config, key)
+            doc = cls.get_docstring(config, key)
             if len(doc):
                 attribute_docs[key] = doc
         return attribute_docs

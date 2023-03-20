@@ -29,3 +29,4 @@ class MCTSModelConfig(Config):
 @dataclass
 class NNMCTSConfig(WideningMCTSConfig):
     max_rollout_depth: int = 4
+    """maximum depth to run rollout"""
