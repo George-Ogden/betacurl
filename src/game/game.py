@@ -1,23 +1,43 @@
 from copy import deepcopy
 import numpy as np
 
-from dm_env import StepType, TimeStep
-from typing import List, Optional, Tuple
+from src.utils import classproperty
+
+from typing import List, Optional, Tuple, Union
+from dm_env.specs import Array, BoundedArray
 from abc import ABCMeta, abstractmethod
-from dm_env.specs import BoundedArray
+from dm_env import StepType, TimeStep
 from dataclasses import dataclass
 
 @dataclass
 class GameSpec:
     move_spec: BoundedArray
-    observation_spec: BoundedArray
+    observation_spec: Union[Array, BoundedArray]
+    def validate_action(self, action: np.ndarray) -> np.ndarray:
+        assert action.shape == self.move_spec.shape
+        if isinstance(self.move_spec, BoundedArray):
+            assert (action >= self.move_spec.minimum).all()
+            assert (action <= self.move_spec.maximum).all()
+        return action.astype(self.move_spec.dtype)
+
+    def validate_observation(self, observation: np.ndarray) -> np.ndarray:
+        assert observation.shape == self.observation_spec.shape
+        if isinstance(self.observation_spec, BoundedArray):
+            assert (observation >= self.observation_spec.minimum).all()
+            assert (observation <= self.observation_spec.maximum).all()
+        return observation.astype(self.observation_spec.dtype)
 
 class Game(metaclass=ABCMeta):
     game_spec: GameSpec = None
     to_play: int = None
     max_round = 0
     player_deltas: List[int] = [1, -1]
+    discount = 1.
     eps: float = 1e-6 # used in the event of a "draw"
+
+    @classproperty
+    def num_players(cls):
+        return len(cls.player_deltas)
 
     @abstractmethod
     def _get_observation(self)-> np.ndarray:
@@ -39,13 +59,13 @@ class Game(metaclass=ABCMeta):
         action = self.validate_action(action)
 
     def post_step(self, reward: float) -> TimeStep:
-        self.to_play = 1 - self.to_play
+        self.to_play = (self.to_play + 1) % self.num_players
         self.current_round += 1
         return TimeStep(
             step_type=self.get_step_type(),
             reward=reward,
             observation=self.get_observation(),
-            discount=1,
+            discount=None if reward is None else self.discount,
         )
 
     @abstractmethod
@@ -53,18 +73,14 @@ class Game(metaclass=ABCMeta):
         ...
 
     def reset(self, starting_player: Optional[int]=None) -> TimeStep:
-        """
-        Args:
-            starting_player (Optional[int], optional): 0 or 1 (or decided randomly if None). Defaults to None.
-        """
         self.pre_reset(starting_player)
         self._reset()
         return self.post_reset()
 
     def pre_reset(self, starting_player: Optional[int]=None):
         if starting_player is None:
-            starting_player = np.random.choice([0, 1])
-        assert starting_player in (0, 1)
+            starting_player = np.random.randint(self.num_players)
+        assert starting_player in np.arange(self.num_players)
         self.to_play = starting_player
         self.current_round = 0
 
@@ -73,12 +89,11 @@ class Game(metaclass=ABCMeta):
             step_type=StepType.FIRST,
             reward=None,
             observation=self.get_observation(),
-            discount=1
+            discount=None
         )
 
-    def sample(self, action: np.ndarray) -> TimeStep:
-        game = deepcopy(self)
-        return game.step(action, display=False)
+    def clone(self) -> "Self":
+        return deepcopy(self)
 
     def get_symmetries(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
         return Game.no_symmetries(player, observation, action, reward)
@@ -88,16 +103,10 @@ class Game(metaclass=ABCMeta):
         return [(player, observation, action, reward)]
 
     def validate_observation(self, observation: np.ndarray)-> np.ndarray:
-        assert observation.shape == self.game_spec.observation_spec.shape
-        assert (observation >= self.game_spec.observation_spec.minimum).all()
-        assert (observation <= self.game_spec.observation_spec.maximum).all()
-        return observation.astype(self.game_spec.observation_spec.dtype)
+        return self.game_spec.validate_observation(observation)
 
     def validate_action(self, action: np.ndarray)-> np.ndarray:
-        assert action.shape == self.game_spec.move_spec.shape
-        assert (action >= self.game_spec.move_spec.minimum).all()
-        assert (action <= self.game_spec.move_spec.maximum).all()
-        return action.astype(self.game_spec.move_spec.dtype)
+        return self.game_spec.validate_action(action)
 
     def get_step_type(self, round: Optional[int] = None) -> StepType:
         if round is None:

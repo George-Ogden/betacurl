@@ -1,6 +1,6 @@
 from pytest import mark
 
-from src.game import Arena, RandomPlayer
+from src.player import Arena, RandomPlayer
 
 from tests.utils import BadPlayer, GoodPlayer, StubGame
 

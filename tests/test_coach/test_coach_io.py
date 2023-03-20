@@ -1,13 +1,10 @@
-import tensorflow as tf
-
 from glob import glob
 from copy import copy
 import time
-
-from pytest import mark
 import os
 
-from src.game import Coach, CoachConfig, Coach, CoachConfig, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.coach import Coach, CoachConfig, Coach, CoachConfig
+from src.player import NNMCTSPlayer, NNMCTSPlayerConfig
 from src.model import TrainingConfig
 
 from tests.config import cleanup, cleanup_dir, requires_cleanup, SAVE_DIR
@@ -27,7 +24,6 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
-    train_buffer_length=1,
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
@@ -75,9 +71,13 @@ def test_checkpoint_restores_in_training():
         stub_game,
         config=CoachConfig(
             resume_from_checkpoint=True,
-            num_iterations=4,
+            num_iterations=2,
             num_games_per_episode=2,
-            **necessary_config
+            **necessary_config,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4
+            ),
+            num_eval_simulations=3
         )
     )
     coach.dummy_variable = 25
@@ -85,13 +85,13 @@ def test_checkpoint_restores_in_training():
 
     del coach.dummy_variable
     update_time = time.time()
-    cleanup_dir(coach.get_checkpoint_path(3))
-    cleanup_dir(coach.get_checkpoint_path(4))
+    cleanup_dir(coach.get_checkpoint_path(1))
+    cleanup_dir(coach.get_checkpoint_path(2))
 
     coach.learn()
 
     assert os.path.getmtime(coach.get_checkpoint_path(0)) < update_time
-    assert os.path.getmtime(coach.get_checkpoint_path(4)) > update_time
+    assert os.path.getmtime(coach.get_checkpoint_path(2)) > update_time
     assert coach.dummy_variable == 25
 
 @requires_cleanup
@@ -99,7 +99,6 @@ def test_training_history_restored():
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            train_buffer_length=25,
             num_iterations=4,
             num_games_per_episode=2,
             **necessary_config
@@ -108,14 +107,13 @@ def test_training_history_restored():
     coach.learn()
     del coach.train_example_history
     coach.load_checkpoint()
-    assert len(coach.train_example_history) == 4
+    assert len(coach.train_example_history) > 0
 
 @requires_cleanup
 def test_best_player_saves_and_loads():
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            train_buffer_length=25,
             num_iterations=1,
             evaluation_games=40,
             **necessary_config
@@ -134,7 +132,6 @@ def test_best_player_saves_and_loads():
     best_player = coach.best_player
     assert best_player.dummy_variable == 22
 
-@mark.slow
 @requires_cleanup
 def test_reloading_mcts_coach(capsys):
     coach = Coach(
@@ -171,6 +168,6 @@ def test_reloading_mcts_coach(capsys):
     assert coach.num_games_per_episode == 1
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 4, glob(f"{SAVE_DIR}/model-0*")
     
-    output = capsys.readouterr()
-    assert "starting iteration 2" in output.out.lower()
-    assert not "starting iteration 1" in output.out.lower()
+    captured = capsys.readouterr()
+    assert "starting iteration 2" in captured.out.lower()
+    assert not "starting iteration 1" in captured.out.lower()

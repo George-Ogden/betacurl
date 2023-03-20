@@ -1,11 +1,12 @@
+from curling import Curling, SimulationConstants, Stone, StoneColor
 from dm_env import StepType
 import numpy as np
 
 from pytest import mark
 import pytest
 
-from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, Stone, StoneColor, CURLING_GAME
-from src.game import Arena, Game, Player, RandomPlayer
+from src.game import Game, SingleEndCurlingGame, CURLING_GAME
+from src.player import Arena, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 
@@ -49,7 +50,6 @@ def validate_mask(observation: np.ndarray):
 def test_game_is_game():
     assert isinstance(sophisticated_game, Game)
 
-@mark.slow
 def test_correct_number_of_rounds_played():
     assert single_end_game.reset().step_type == StepType.FIRST
     for i in range(15):
@@ -278,3 +278,14 @@ def test_drawn_game_where_player_2_starts():
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
     assert np.sign(time_step.reward) == starter
+
+def test_clone():
+    single_end_game.reset()
+    for _ in range(single_end_game.max_round):
+        action = random_player.move(single_end_game)
+        expected_timestep = single_end_game.clone().step(action)
+        timestep = single_end_game.step(action)
+        assert timestep.step_type == expected_timestep.step_type
+        assert (timestep.observation == expected_timestep.observation).all()
+        assert timestep.reward == expected_timestep.reward
+        assert timestep.discount == expected_timestep.discount

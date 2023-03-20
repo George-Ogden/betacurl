@@ -1,7 +1,7 @@
 from pytest import mark
 
-from src.curling import SingleEndCurlingGame
 from src.mcts import FixedMCTS, WideningMCTS
+from src.game import SingleEndCurlingGame
 
 @mark.probabilistic
 def test_random_moves_inside():

@@ -1,9 +1,8 @@
 from typing import Callable, List, Optional, Tuple
 import numpy as np
 
-from ...model import Learnable, TrainingConfig
-from ...mcts import MCTSModel, NNMCTS
-
+from ..model import Learnable, TrainingConfig
+from ..mcts import MCTSModel, NNMCTS
 from ..game import Game, GameSpec
 
 from .config import NNMCTSPlayerConfig
@@ -34,7 +33,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
 
     def learn(
         self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        training_history: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ):

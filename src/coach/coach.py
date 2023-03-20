@@ -1,4 +1,4 @@
-from tqdm import trange, tqdm
+from tqdm import trange
 import numpy as np
 import wandb
 import os
@@ -6,12 +6,12 @@ import os
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
+from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..mcts import Node, Transition
 from ..utils import SaveableObject
+from ..game import Game, GameSpec
 
-from .player import Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from .game import Game, GameSpec
-from .config import CoachConfig
-from .arena import Arena
+from  .config import CoachConfig
 
 class Coach(SaveableObject):
     DEFAULT_FILENAME = "coach.pickle"
@@ -41,15 +41,13 @@ class Coach(SaveableObject):
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
-        self.train_buffer_length = config.train_buffer_length
         self.num_eval_games = config.evaluation_games
         self.win_threshold = int(config.win_threshold * self.num_eval_games)
         self.resume_from_checkpoint = config.resume_from_checkpoint
-        assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
+        self.eval_simulations = config.num_eval_simulations
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
-        self.use_intermediate_states = config.use_intermediate_states
 
     def setup_player(
         self,
@@ -95,16 +93,13 @@ class Coach(SaveableObject):
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
-            train_arena = Arena([self.best_player.dummy_constructor] * 2, game=self.game)
+            train_arena = Arena([self.best_player.dummy_constructor] * self.game.num_players, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
             for i in trange(self.num_games_per_episode, desc="Playing episode"):
-                result, game_history = train_arena.play_game(starting_player=i % 2, return_history=True, training=True)
+                result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
                 training_samples = self.transform_history_for_training(game_history)
                 train_examples[i] = training_samples
             self.train_example_history.append(train_examples)
-
-            while len(self.train_example_history) > self.train_buffer_length:
-                self.train_example_history.pop(0)
 
             train_examples = [move for histories in self.train_example_history for history in histories for move in history]
 
@@ -127,10 +122,12 @@ class Coach(SaveableObject):
         wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
         return wins, losses
 
-
     def evaluate(self) -> int:
         champion = self.best_player
+        champion.simulations = self.eval_simulations
+        self.player.simulations = self.eval_simulations
         wins, losses = self.benchmark(champion.dummy_constructor)
+        self.player.simulations = self.player_config.num_simulations
         print(f"Most recent model result: {wins}-{losses} (current-best)")
         return wins
 
@@ -157,6 +154,7 @@ class Coach(SaveableObject):
         if wins > self.win_threshold:
             print("Saving new best model")
             self.save(self.best_checkpoint_path)
+            del self.train_example_history[:]
 
     @classmethod
     def load_player(cls, directory: str) -> NNMCTSPlayer:
@@ -168,15 +166,36 @@ class Coach(SaveableObject):
         self.player = self.load_player(directory)
         return self
 
-    def transform_history_for_training(self, training_data: List[Tuple[int, np.ndarray, np.ndarray, float]]) -> List[Tuple[int, np.ndarray, np.ndarray, float]]:
+    def transform_history_for_training(
+            self,
+            training_data: List[Tuple[Node, Transition]]
+        ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
-        history = [(player, observation, action, total_reward := total_reward + (reward or 0)) for player, observation, action, reward in reversed(training_data)]
-        if self.use_intermediate_states:
-            mcts = self.current_best.mcts
-            mcts.freeze()
-            history += [
-                (node.game.player_deltas[node.game.to_play], node.game.get_observation(), transition.action,  transition.expected_return)
-                for node in mcts.nodes.values()
-                for transition in node.transitions.values()
-            ]
+        mcts = self.current_best.mcts
+        mcts.cleanup()
+        
+        for node, _ in training_data:
+            if not node.transitions:
+                continue
+
+            visits = [transition.num_visits for transition in node.transitions.values()]
+            mean = np.mean(visits)
+            scale = max(np.std(visits), 1.)
+            for transition in node.transitions.values():
+                # rescale visits to perform REINFORCE with baseline
+                transition.advantage = (transition.num_visits - mean) / scale
+
+        history = [
+            (
+                node.game.player_delta,
+                node.game.get_observation(),
+                transition.action,
+                total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
+                [
+                    (transition.action, transition.advantage)
+                    for transition in node.transitions.values()
+                ]
+            )
+            for node, transition in reversed(training_data)
+        ]
         return history

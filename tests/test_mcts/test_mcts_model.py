@@ -1,10 +1,12 @@
 import tensorflow as tf
 import numpy as np
 
+from dm_env.specs import Array, BoundedArray
 from pytest import mark
 
-from src.model import DenseModelFactory, MLPModelFactory, MLPModelConfig
 from src.mcts import MCTSModel, MCTSModelConfig
+from src.model import DenseModelFactory
+from src.game import GameSpec
 
 from tests.utils import StubGame
 
@@ -118,7 +120,7 @@ def test_deterministic_outside_training():
     assert tf.reduce_all(dist.loc == dist2.loc)
     assert tf.reduce_all(dist.scale == dist2.scale)
 
-def test_non_deterministic_during_training():
+def test_non_deterministic_during_trainiwng():
     observation = np.ones_like(game.get_observation())
 
     features = model.feature_extractor(observation, training=True)
@@ -133,3 +135,62 @@ def test_non_deterministic_during_training():
     dist2 = model.generate_distribution(observation, training=True)
     assert not tf.reduce_all(dist.loc == dist2.loc)
     assert not tf.reduce_all(dist.scale == dist2.scale)
+
+def test_training_transform():
+    game = StubGame(2)
+    game.reset(0)
+    move = np.ones(move_spec.shape)
+    training_data = [(
+        1, game.get_observation(), 7 * move, 1., [
+            (move * 3, 3),
+            (move * 5, 5),
+            (move * 7, 7)
+        ],
+    )]
+    game.step(move * 7)
+    training_data.append((
+        0, game.get_observation(), 6 * move, 1., [
+            (move * 4, 4),
+            (move * 6, 6)
+        ],
+    ))
+
+    class DummyMCTSModel(MCTSModel):
+        def fit(self, dataset, training_config):
+            self.dataset = dataset
+    
+    model = DummyMCTSModel(game_spec)
+    model.learn(
+        training_data, game.get_symmetries
+    )
+    seen_actions = set()
+    for observation, actions, values, advantages in model.dataset:
+        assert (observation[0] % 2 == 0) ^ tf.reduce_all(actions % 2 == 0)
+        for action, advantage in zip(actions, advantages):
+            seen_actions.update(list(action.numpy()))
+            assert tf.reduce_all(action == advantage)
+        assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
+    assert len(seen_actions) == 5
+
+@mark.probabilistic
+def test_without_bounds():
+    game_spec = GameSpec(
+        move_spec=BoundedArray(
+            shape=(2,2),
+            dtype=np.float32,
+            minimum=np.zeros((2,2), dtype=np.float32),
+            maximum=np.ones((2,2), dtype=np.float32),
+        ),
+        observation_spec=Array(
+            shape=(3,),
+            dtype=np.float32
+        )
+    )
+    model = MCTSModel(
+        game_spec=game_spec
+    )
+    observations = np.random.randn(100, 3)
+    moves = model.generate_distribution(observation=observations)
+    assert moves.loc.numpy().mean() < 2.
+    values = model.predict_values(observations)
+    assert values.shape == (100, )

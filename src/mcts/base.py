@@ -1,10 +1,12 @@
-from copy import copy, deepcopy
 from dm_env import StepType
+from copy import copy
 import numpy as np
 
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from abc import ABCMeta, abstractmethod
+
+from ..game import Game
 
 from .config import MCTSConfig
 
@@ -13,14 +15,15 @@ import numpy as np
 @dataclass
 class Transition:
     action: np.ndarray
-    next_state: bytes
+    next_state: bytes # assume deterministic transition
     reward: float = 0. # assume deterministic reward
+    discount: float = 1.
     num_visits: int = 0
     termination: bool = False
 
 @dataclass
 class Node:
-    game: "Game" # partially completed game
+    game: Game # partially completed game
     total_return: float = 0
     num_visits: int = 1
     transitions: Dict[bytes, Transition] = field(default_factory=dict)
@@ -36,7 +39,7 @@ class Node:
 
 class MCTS(metaclass=ABCMeta):
     CONFIG_CLASS = MCTSConfig
-    def __init__(self, game: "Game", config: MCTSConfig = MCTSConfig()):
+    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         self.game = game
         self.action_spec = game.game_spec.move_spec
         self.nodes: Dict[bytes, Node] = {}
@@ -46,7 +49,7 @@ class MCTS(metaclass=ABCMeta):
 
     @staticmethod
     def encode(state: np.ndarray) -> bytes:
-        return state.tobytes()
+        return state.astype(np.float32).tobytes()
 
     @abstractmethod
     def select_action(self, observation: np.ndarray) -> np.ndarray:
@@ -58,7 +61,7 @@ class MCTS(metaclass=ABCMeta):
     def get_actions(self, observation: np.ndarray) -> List[Transition]:
         return list(self.nodes[self.encode(observation)].transitions.values())
 
-    def _get_action_probs(self, game: "Game", temperature: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_action_probs(self, game: Game, temperature: float) -> Tuple[np.ndarray, np.ndarray]:
         observation = game.get_observation()
         actions = np.array([action.action for action in self.get_actions(observation)])
         visits = np.array([action.num_visits for action in self.get_actions(observation)])
@@ -70,7 +73,7 @@ class MCTS(metaclass=ABCMeta):
             probs = visits ** (1. / temperature)
         return actions, probs
 
-    def get_action_probs(self, game: Optional["Game"] = None, temperature: float = 1.) -> Tuple[np.ndarray, np.ndarray]:
+    def get_action_probs(self, game: Optional[Game] = None, temperature: float = 1.) -> Tuple[np.ndarray, np.ndarray]:
         """
         Returns:
             Tuple[np.ndarray, np.ndarray]: Tuple of (actions, probs) (probs sum to 1)
@@ -88,20 +91,25 @@ class MCTS(metaclass=ABCMeta):
     def set_node(self, observation: np.ndarray, node: Node):
         self.nodes[self.encode(observation)] = node
 
-    def rollout(self, game: "Game") -> float:
-        action = game.get_random_move()
-        timestep = game.step(action)
-        if timestep.step_type == StepType.LAST:
-            return (timestep.reward or 0.)
-        return (timestep.reward or 0.) + self.rollout(game)
+    def rollout(self, game: Game) -> float:
+        multiplier = 1.
+        reward = 0.
+        while multiplier > game.eps:
+            action = game.get_random_move()
+            timestep = game.step(action)
+            reward += (timestep.reward or 0.) * multiplier
+            if timestep.step_type == StepType.LAST:
+                break
+            multiplier *= timestep.discount or 1.
+        return reward
 
-    def search(self, game: Optional["Game"] = None):
+    def search(self, game: Optional[Game] = None):
         if not game:
             game = self.game
         observation = game.get_observation()
         if not (node := self.get_node(observation)):
             # game will be modified in rollout
-            returns = self.rollout(deepcopy(game))
+            returns = self.rollout(game.clone())
             node = Node(
                 game=game,
                 num_visits=1,
@@ -115,24 +123,28 @@ class MCTS(metaclass=ABCMeta):
         if transition:
             next_state = transition.next_state
             # running the simulation is the expensive part
-            returns = transition.reward + (
+            returns = transition.reward + transition.discount * (
                 self.search(self.nodes[next_state].game)
                 if not transition.termination else 0
             )
         else:
             # only copied when stepping
-            game = deepcopy(game)
+            game = game.clone()
             timestep = game.step(action)
             transition = Transition(
                 action=action,
                 next_state=self.encode(timestep.observation),
-                reward=timestep.reward or 0,
+                reward=timestep.reward or 0.,
                 termination=timestep.step_type == StepType.LAST,
+                discount=timestep.discount or 1.,
                 num_visits=0
             )
             node.set_transition(action, transition)
             returns = transition.reward + (
-                self.search(game) 
+                transition.discount
+                or 1.
+            ) * (
+                self.search(game)
                 if not transition.termination else 0
             )
         node.num_visits += 1
@@ -162,15 +174,25 @@ class MCTS(metaclass=ABCMeta):
         values = u_values + q_values * self.game.player_delta
         return [action.action for action in actions][values.argmax()]
 
-    def freeze(self):
-        """
-        calculate values for actions
-        this can only be done once the values no longer update
-        """
-        for node in self.nodes.values():
+    def cleanup(self, game: Optional[Game] = None):
+        """delete unreachable nodes"""
+        if game is None:
+            game = self.game
+        root = self.get_node(game.get_observation())
+        if not root:
+            return
+        root.reachable = True
+        queue = [root]
+        while queue:
+            node = queue.pop(0)
             for transition in node.transitions.values():
-                # apply Bayes Theorem to the expected return to add uncertainty
-                transition.expected_return = (
-                    self.nodes[transition.next_state].expected_return
-                    if not transition.termination else 0
-                ) * transition.num_visits / (2 + transition.num_visits) + transition.reward
+                neighbor = self.nodes.get(transition.next_state, None)
+                if neighbor and not getattr(neighbor, "reachable", False):
+                    neighbor.reachable = True
+                    queue.append(neighbor)
+
+        for key, node in list(self.nodes.items()):
+            if getattr(node, "reachable", False):
+                del node.reachable
+            else:
+                del self.nodes[key]

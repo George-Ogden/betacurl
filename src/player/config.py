@@ -3,8 +3,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
-from ...mcts import MCTSConfig
-from ...utils import Config
+from ..mcts import MCTSConfig, NNMCTSConfig
+from ..utils import Config
 
 @dataclass
 class MCTSPlayerConfig(Config):
@@ -18,4 +18,5 @@ class MCTSPlayerConfig(Config):
 
 @dataclass
 class NNMCTSPlayerConfig(MCTSPlayerConfig):
+    mcts_config: NNMCTSConfig = NNMCTSConfig()
     scaling_spec: Optional[np.ndarray] = None

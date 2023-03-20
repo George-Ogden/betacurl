@@ -4,12 +4,14 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
+from dm_env.specs import BoundedArray
 from copy import copy
 
 from typing import Callable, List, Optional, Tuple, Union
 
 from ..model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ..utils import SaveableMultiModel
+from ..game import GameSpec
 
 from .config import MCTSModelConfig
 
@@ -21,7 +23,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
     }
     def __init__(
         self,
-        game_spec: "GameSpec",
+        game_spec: GameSpec,
         scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: MCTSModelConfig = MCTSModelConfig()
@@ -31,7 +33,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0)
         self.action_shape = action_spec.shape
-        self.observation_range = np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
+        self.observation_range = (
+            np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
+            if isinstance(observation_spec, BoundedArray)
+            else None
+        )
         self.observation_shape = observation_spec.shape
 
         self.config = copy(config)
@@ -48,15 +54,16 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                 output_activation="linear"
             )
         )
-        self.feature_extractor = keras.Sequential(
-            [
-                layers.Rescaling(
-                    scale=1./np.diff(self.observation_range, axis=0).squeeze(0),
-                    offset=-self.observation_range.mean(axis=0),
-                ),
-                self.feature_extractor
-            ]
-        )
+        if self.observation_range is not None:
+            self.feature_extractor = keras.Sequential(
+                [
+                    layers.Rescaling(
+                        scale=2./np.diff(self.observation_range, axis=0).squeeze(0),
+                        offset=-self.observation_range.mean(axis=0),
+                    ),
+                    self.feature_extractor
+                ]
+            )
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
@@ -121,29 +128,31 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         return values
 
-    def compute_advantages(
-        self,
-        players: tf.Tensor,
-        observations: tf.Tensor,
-        rewards: tf.Tensor
-    ) -> tf.Tensor:
-        value_predictions = self.predict_values(observations, training=False)
-        advantages = rewards - value_predictions
-        return advantages * tf.sign(players)
-
     def compute_loss(self,
         observations: np.ndarray,
-        actions: tf.Tensor,
+        action_groups: tf.RaggedTensor,
         values: tf.Tensor,
-        advantages: tf.Tensor
+        advantage_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
+        
+        if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
+            policy_loss = 0.
+            distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
 
-        log_probs = predicted_distribution.log_prob(actions)
-        clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-        policy_loss = -tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+            for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
+                distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
+                log_probs = distribution.log_prob(actions.to_tensor())
+                clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+                policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
+        else:
+            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
+            clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+            policy_loss = -tf.reduce_mean(advantage_groups * tf.reduce_sum(clipped_log_probs, axis=0))
+
         value_loss = losses.mean_squared_error(values, predicted_values)
+
         loss = policy_loss + self.vf_coeff * value_loss
         if self.ent_coeff != 0:
             # entropy is main cause of NaNs in training
@@ -178,23 +187,38 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
     
     def learn(
         self,
-        training_history: List[Tuple[int, np.ndarray, np.ndarray, float]],
+        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
         training_data = [
-            (augmented_player,
-            augmented_observation,
-            augmented_action,
-            augmented_reward
-        ) for (player, observation, action, reward) in training_history 
-            for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (augmentation_function(player, observation, action, reward))]
-        primary_dataset = self.create_dataset(training_data).batch(training_config.batch_size)
+            (
+                augmented_observation,
+                augmented_actions,
+                augmented_reward,
+                advantages
+            ) for player, observation, action, reward, policy in training_data
+                for (augmented_player, augmented_observation, augmented_action, augmented_reward),
+                    (augmented_actions, advantages)
+            in zip(
+                augmentation_function(player, observation, action, reward),
+                [
+                    zip(*policy)
+                    for policy in zip(*[
+                        [
+                            (augmented_action, advantage)
+                            for augmented_player, augmented_observation, augmented_action, augmented_reward 
+                            in augmentation_function(player, observation, action, reward)
+                        ]
+                        for action, advantage in policy
+                    ])
+                ],
+                strict=True
+            )
+        ]
 
-        batched_transform = [(observation, action, reward) + (self.compute_advantages(players=player, observations=observation, rewards=reward),) for player, observation, action, reward in primary_dataset]
-        flattened_transform = [np.concatenate(data, axis=0) for data in zip(*batched_transform)]
-        secondary_dataset = self.create_dataset(zip(*flattened_transform))
+        dataset = self.create_dataset(training_data)
 
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
         
-        return self.fit(secondary_dataset, training_config)
+        return self.fit(dataset, training_config)

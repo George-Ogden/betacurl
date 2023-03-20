@@ -5,8 +5,7 @@ from typing import Optional, Type
 from copy import deepcopy
 import numpy as np
 
-from ...mcts import MCTS, BEST_MCTS
-
+from ..mcts import MCTS, Node, BEST_MCTS
 from ..game import Game, GameSpec
 
 from .config import MCTSPlayerConfig
@@ -37,6 +36,9 @@ class MCTSPlayer(Player):
         self.mcts = None
         self.temperature = 0.
         return super().eval()
+    
+    def get_current_node(self, game: Game) -> Node:
+        return self.mcts.get_node(game.get_observation())
 
     def move(self, game: Game) -> np.ndarray:
         if self.mcts is None:
@@ -46,6 +48,8 @@ class MCTSPlayer(Player):
                     **self.config.mcts_config
                 )
             )
+        else:
+            self.mcts.cleanup(game)
 
         for _ in range(self.simulations):
             self.mcts.search(game)

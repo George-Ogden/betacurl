@@ -1,7 +1,7 @@
 from .config import FixedMCTSConfig, MCTSConfig, MCTSModelConfig, NNMCTSConfig, WideningMCTSConfig
+from .base import MCTS, Node, Transition
 from .widening import WideningMCTS
-from .fixed import FixedMCTS
 from .nn import MCTSModel, NNMCTS
-from .base import MCTS
+from .fixed import FixedMCTS
 
 BEST_MCTS = WideningMCTS

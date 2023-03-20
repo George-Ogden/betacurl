@@ -4,7 +4,8 @@ from dm_env.specs import BoundedArray
 import numpy as np
 import pytest
 
-from src.game import Arena, GameSpec, RandomPlayer
+from src.player import Arena, RandomPlayer
+from src.game import GameSpec
 
 from tests.utils import BadPlayer, GoodPlayer, StubGame
 
@@ -54,17 +55,19 @@ def test_correct_number_of_rounds_played_with_reset():
         assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
     assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
 
-def test_sample_has_no_side_effects():
-    assert stub_game.reset().step_type == StepType.FIRST
-    for i in range(10):
-        stub_game.sample(random_player.move(stub_game))
-    for i in range(5):
-        assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
-        original = list(map(float, stub_game.score))
-        for i in range(10):
-            stub_game.sample(random_player.move(stub_game))
-            assert stub_game.score == original
-    assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
+def test_clone():
+    stub_game.reset(0)
+    assert stub_game.to_play == 0
+    for _ in range(stub_game.max_round):
+        action = random_player.move(stub_game)
+        expected_timestep = stub_game.clone().step(action)
+        for _ in range(10):
+            stub_game.clone().step(random_player.move(stub_game))
+        timestep = stub_game.step(action)
+        assert timestep.step_type == expected_timestep.step_type
+        assert (timestep.observation == expected_timestep.observation).all()
+        assert timestep.reward == expected_timestep.reward
+        assert timestep.discount == expected_timestep.discount
 
 def test_valid_actions_are_valid():
     stub_game.validate_action(random_player.move(stub_game))

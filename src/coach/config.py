@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
+from ..player import NNMCTSPlayerConfig
 from ..model import TrainingConfig
 from ..utils import Config
-
-from .player import NNMCTSPlayerConfig
 
 @dataclass
 class CoachConfig(Config):
@@ -13,19 +12,18 @@ class CoachConfig(Config):
     """number of self-play games per model update"""
     num_iterations: int = 100
     """total number of training iterations"""
-    train_buffer_length: int = 5
-    """maximum number of games to store in buffer"""
     evaluation_games: int = 10
     """number of games to determine best model"""
     win_threshold: float = .65
-    """proportion of wins that a new model must win to be considered the best"""
+    """proportion of games that a new model must win to be considered the best"""
     save_directory: str = "output"
     """directory to save logs, model, files, etc. to"""
     best_checkpoint_path: str = "model-best"
     """name of best model"""
     successive_win_requirement: int = 7
     """number of games won by best model before training terminates"""
+    num_eval_simulations: int = 50
+    """number of simulations to run when evaluating"""
     model_filenames: str = "model-{:06}"
-    use_intermediate_states: bool = False
     player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     training_config: TrainingConfig = TrainingConfig()

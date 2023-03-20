@@ -1,12 +1,13 @@
 import numpy as np
 import cv2
 
+from curling import Curling, SimulationConstants
+from curling.enums import DisplayTime
+from curling.curling import Canvas
 from pytest import mark
 
-from src.curling import Curling, SimulationConstants, SingleEndCurlingGame, CURLING_GAME
-from src.game import Arena, Game, Player, RandomPlayer
-from src.curling.enums import DisplayTime
-from src.curling.curling import Canvas
+from src.game import Game, SingleEndCurlingGame, CURLING_GAME
+from src.player import Arena, Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=.02)
 

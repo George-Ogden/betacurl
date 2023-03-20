@@ -5,8 +5,8 @@ from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 from dm_env import TimeStep
 
-from ..curling.curling import Curling, SimulationConstants, Stone, StoneColor, StoneThrow
-from ..game.game import Game, GameSpec
+from curling import Curling, SimulationConstants, Stone, StoneColor, StoneThrow
+from .game import Game, GameSpec
 
 class SingleEndCurlingGame(Game):
     def __init__(self, simulation_constants: SimulationConstants = SimulationConstants()):
@@ -164,3 +164,9 @@ class SingleEndCurlingGame(Game):
             a_min=StoneThrow.bounds[:,0],
             a_max=StoneThrow.bounds[:,1]
         )
+
+    def clone(self) -> "Self":
+        clone = copy(self)
+        clone.curling = deepcopy(self.curling)
+        clone.simulation_constants = deepcopy(self.simulation_constants)
+        return clone

@@ -2,12 +2,14 @@ import numpy as np
 
 from typing import Callable, Optional, Tuple
 
+from ..game import Game
+
 from .config import WideningMCTSConfig
 from .base import MCTS
 
 class WideningMCTS(MCTS):
     CONFIG_CLASS = WideningMCTSConfig
-    def __init__(self, game: "Game", action_generator: Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]] = None, config: WideningMCTSConfig = WideningMCTSConfig()):
+    def __init__(self, game: Game, action_generator: Optional[Callable[[np.ndarray], Tuple[np.ndarray, float]]] = None, config: WideningMCTSConfig = WideningMCTSConfig()):
         """
         Args:
             game (Game): game to search

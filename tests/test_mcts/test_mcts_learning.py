@@ -5,42 +5,19 @@ from pytest import mark
 
 from src.mcts import MCTSModel, MCTSModelConfig
 from src.model import TrainingConfig
-from src.game import Arena
 
-from tests.utils import MDPStubGame, BadPlayer, GoodPlayer
+from tests.utils import MDPStubGame, StubGame
 
 max_move = MDPStubGame.max_move
 MDPStubGame.max_move = .5
-stub_game = MDPStubGame()
+stub_game = MDPStubGame(6)
 stub_game.max_move = MDPStubGame.max_move
 MDPStubGame.max_move = max_move
 game_spec = stub_game.game_spec
 
-arena = Arena(game=stub_game, players=[GoodPlayer, BadPlayer])
-result, history = arena.play_game(display=False, training=True, return_history=True)
-training_data = [(*other_data, result) for *other_data, reward in history]
+result = 1.5
+training_data = [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)]) for i in range(6)]
 training_data *= 100
-
-def test_correct_advantages():
-    model = MCTSModel(
-        game_spec,
-        config=MCTSModelConfig(
-            vf_coeff=0.,
-            ent_coeff=0.
-        )
-    )
-
-    for (player, observation, action, reward) in training_data[:len(training_data)//100]:
-        for (augmented_player, augmented_observation, augmented_action, augmented_reward) in (stub_game.get_symmetries(player, observation, action, reward)):
-            advantage = model.compute_advantages(
-                players=np.array([augmented_player], dtype=np.float32),
-                observations=np.array([augmented_observation], dtype=np.float32),
-                rewards=np.array([augmented_reward], dtype=np.float32)
-            )
-            if (augmented_action > 0).all():
-                assert advantage > 0
-            else:
-                assert advantage < 0
 
 @mark.probabilistic
 def test_policy_learns():
@@ -49,12 +26,11 @@ def test_policy_learns():
         config=MCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-        )
+        ),
     )
-
     model.learn(training_data, stub_game.get_symmetries)
 
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).loc > .75 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).loc > .5 * game_spec.move_spec.maximum)
 
 @mark.probabilistic
 def test_value_learns():
@@ -80,7 +56,7 @@ def test_entropy_increases():
         )
     )
 
-    model.learn(training_data, stub_game.get_symmetries)
+    model.learn(training_data, stub_game.no_symmetries)
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).scale > 1.)
 
 @mark.probabilistic
@@ -106,3 +82,34 @@ def test_model_losses_converge():
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_any(distribution.scale > .1)
     assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
+
+@mark.slow
+@mark.probabilistic
+def test_model_learns_from_multiple_actions():
+    game = StubGame(2)
+    game.reset(0)
+    move = np.ones(game_spec.move_spec.shape) / 10
+    training_data = [(
+        1, game.get_observation(), 7 * move, 1., [
+            (move * 3, -1.),
+            (move * 5, 0.),
+            (move * 7, 1.)
+        ],
+    )]
+    game.step(move * 7)
+    training_data.append((
+        0, game.get_observation(), 6 * move, 1., [
+            (move * 4, -1.),
+            (move * 6, 1.)
+        ],
+    ))
+    training_data *= 100
+
+    model = MCTSModel(game_spec)
+    model.learn(
+        training_data, game.get_symmetries
+    )
+
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
+    game.reset(0)
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)

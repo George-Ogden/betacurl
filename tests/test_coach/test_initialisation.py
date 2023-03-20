@@ -2,16 +2,17 @@ from copy import copy
 import numpy as np
 import os
 
-from src.game import Arena, Coach, CoachConfig, Coach, CoachConfig
+from src.coach import Coach, CoachConfig, Coach, CoachConfig
 from src.model import TrainingConfig
 
-from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
     successive_win_requirement=4,
+    num_eval_simulations=5,
 )
 
 necessary_config = {
@@ -22,7 +23,6 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
-    train_buffer_length=1,
     **necessary_config,
     **special_cases,
     training_config=TrainingConfig(
@@ -58,6 +58,7 @@ def test_coach_saves_config():
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
     assert boring_coach.learning_patience == 4
+    assert boring_coach.eval_simulations == 5
 
     assert type(boring_coach.game) == MDPStubGame
 
@@ -88,45 +89,3 @@ def test_coach_uses_training_config():
     assert model.history.params["epochs"] == 10
     assert modified_model.history.params["epochs"] == 5
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
-
-@requires_cleanup
-def test_coach_avoids_intermediate_states():
-    game = BinaryStubGame()
-    coach = Coach(
-        game=game,
-        config=CoachConfig(
-            use_intermediate_states=False,
-            **necessary_config
-        )
-    )
-
-    arena = Arena([coach.player.dummy_constructor] * 2, coach.game)
-    result, history = arena.play_game(display=False, return_history=True)
-    transformed_history = coach.transform_history_for_training(history)
-    observations = [bytes(observation) for player, observation, *data in history]
-    for player, observation, action, reward in transformed_history:
-        assert bytes(observation) in observations
-        assert reward == result
-
-@requires_cleanup
-def test_coach_includes_intermediate_states():
-    game = BinaryStubGame()
-    coach = Coach(
-        game=game,
-        config=CoachConfig(
-            use_intermediate_states=True,
-            **necessary_config
-        )
-    )
-
-    arena = Arena([coach.best_player.dummy_constructor] * 2, coach.game)
-    result, history = arena.play_game(display=False, return_history=True)
-    transformed_history = coach.transform_history_for_training(history)
-    matches = non_matches = 0
-    for *data, reward in transformed_history:
-        if reward == result:
-            matches += 1
-        else:
-            non_matches += 1
-    assert non_matches > 0
-    assert non_matches > matches / 2

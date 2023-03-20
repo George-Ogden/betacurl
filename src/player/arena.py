@@ -4,21 +4,27 @@ from typing import Iterable, List, Optional, Tuple, Type, Union
 from dm_env import StepType
 from tqdm import trange
 
-from .game import Game
-from .player.base import Player
+from ..mcts import Node, Transition
+from ..game.game import Game
+
+from .base import Player
 
 class Arena():
     def __init__(self, players: Iterable[Type[Player]], game: Game) -> None:
-        assert len(players) == 2, "only two player games allowed"
         self.players: List[Player] = [Player(game.game_spec) for Player in players]
         self.game = game
 
-    def play_game(self, starting_player: Optional[int] = None, display: bool = False, return_history: bool = False, training: bool = False) -> Union[int, Tuple[int, List[Tuple[int, np.ndarray, np.ndarray, float]]]]:
-        """
-        Returns:
-            Union[int, Tuple[int, List[Tuple[np.ndarray, np.ndarray, float]]]]: return either
-                - the final result (return_history=False)
-                - a tuple of (reward, history), where history contains tuples of (player_id, observation, action, reward) at each time step
+    def play_game(
+            self,
+            starting_player: Optional[int] = None,
+            display: bool = False,
+            return_history: bool = False,
+            training: bool = False
+        ) -> Union[float, Tuple[float, List[Tuple[Node, Transition]]]]:
+        """Returns:
+            Union[float, Tuple[float, List[Tuple[int, Node, Transition]]]]: either
+            - the final result (return_history=False)
+            - a tuple of (reward, history), where history contains tuples of (node, transition) that represents a path through the MCTS
         """
         for player in self.players:
             if training:
@@ -33,16 +39,16 @@ class Arena():
             player_index = self.game.to_play
             player_delta = self.game.player_delta
             player = players[player_index]
-            observation = self.game._get_observation()
             action = player.move(self.game)
+            if return_history:
+                node: Node = player.get_current_node(self.game)
+                transition = node.get_transition(action)
+                history.append((node, transition))
 
             time_step = self.game.step(action, display=display)
             reward = time_step.reward
             if reward is not None:
                 total_reward += reward
-
-            if return_history:
-                history.append((player_delta, observation, action, reward))
 
         assert total_reward != 0, "Games cannot end in a draw!"
 
@@ -51,13 +57,13 @@ class Arena():
         else:
             return total_reward
 
-    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, int]:
+    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, ...]:
         """
         Returns:
-            Tuple[int, int]: (number of games the first player won, number of games the second player won)
+            Tuple[int, ...]: (number of games each player won
         """
-        results = [0, 0]
+        results = [0] * self.game.num_players
         for i in trange(num_games, desc="Playing games"):
-            result = self.play_game(starting_player=i % 2, display=display, return_history=False, training=training)
-            results[0 if result > 0 else 1] += 1
+            result = self.play_game(starting_player=i % self.game.num_players, display=display, return_history=False, training=training)
+            results[self.game.player_deltas.index(np.sign(result))] += 1
         return tuple(results)

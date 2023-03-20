@@ -1,10 +1,10 @@
-from tensorflow.keras import callbacks, utils
+from tensorflow.keras import callbacks
 from tensorflow import data
 import tensorflow as tf
 from copy import copy
 import numpy as np
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 from abc import abstractmethod, ABCMeta
 
 from ..utils import SaveableModel
@@ -33,8 +33,15 @@ class ModelDecorator(SaveableModel, Learnable):
         self.model.compile(**compile_options)
 
     @staticmethod
+    def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
+        try:
+            return tf.constant(data, dtype=dtype)
+        except ValueError:
+            return tf.ragged.constant(data, dtype=dtype)
+
+    @staticmethod
     def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
-        transposed_data = tuple(np.array(data, dtype=np.float32) for data in zip(*dataset))
+        transposed_data = tuple(ModelDecorator.to_tensor(data, dtype=tf.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
     def fit(
@@ -99,8 +106,13 @@ class CustomDecorator(ModelDecorator):
 
     def fit(self, dataset: data.Dataset, training_config: TrainingConfig = TrainingConfig()) -> callbacks.History:
         training_config = copy(training_config)
-        train_dataset, val_dataset = utils.split_dataset(dataset, right_size=training_config.validation_split, shuffle=True)
+
+        # shuffle manually to avoid ragged tensors
+        dataset.shuffle(len(dataset))
+        val_dataset = dataset.take(int(training_config.validation_split * len(dataset)))
+        train_dataset = dataset.skip(int(training_config.validation_split * len(dataset)))
         batch_size = training_config.batch_size
+        train_dataset.shuffle(len(train_dataset), reshuffle_each_iteration=True)
         training_config.metrics = []
 
         self.compile_model(training_config)
