@@ -21,6 +21,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        eval `ssh-agent -s`
+        ssh-add - <<< "${{ secrets.ALPHACURL_SSH_KEY }}"
         pip install -r requirements.txt
         python -m pip install pytest pytest-timeout
     - name: Test with pytest (pull request)
