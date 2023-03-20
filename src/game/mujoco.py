@@ -1,5 +1,4 @@
-from dm_control.rl.control import flatten_observation, FLAT_OBSERVATION_KEY
-from dm_control.rl.control import Environment
+from dm_control.rl.control import Environment, flatten_observation, FLAT_OBSERVATION_KEY
 from dm_control import suite
 from copy import copy
 import numpy as np
@@ -20,7 +19,7 @@ class MujocoGame(Game):
                 "random": True
             },
             environment_kwargs={
-                "control_timestep": 1.,
+                "control_timestep": .1,
                 "flat_observation": True
             }
         )
@@ -43,7 +42,7 @@ class MujocoGame(Game):
         if display:
             print(self.get_observation())
         # scale so that return is between 0 and 1
-        return self.env.step(action).reward * (1 - self.discount)
+        return (self.env.step(action).reward or 0) * (1 - self.discount)
 
     def clone(self) -> "Self":
         # reduce memory by only copying the parts that change
