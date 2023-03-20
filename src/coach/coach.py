@@ -177,13 +177,13 @@ class Coach(SaveableObject):
         for node, _ in training_data:
             if not node.transitions:
                 continue
-
-            visits = [transition.num_visits for transition in node.transitions.values()]
-            mean = np.mean(visits)
-            scale = max(np.std(visits), 1.)
-            for transition in node.transitions.values():
-                # rescale visits to perform REINFORCE with baseline
-                transition.advantage = (transition.num_visits - mean) / scale
+            
+            initial_policy = node.action_probs / node.action_probs.sum()
+            enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
+            enhanced_policy /= enhanced_policy.sum()
+            for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
+                # use the policy change to calculate the advantage
+                transition.advantage = enhanced_prob - initial_prob
 
         history = [
             (
