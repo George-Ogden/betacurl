@@ -7,7 +7,7 @@ from pytest import mark
 
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
 from src.coach import Coach, CoachConfig
-from src.mcts import MCTS, MCTSConfig, NNMCTSConfig
+from src.mcts import MCTSConfig, NNMCTS, NNMCTSConfig
 from src.model import TrainingConfig
 from src.game import Game
 
@@ -53,25 +53,26 @@ boring_coach = Coach(
     )
 )
 
-class FixedValueMCTS(MCTS):
+class FixedValueMCTS(NNMCTS):
     CONFIG_CLASS = NNMCTSConfig
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig(), move = None):
-        super().__init__(game, config)
+        super().__init__(game, config=config)
         self.move = move
 
     def select_action(self, observation: np.ndarray) -> np.ndarray:
+        super().select_action(observation)
         return self.move.copy()
 
     def _get_action_probs(self, game: Game, temperature: float):
-        return np.array([self.select_action(None)]), np.array([1.])
+        return np.array([self.select_action(game.get_observation())]), np.array([1.])
 
 class GoodMCTS(FixedValueMCTS):
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
-        super().__init__(game, config, move=game.game_spec.move_spec.maximum)
+        super().__init__(game, config=config, move=game.game_spec.move_spec.maximum)
 
 class BadMCTS(FixedValueMCTS):
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
-        super().__init__(game, config, move=game.game_spec.move_spec.minimum)
+        super().__init__(game, config=config, move=game.game_spec.move_spec.minimum)
 
 class BadPlayerCoach(Coach):
     @property
@@ -287,7 +288,7 @@ def test_model_learns():
             player_config=NNMCTSPlayerConfig(
                 num_simulations=3
             ),
-            num_eval_simulations=3
+            num_eval_simulations=3,
             **necessary_config,
         )
     )
