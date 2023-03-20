@@ -8,6 +8,8 @@ from .game import Game, GameSpec
 class MujocoGame(Game):
     player_deltas = [1]
     discount = .9
+    time_limit = 20.
+    timestep = .1
     def __init__(self, domain_name: str, task_name: str):
         super().__init__()
         self.name = (domain_name, task_name)
@@ -15,11 +17,11 @@ class MujocoGame(Game):
             domain_name=domain_name,
             task_name=task_name,
             task_kwargs={
-                "time_limit": 20,
-                "random": True
+                "random": True,
+                "time_limit": self.time_limit
             },
             environment_kwargs={
-                "control_timestep": .1,
+                "control_timestep": self.timestep,
                 "flat_observation": True
             }
         )
