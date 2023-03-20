@@ -1,4 +1,4 @@
--e git+ssh://git@github.com/George-Ogden/curling.git#egg=curling # use GitHub curling until added to PyPi
+git+ssh://git@github.com/George-Ogden/curling.git#egg=curling # use GitHub curling until added to PyPi
 dm_control
 dm_env
 numpy
