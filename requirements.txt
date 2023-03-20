@@ -1,4 +1,4 @@
-git+https://github.com/George-Ogden/curling # use GitHub curling until added to PyPi
+git+https://github.com/George-Ogden/curling.git # use GitHub curling until added to PyPi
 dm_control
 dm_env
 numpy
