@@ -71,12 +71,13 @@ def test_checkpoint_restores_in_training():
         stub_game,
         config=CoachConfig(
             resume_from_checkpoint=True,
-            num_iterations=4,
+            num_iterations=2,
             num_games_per_episode=2,
             **necessary_config,
             player_config=NNMCTSPlayerConfig(
                 num_simulations=4
-            )
+            ),
+            num_eval_simulations=3
         )
     )
     coach.dummy_variable = 25
@@ -84,13 +85,13 @@ def test_checkpoint_restores_in_training():
 
     del coach.dummy_variable
     update_time = time.time()
-    cleanup_dir(coach.get_checkpoint_path(3))
-    cleanup_dir(coach.get_checkpoint_path(4))
+    cleanup_dir(coach.get_checkpoint_path(1))
+    cleanup_dir(coach.get_checkpoint_path(2))
 
     coach.learn()
 
     assert os.path.getmtime(coach.get_checkpoint_path(0)) < update_time
-    assert os.path.getmtime(coach.get_checkpoint_path(4)) > update_time
+    assert os.path.getmtime(coach.get_checkpoint_path(2)) > update_time
     assert coach.dummy_variable == 25
 
 @requires_cleanup

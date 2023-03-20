@@ -12,6 +12,7 @@ special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
     successive_win_requirement=4,
+    num_eval_simulations=5,
 )
 
 necessary_config = {
@@ -57,6 +58,7 @@ def test_coach_saves_config():
     assert boring_coach.win_threshold == 2
     assert boring_coach.num_eval_games == 4
     assert boring_coach.learning_patience == 4
+    assert boring_coach.eval_simulations == 5
 
     assert type(boring_coach.game) == MDPStubGame
 

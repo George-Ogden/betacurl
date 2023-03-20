@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import os
 
-from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
+from src.player import MCTSPlayer, NNMCTSPlayerConfig
 from src.coach import CoachConfig, SinglePlayerCoach
 from src.mcts import MCTS, MCTSConfig
 from src.game import Game, MujocoGame
@@ -110,22 +110,13 @@ def test_model_learns():
             player_config=NNMCTSPlayerConfig(
                 num_simulations=15
             ),
-            evaluation_games=10
+            evaluation_games=10,
+            num_eval_simulations=15,
+            **necessary_config
         )
     )
 
     coach.learn()
 
-    arena = Arena(
-        game=game,
-        players=[
-            coach.best_player.dummy_constructor, NNMCTSPlayer(
-                game_spec=game.game_spec,
-                config=NNMCTSPlayerConfig(
-                    num_simulations=3
-                )
-            ).dummy_constructor
-        ]
-    )
     wins = coach.evaluate()
     assert wins >= 7

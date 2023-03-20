@@ -18,6 +18,7 @@ special_cases = dict(
     evaluation_games=4,
     win_threshold=.5,
     successive_win_requirement=4,
+    num_eval_simulations=5,
 )
 
 necessary_config = {
@@ -222,6 +223,30 @@ def test_learning_patience():
     assert len(glob(f"{SAVE_DIR}/*")) == 5
 
 @requires_cleanup
+def test_eval_simulations_change():
+    coach = Coach(
+        game=sparse_stub_game,
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.0,
+            num_eval_simulations=5,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=20
+            ),
+            **necessary_config
+        )
+    )
+
+    coach.learn()
+    coach.evaluate()
+
+    assert coach.current_best.simulations == 5
+    assert coach.best_player.simulations == 20
+    assert coach.player.simulations == 20
+
+@requires_cleanup
 def test_logs_format(capsys):
     coach = Coach(
         game=stub_game,
@@ -260,7 +285,9 @@ def test_model_learns():
             ),
             player_config=NNMCTSPlayerConfig(
                 num_simulations=3
-            )
+            ),
+            num_eval_simulations=3
+            **necessary_config,
         )
     )
 
