@@ -44,7 +44,7 @@ class Coach(SaveableObject):
         self.num_eval_games = config.evaluation_games
         self.win_threshold = int(config.win_threshold * self.num_eval_games)
         self.resume_from_checkpoint = config.resume_from_checkpoint
-        assert (self.num_eval_games + 1) // 2 <= self.win_threshold <= self.num_eval_games
+        self.eval_simulations = config.num_eval_simulations
         self.learning_patience = config.successive_win_requirement
         # start training with full patience
         self.patience = self.learning_patience
@@ -124,7 +124,10 @@ class Coach(SaveableObject):
 
     def evaluate(self) -> int:
         champion = self.best_player
+        champion.simulations = self.eval_simulations
+        self.player.simulations = self.eval_simulations
         wins, losses = self.benchmark(champion.dummy_constructor)
+        self.player.simulations = self.player_config.num_simulations
         print(f"Most recent model result: {wins}-{losses} (current-best)")
         return wins
 
