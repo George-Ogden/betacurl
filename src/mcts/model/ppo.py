@@ -47,10 +47,9 @@ class PPOMCTSModel(MCTSModel):
                 target_distribution = type(target_distribution)(**{k: v[i] for k, v in target_distribution_properties.items()})
                 
                 actions = actions.to_tensor()
-                advantages = advantages.to_tensor()
 
-                log_probs = distribution.log_prob(actions)
-                target_log_probs = target_distribution.log_prob(actions)
+                log_probs = tf.reduce_sum(distribution.log_prob(actions), axis=-1)
+                target_log_probs = tf.reduce_sum(target_distribution.log_prob(actions), axis=-1)
                 
                 ratio = tf.exp(log_probs - target_log_probs)
                 
@@ -63,8 +62,9 @@ class PPOMCTSModel(MCTSModel):
             approx_kl_div /= action_groups.shape[0]
         else:
             action_groups = tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim)))
-            log_probs = predicted_distribution.log_prob(action_groups)
-            target_log_probs = target_distribution.log_prob(action_groups)
+            advantage_groups = tf.transpose(advantage_groups, (1, 0, *range(2, advantage_groups.ndim)))
+            log_probs = tf.reduce_sum(predicted_distribution.log_prob(action_groups), axis=-1)
+            target_log_probs = tf.reduce_sum(target_distribution.log_prob(action_groups), axis=-1)
 
             ratio = tf.exp(log_probs - target_log_probs)
 
@@ -109,7 +109,7 @@ class PPOMCTSModel(MCTSModel):
         ], axis=0)
         return self.create_dataset(
             [
-                (*data, parameters)
+                (*[data.numpy() for data in data], parameters.numpy())
                 for data, parameters in zip(dataset, target_distribution_parameters, strict=True)
             ]
         )

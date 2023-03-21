@@ -37,20 +37,17 @@ class Arena():
         players = self.players
         while time_step.step_type != StepType.LAST:
             player_index = self.game.to_play
-            player_delta = self.game.player_delta
             player = players[player_index]
             action = player.move(self.game)
             if return_history:
                 node: Node = player.get_current_node(self.game)
-                transition = node.get_transition(action)
+                transition: Transition = node.get_transition(action)
                 history.append((node, transition))
 
             time_step = self.game.step(action, display=display)
             reward = time_step.reward
             if reward is not None:
                 total_reward += reward
-
-        assert total_reward != 0, "Games cannot end in a draw!"
 
         if return_history:
             return total_reward, history
@@ -65,5 +62,6 @@ class Arena():
         results = [0] * self.game.num_players
         for i in trange(num_games, desc="Playing games"):
             result = self.play_game(starting_player=i % self.game.num_players, display=display, return_history=False, training=training)
+            assert result != 0, "Games cannot end in a draw!"
             results[self.game.player_deltas.index(np.sign(result))] += 1
         return tuple(results)

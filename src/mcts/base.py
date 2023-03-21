@@ -163,6 +163,8 @@ class MCTS(metaclass=ABCMeta):
             )
             for action in actions
         ])
+        if q_values.max() != q_values.min():
+            q_values /= q_values.max() - q_values.min()
         u_values = (
             node.action_probs / node.action_probs.sum()
             * self.cpuct 

@@ -18,7 +18,7 @@ class SinglePlayerCoach(Coach):
         super().__init__(game=game, config=config)
         assert self.game.num_players == 1, f"the `{type(self).__name__}` class is for single player games only"
 
-    def benchmark(self, Opponent: Type[Player]) -> Tuple[int, int]:
+    def compare(self, Opponent: Type[Player]) -> Tuple[int, int]:
         arenas = [
             Arena([self.player.dummy_constructor], game=self.game.clone()),
             Arena([Opponent], game=self.game)

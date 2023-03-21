@@ -93,7 +93,8 @@ class Coach(SaveableObject):
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
-            train_arena = Arena([self.best_player.dummy_constructor] * self.game.num_players, game=self.game)
+            self.current_best = self.best_player
+            train_arena = Arena([self.current_best.dummy_constructor] * self.game.num_players, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
             for i in trange(self.num_games_per_episode, desc="Playing episode"):
                 result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
@@ -106,13 +107,24 @@ class Coach(SaveableObject):
             self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
             self.save_model(current_iteration=iteration + 1)
-            wins = self.evaluate()
-            if wins > self.win_threshold:
-                self.save_best_model()
-
-            wandb.log({"best_win_ratio": wins / self.num_eval_games})
-            if self.update_patience(wins):
+            if self.update():
                 break
+
+    def update(self):
+        champion = self.best_player
+        champion.simulations = self.eval_simulations
+        self.current_best = champion
+        
+        wins, losses = self.compare(champion.dummy_constructor)
+
+        if wins > self.win_threshold:
+            self.save_best_model()
+
+        print(f"Most recent model result: {wins}-{losses} (current-best)")
+        wandb.log({"best_win_ratio": wins / self.num_eval_games})
+
+        return self.update_patience(wins)
+        
 
     def update_patience(self, wins: int) -> bool:
         if wins > self.win_threshold:
@@ -120,32 +132,24 @@ class Coach(SaveableObject):
         self.patience -= 1
         return self.patience <= 0
 
-    def benchmark(self, Opponent: Type[Player]) -> Tuple[int, int]:
+    def compare(self, Opponent: Type[Player]) -> Tuple[int, int]:
+        self.player.simulations = self.eval_simulations
+
         eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
         wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
+
+        self.player.simulations = self.player_config.num_simulations
         return wins, losses
 
-    def evaluate(self) -> int:
-        champion = self.best_player
-        champion.simulations = self.eval_simulations
-        self.player.simulations = self.eval_simulations
-        wins, losses = self.benchmark(champion.dummy_constructor)
-        self.player.simulations = self.player_config.num_simulations
-        print(f"Most recent model result: {wins}-{losses} (current-best)")
-        return wins
-
     @property
-    def best_player(self):
+    def best_player(self) -> NNMCTSPlayer:
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            return self.load_player(self.best_checkpoint_path)
         else:
-            best_player = NNMCTSPlayer(
+            return NNMCTSPlayer(
                 self.game.game_spec,
                 self.config.player_config
             )
-
-        self.current_best = best_player
-        return best_player
 
     def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):
