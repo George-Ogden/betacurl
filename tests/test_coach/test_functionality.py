@@ -6,10 +6,10 @@ import os
 from pytest import mark
 
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
-from src.coach import Coach, CoachConfig
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
 from src.mcts import MCTSConfig, NNMCTS, NNMCTSConfig
 from src.model import TrainingConfig
-from src.game import Game
+from src.game import Game, MujocoGame
 
 from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -163,7 +163,8 @@ def test_transform():
     )
     game = coach.game
     game.discount = .9
-    arena = Arena([coach.best_player.dummy_constructor] * 2, game=game)
+    coach.current_best = coach.best_player
+    arena = Arena([coach.current_best.dummy_constructor] * 2, game=game)
     result, game_history = arena.play_game(0, return_history=True)
     game.reset(0)
     history = coach.transform_history_for_training(game_history)
@@ -242,7 +243,7 @@ def test_eval_simulations_change():
     )
 
     coach.learn()
-    coach.evaluate()
+    coach.update()
 
     assert coach.current_best.simulations == 5
     assert coach.best_player.simulations == 20
@@ -311,3 +312,58 @@ def test_model_learns():
 
     # cleanup
     BinaryStubGame.max_move = max_move
+
+@mark.probabilistic
+@mark.slow
+@requires_cleanup
+def test_ppo_model_learns():
+    time_limit = MujocoGame.time_limit
+    discount = MujocoGame.discount
+    MujocoGame.time_limit = 5
+    MujocoGame.discount = .5
+    game = MujocoGame(
+        domain_name="point_mass",
+        task_name="easy"
+    )
+    MujocoGame.time_limit = time_limit
+    MujocoGame.discount = discount
+    coach = PPOCoach(
+        game=game,
+        config=CoachConfig(
+            resume_from_checkpoint=False,
+            num_games_per_episode=3,
+            num_iterations=3,
+            training_config=TrainingConfig(
+                lr=1e-2,
+                training_epochs=5
+            ),
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=10,
+                mcts_config=NNMCTSConfig(
+                    cpw=.5,
+                    kappa=1.,
+                )
+            ),
+            num_eval_simulations=10,
+            evaluation_games=1,
+            **necessary_config,
+        )
+    )
+
+    coach.learn()
+    eval_game = MujocoGame(
+        domain_name="point_mass",
+        task_name="easy"
+    )
+    
+    arena = Arena(
+        game=eval_game,
+        players=[
+            coach.best_player.dummy_constructor, 
+        ]
+    )
+    score = 0
+    # needs running multiple times due to very sparse environment
+    for _ in range(5):
+        score = max(score, arena.play_game(return_history=False, training=False))
+    assert score > 1.

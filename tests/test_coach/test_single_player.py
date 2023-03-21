@@ -83,7 +83,7 @@ def test_benchmark():
             evaluation_games=4
         )
     )
-    wins, losses = coach.benchmark(
+    wins, losses = coach.compare(
         MCTSPlayer(
             game_spec,
             MCTSClass=GoodMCTS,
@@ -118,5 +118,5 @@ def test_model_learns():
 
     coach.learn()
 
-    wins = coach.evaluate()
+    wins = coach.update()
     assert wins >= 7
