@@ -11,7 +11,6 @@ test_save_dir/
 output/
 *.pickle
 *.h5
-*.json
 
 # wandb logs
 wandb/
