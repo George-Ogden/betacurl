@@ -1,14 +1,10 @@
 from tqdm import trange
 import numpy as np
-import wandb
-import os
 
-from typing import List, Optional, Tuple, Type
-from copy import copy
+from typing import Tuple, Type
 
-from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..game import Game, GameSpec
-from ..utils import SaveableObject
+from ..player import Arena, Player
+from ..game import Game
 
 from .config import CoachConfig
 from .coach import Coach
