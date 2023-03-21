@@ -1,4 +1,5 @@
-from .config import FixedMCTSConfig, MCTSConfig, MCTSModelConfig, NNMCTSConfig, WideningMCTSConfig
+from .config import FixedMCTSConfig, MCTSConfig, NNMCTSConfig, WideningMCTSConfig
+from .model import MCTSModel, MCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig
 from .base import MCTS, Node, Transition
 from .widening import WideningMCTS
 from .nn import MCTSModel, NNMCTS

@@ -9,7 +9,7 @@ from ..game import Game
 
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
-from .model import MCTSModel
+from .model.reinforce import MCTSModel
 
 class NNMCTS(WideningMCTS):
     CONFIG_CLASS = NNMCTSConfig

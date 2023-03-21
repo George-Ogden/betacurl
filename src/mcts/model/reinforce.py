@@ -1,6 +1,6 @@
 from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
-from tensorflow import keras
+from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
@@ -9,9 +9,9 @@ from copy import copy
 
 from typing import Callable, List, Optional, Tuple, Union
 
-from ..model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ..utils import SaveableMultiModel
-from ..game import GameSpec
+from ...model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...utils import SaveableMultiModel
+from ...game import GameSpec
 
 from .config import MCTSModelConfig
 
@@ -192,6 +192,20 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
+        dataset = self.preprocess_data(
+            training_data,
+            augmentation_function,
+            training_config
+        )
+        
+        return self.fit(dataset, training_config)
+
+    def preprocess_data(
+        self,
+        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> data.Dataset:
         training_data = [
             (
                 augmented_observation,
@@ -218,8 +232,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             )
         ]
 
-        dataset = self.create_dataset(training_data)
-
         training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
-        
-        return self.fit(dataset, training_config)
+
+        return self.create_dataset(training_data)
