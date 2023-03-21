@@ -7,10 +7,17 @@ __pycache__
 .vscode/
 
 # model outputs
-test_save_dir
+test_save_dir/
 output/
 *.pickle
 *.h5
+
+# wandb logs
+wandb/
+*.log
+*.json
+*.wandb
+*.yaml
 
 # test files
 physics.py
