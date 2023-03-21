@@ -11,6 +11,7 @@ test_save_dir
 output/
 *.pickle
 *.h5
+*.json
 
 # test files
 physics.py
