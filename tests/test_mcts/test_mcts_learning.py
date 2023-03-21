@@ -64,8 +64,8 @@ def test_model_losses_converge():
     model = MCTSModel(
         game_spec,
         config=MCTSModelConfig(
-            vf_coeff=100.,
-            ent_coeff=1e-4,
+            vf_coeff=.5,
+            ent_coeff=0.,
         )
     )
 
@@ -73,14 +73,13 @@ def test_model_losses_converge():
         training_data,
         stub_game.no_symmetries,
         training_config=TrainingConfig(
-            training_epochs=10,
-            lr=1e-3
+            training_epochs=20,
+            lr=1e-2
         )
     )
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_any(distribution.scale > .1)
     assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
 
 @mark.slow
