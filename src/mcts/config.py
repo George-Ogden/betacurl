@@ -21,7 +21,7 @@ class WideningMCTSConfig(MCTSConfig):
 @dataclass
 class MCTSModelConfig(Config):
     feature_size: int = 32
-    vf_coeff: float = 2.
+    vf_coeff: float = .5
     ent_coeff: float = 0.
     max_grad_norm: float = .5
     clip_range: float = 2.
