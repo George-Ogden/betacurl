@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from pytest import mark
+import wandb
 
 from src.mcts import MCTSModel, MCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig
 from src.model import TrainingConfig
@@ -18,6 +19,26 @@ game_spec = stub_game.game_spec
 result = 1.5
 training_data = [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)]) for i in range(6)]
 training_data *= 100
+
+def test_ppo_model_stats(monkeypatch):
+    logs = []
+    def log(data, *args, **kwargs):
+        if "train" in data or "val" in data:
+            logs.append(data)
+
+    monkeypatch.setattr(wandb, "log", log)
+    model = PPOMCTSModel(
+        game_spec
+    )
+    model.learn(training_data, stub_game.get_symmetries)
+
+    expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
+
+    assert len(logs) > 0
+    for key in expected_keys:
+        for data in logs:
+            assert key in data["train"]
+            assert key in data["val"]
 
 @mark.probabilistic
 def test_policy_learns():
