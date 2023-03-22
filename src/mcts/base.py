@@ -156,6 +156,7 @@ class MCTS(metaclass=ABCMeta):
     def select_puct_action(self, observation: np.ndarray) -> np.ndarray:
         node = self.get_node(observation)
         actions = node.transitions.values()
+
         q_values = np.array([
             action.reward + (
                 0.
@@ -166,6 +167,7 @@ class MCTS(metaclass=ABCMeta):
         ])
         if q_values.max() != q_values.min():
             q_values /= q_values.max() - q_values.min()
+
         u_values = (
             node.action_probs / node.action_probs.sum()
             * self.cpuct 
