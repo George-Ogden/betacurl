@@ -102,26 +102,26 @@ class PPOMCTSModel(MCTSModel):
                 target_distribution.kl_divergence(predicted_distribution),
                 other_dims
             )
-        self.stats["policy_loss"] += policy_loss.numpy()
-        self.stats["approx_kl_div"] += tf.reduce_sum(approx_kl_div).numpy()
 
         value_loss = losses.mean_squared_error(values, predicted_values)
-        self.stats["value_loss"] += value_loss.numpy()
+        entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
 
         loss = policy_loss + self.vf_coeff * value_loss
-        
-        entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
-        self.stats["entropy_loss"] += entropy_loss.numpy()
-        self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
-        
+
         if self.ent_coeff != 0:
             # entropy is main cause of NaNs in training
             loss += self.ent_coeff * entropy_loss
-        
+
+        # record values for logging
+        self.stats["policy_loss"] += policy_loss.numpy()
+        self.stats["entropy_loss"] += entropy_loss.numpy()
+        self.stats["value_loss"] += value_loss.numpy()
         self.stats["loss"] += loss.numpy()
+        self.stats["approx_kl_div"] += tf.reduce_sum(approx_kl_div).numpy()
+        self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 
         # stop early when KL divergence is too high
-        if self.target_kl is not None and tf.reduce_mean(approx_kl_div, axis=0) > 1.5 * self.target_kl:
+        if self.target_kl is not None and tf.reduce_mean(approx_kl_div, axis=-1) > 1.5 * self.target_kl:
             self.model.stop_training = True
             loss *= 0.
 
