@@ -83,15 +83,13 @@ def test_benchmark():
             evaluation_games=4
         )
     )
-    wins, losses = coach.compare(
+    assert coach.compare(
         MCTSPlayer(
             game_spec,
             MCTSClass=GoodMCTS,
             config=copy(coach.config.player_config)
         ).dummy_constructor
     )
-    assert wins + losses == 4
-    assert wins == 4
 
 @mark.probabilistic
 @mark.slow

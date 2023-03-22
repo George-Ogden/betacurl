@@ -86,7 +86,8 @@ def test_works_with_less_information():
         )
     )
     arena = Arena(players=[free_player.dummy_constructor, forced_player.dummy_constructor], game=sparse_stub_game)
-    wins, losses = arena.play_games(2)
+    scores = arena.play_games(2)
+    assert len(scores) == 2
 
 def test_config_is_used():
     player = MCTSPlayer(
