@@ -54,14 +54,13 @@ class Arena():
         else:
             return total_reward
 
-    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> Tuple[int, ...]:
+    def play_games(self, num_games: int, display: bool = False, training: bool = False) -> List[float]:
         """
         Returns:
-            Tuple[int, ...]: (number of games each player won
+            List[float]: results of each game
         """
-        results = [0] * self.game.num_players
-        for i in trange(num_games, desc="Playing games"):
-            result = self.play_game(starting_player=i % self.game.num_players, display=display, return_history=False, training=training)
-            assert result != 0, "Games cannot end in a draw!"
-            results[self.game.player_deltas.index(np.sign(result))] += 1
-        return tuple(results)
+        results = [
+            self.play_game(starting_player=i % self.game.num_players, display=display, return_history=False, training=training)
+            for i in trange(num_games, desc="Playing games")
+        ]
+        return results

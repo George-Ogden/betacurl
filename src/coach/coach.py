@@ -33,6 +33,7 @@ class Coach(SaveableObject):
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
         self.model_filename = config.model_filenames
+        self.stats = {}
 
     def set_config(self, config: CoachConfig):
         self.config = copy(config)
@@ -42,7 +43,7 @@ class Coach(SaveableObject):
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
         self.num_eval_games = config.evaluation_games
-        self.win_threshold = int(config.win_threshold * self.num_eval_games)
+        self.win_threshold = config.win_threshold
         self.resume_from_checkpoint = config.resume_from_checkpoint
         self.eval_simulations = config.num_eval_simulations
         self.learning_patience = config.successive_win_requirement
@@ -115,31 +116,45 @@ class Coach(SaveableObject):
         champion.simulations = self.eval_simulations
         self.current_best = champion
         
-        wins, losses = self.compare(champion.dummy_constructor)
-
-        if wins > self.win_threshold:
+        result = self.compare(champion.dummy_constructor)
+        if result:
             self.save_best_model()
+        self.stats["updated"] = result
 
-        print(f"Most recent model result: {wins}-{losses} (current-best)")
-        wandb.log({"best_win_ratio": wins / self.num_eval_games})
-
-        return self.update_patience(wins)
+        wandb.log(self.stats)
+        self.stats = {}
+        return self.update_patience(result)
         
 
-    def update_patience(self, wins: int) -> bool:
-        if wins > self.win_threshold:
+    def update_patience(self, change: bool) -> bool:
+        if change:
             self.patience = self.learning_patience
+
         self.patience -= 1
+        self.stats["patience"] = self.patience
         return self.patience <= 0
 
-    def compare(self, Opponent: Type[Player]) -> Tuple[int, int]:
+    def compare(self, Opponent: Type[Player]) -> bool:
+        """
+        Returns:
+            bool: True if the current player is better else False
+        """
         self.player.simulations = self.eval_simulations
 
         eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
-        wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
+        results = np.array(eval_arena.play_games(self.num_eval_games, display=False, training=False))
 
         self.player.simulations = self.player_config.num_simulations
-        return wins, losses
+        # return True if the current player won more than the win threshold
+        self.stats |= {
+            "win_rate": (results > 0).sum() / len(results),
+            "loss_rate": (results < 0).sum() / len(results),
+            "draw_rate": (results == 0).sum() / len(results),
+            "best_result": results.max(),
+            "worst_result": results.min(),
+            "avg_result": results.mean(),
+        }
+        return results.mean() >= (self.win_threshold + 1) / 2
 
     @property
     def best_player(self) -> NNMCTSPlayer:

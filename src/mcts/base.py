@@ -39,6 +39,7 @@ class Node:
 
 class MCTS(metaclass=ABCMeta):
     CONFIG_CLASS = MCTSConfig
+    eps = 1e-3
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         self.game = game
         self.action_spec = game.game_spec.move_spec
@@ -94,7 +95,7 @@ class MCTS(metaclass=ABCMeta):
     def rollout(self, game: Game) -> float:
         multiplier = 1.
         reward = 0.
-        while multiplier > game.eps:
+        while multiplier > self.eps:
             action = game.get_random_move()
             timestep = game.step(action)
             reward += (timestep.reward or 0.) * multiplier
