@@ -30,10 +30,11 @@ class WideningMCTS(MCTS):
         num_actions = np.ceil(self.cpw * node.num_visits ** self.kappa)
         if num_actions > len(node.transitions):
             action, prob = self.generate_action(observation)
-            if hasattr(node, "action_probs"):
-                node.action_probs = np.concatenate((node.action_probs, (prob,)))
-            else:
-                node.action_probs = np.array((prob,))
-            return action
-
+            # don't add the same action twice
+            if self.encode(action) not in node.transitions:
+                if hasattr(node, "action_probs"):
+                    node.action_probs = np.concatenate((node.action_probs, (prob,)))
+                else:
+                    node.action_probs = np.array((prob,))
+                return action
         return self.select_puct_action(observation)
