@@ -140,15 +140,30 @@ class CustomDecorator(ModelDecorator):
                 callback.on_train_batch_begin(step)
                 loss += self.train_step(batch, optimizer)
                 callback.on_train_batch_end(step)
-            train_stats = {k: v / len(train_dataset) for k, v in self.stats.items()}
+            train_stats = {
+                "loss": loss / len(train_dataset)
+            } | {
+                k: v / len(train_dataset) for k, v in self.stats.items()
+            }
             
             self.stats = defaultdict(float)
             val_loss = 0
             for step, batch in enumerate(val_dataset.batch(batch_size)):
                 val_loss += self.compute_loss(*batch)
-            val_stats = {k: v / len(val_dataset) for k, v in self.stats.items()}
+            val_stats = {
+                "loss": val_loss / len(val_dataset)
+            } | {
+                k: v / len(val_dataset) for k, v in self.stats.items()
+            }
 
-            callback.on_epoch_end(epoch, logs={"train": train_stats, "val": val_stats})
+            callback.on_epoch_end(
+                epoch,
+                {
+                    k: v for k, v in train_stats.items()
+                }  | {
+                    "val_" + k: v for k, v in val_stats.items()
+                }
+            )
             if self.model.stop_training:
                 break
         callback.on_train_end()
