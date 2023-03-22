@@ -5,14 +5,17 @@ import numpy as np
 
 from typing import Dict, Optional, Tuple
 
+from ..utils.io import SaveableObject
 from ..game import Game
 
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
 from .model.reinforce import MCTSModel
 
-class NNMCTS(WideningMCTS):
+class NNMCTS(WideningMCTS, SaveableObject):
     CONFIG_CLASS = NNMCTSConfig
+    DEFAULT_FILENAME = "nn_mcts.pickle"
+    SEPARATE_ATTRIBUTES = ["model"]
     def __init__(
         self,
         game: Game,
