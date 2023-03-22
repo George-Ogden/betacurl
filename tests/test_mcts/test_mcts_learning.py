@@ -18,7 +18,9 @@ game_spec = stub_game.game_spec
 
 result = 1.5
 training_data = [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)]) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)] * 2) for i in range(6)]
 training_data *= 100
+mixed_training_data *= 50
 
 def test_reinforce_model_stats(monkeypatch):
     logs = []
@@ -30,7 +32,8 @@ def test_reinforce_model_stats(monkeypatch):
     model = MCTSModel(
         game_spec
     )
-    model.learn(training_data, stub_game.get_symmetries)
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
 
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
@@ -50,7 +53,8 @@ def test_ppo_model_stats(monkeypatch):
     model = PPOMCTSModel(
         game_spec
     )
-    model.learn(training_data, stub_game.get_symmetries)
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
 
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
