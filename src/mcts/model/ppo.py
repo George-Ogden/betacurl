@@ -121,7 +121,7 @@ class PPOMCTSModel(MCTSModel):
         self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 
         # stop early when KL divergence is too high
-        if self.target_kl is not None and tf.reduce_mean(approx_kl_div, axis=-1) > 1.5 * self.target_kl:
+        if self.target_kl is not None and tf.reduce_mean(approx_kl_div) > 1.5 * self.target_kl:
             self.model.stop_training = True
             loss *= 0.
 
