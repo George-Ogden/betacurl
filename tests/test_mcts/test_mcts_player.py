@@ -4,7 +4,7 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSModel, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
 from src.game import Game, SingleEndCurlingGame
 
@@ -146,3 +146,16 @@ def test_mcts_config_is_used():
     assert (player.scaling_spec.reshape(-1)[:np.prod(observation_shape)] == 1).all()
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
+
+def test_nn_mcts_player_uses_model():
+    player = NNMCTSPlayer(
+        single_stone_game.game_spec,
+        ModelClass=MCTSModel
+    )
+    player.model = player.create_model()
+    
+    single_stone_game.reset()
+    player.move(single_stone_game)
+    
+    assert isinstance(player.mcts, MCTS)
+    assert isinstance(player.mcts.model, MCTSModel)
