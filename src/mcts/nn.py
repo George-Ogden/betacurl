@@ -50,11 +50,11 @@ class NNMCTS(WideningMCTS):
             self.planned_actions[encoding] = self.model.generate_distribution(observation)
         distribution = self.planned_actions[encoding]
         action = distribution.sample()
-        prob = distribution.prob(action)
+        prob = tf.reduce_prod(distribution.prob(action))
         return (
             tf.clip_by_value(
                 action,self.action_spec.minimum,
                 self.action_spec.maximum
             ).numpy(),
-            prob
+            prob.numpy()
         )
