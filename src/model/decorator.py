@@ -1,4 +1,5 @@
 from tensorflow.keras import callbacks
+from collections import defaultdict
 from tensorflow import data
 import tensorflow as tf
 from copy import copy
@@ -134,14 +135,20 @@ class CustomDecorator(ModelDecorator):
         for epoch in range(training_config.training_epochs):
             callback.on_epoch_begin(epoch)
             loss = 0
+            self.stats = defaultdict(float)
             for step, batch in enumerate(train_dataset.batch(batch_size)):
                 callback.on_train_batch_begin(step)
                 loss += self.train_step(batch, optimizer)
                 callback.on_train_batch_end(step)
+            train_stats = {k: v / len(train_dataset) for k, v in self.stats.items()}
+            
+            self.stats = defaultdict(float)
             val_loss = 0
             for step, batch in enumerate(val_dataset.batch(batch_size)):
                 val_loss += self.compute_loss(*batch)
-            callback.on_epoch_end(epoch, {"loss": loss / len(train_dataset), "val_loss": val_loss / len(val_dataset)})
+            val_stats = {k: v / len(val_dataset) for k, v in self.stats.items()}
+
+            callback.on_epoch_end(epoch, logs={"train": train_stats, "val": val_stats})
             if self.model.stop_training:
                 break
         callback.on_train_end()

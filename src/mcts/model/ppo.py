@@ -45,6 +45,7 @@ class PPOMCTSModel(MCTSModel):
             for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
                 distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
                 target_distribution = type(target_distribution)(**{k: v[i] for k, v in target_distribution_properties.items()})
+                other_dims = tuple(range(1, distribution.batch_shape.ndims))
                 
                 actions = actions.to_tensor()
 
@@ -52,12 +53,27 @@ class PPOMCTSModel(MCTSModel):
                 target_log_probs = tf.reduce_sum(target_distribution.log_prob(actions), axis=-1)
                 
                 ratio = tf.exp(log_probs - target_log_probs)
+                self.stats["clip_fraction"] += tf.reduce_sum(
+                    tf.reduce_mean(
+                        tf.cast(
+                            tf.greater(tf.abs(ratio - 1), self.clip_range),
+                            tf.float32
+                        ),
+                        other_dims
+                    )
+                ).numpy()
                 
                 policy_loss_1 = ratio * advantages
                 policy_loss_2 = tf.clip_by_value(ratio, 1 - self.clip_range, 1 + self.clip_range) * advantages
                 policy_loss -= tf.reduce_mean(tf.minimum(policy_loss_1, policy_loss_2))
                 
-                approx_kl_div += target_distribution.kl_divergence(distribution)
+                approx_kl_div += tf.reduce_mean(
+                    tf.reduce_sum(
+                        target_distribution.kl_divergence(distribution),
+                        other_dims
+                    )
+                )
+
             policy_loss /= action_groups.shape[0]
             approx_kl_div /= action_groups.shape[0]
         else:
@@ -65,25 +81,47 @@ class PPOMCTSModel(MCTSModel):
             advantage_groups = tf.transpose(advantage_groups, (1, 0, *range(2, advantage_groups.ndim)))
             log_probs = tf.reduce_sum(predicted_distribution.log_prob(action_groups), axis=-1)
             target_log_probs = tf.reduce_sum(target_distribution.log_prob(action_groups), axis=-1)
+            other_dims = tuple(range(1, predicted_distribution.batch_shape.ndims))
 
             ratio = tf.exp(log_probs - target_log_probs)
+            self.stats["clip_fraction"] += tf.reduce_sum(
+                tf.reduce_mean(
+                    tf.cast(
+                        tf.greater(tf.abs(ratio - 1), self.clip_range),
+                        tf.float32
+                    ),
+                    other_dims
+                )
+            ).numpy()
 
             policy_loss_1 = ratio * advantage_groups
             policy_loss_2 = tf.clip_by_value(ratio, 1 - self.clip_range, 1 + self.clip_range) * advantage_groups
             policy_loss = -tf.reduce_mean(tf.minimum(policy_loss_1, policy_loss_2))
 
-            approx_kl_div = target_distribution.kl_divergence(predicted_distribution)
+            approx_kl_div = tf.reduce_sum(
+                target_distribution.kl_divergence(predicted_distribution),
+                other_dims
+            )
+        self.stats["policy_loss"] += policy_loss.numpy()
+        self.stats["approx_kl_div"] += tf.reduce_sum(approx_kl_div).numpy()
 
         value_loss = losses.mean_squared_error(values, predicted_values)
+        self.stats["value_loss"] += value_loss.numpy()
 
         loss = policy_loss + self.vf_coeff * value_loss
+        
+        entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
+        self.stats["entropy_loss"] += entropy_loss.numpy()
+        self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
+        
         if self.ent_coeff != 0:
             # entropy is main cause of NaNs in training
-            entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
             loss += self.ent_coeff * entropy_loss
+        
+        self.stats["loss"] += loss.numpy()
 
         # stop early when KL divergence is too high
-        if self.target_kl is not None and tf.reduce_mean(approx_kl_div) > 1.5 * self.target_kl:
+        if self.target_kl is not None and tf.reduce_mean(approx_kl_div, axis=0) > 1.5 * self.target_kl:
             self.model.stop_training = True
             loss *= 0.
 
