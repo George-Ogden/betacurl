@@ -33,6 +33,12 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
             config=self.config.mcts_config
         )
 
+    def create_model(self) -> MCTSModel:
+        return self.ModelClass(
+            game_spec=self.game_spec,
+            scaling_spec=self.scaling_spec
+        )
+
     def learn(
         self,
         training_history: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
@@ -40,8 +46,5 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
         training_config: TrainingConfig = TrainingConfig()
     ):
         if self.model is None:
-            self.model = self.ModelClass(
-                game_spec=self.game_spec,
-                scaling_spec=self.scaling_spec
-            )
+            self.model = self.create_model()
         self.model.learn(training_history, augmentation_function, training_config)
