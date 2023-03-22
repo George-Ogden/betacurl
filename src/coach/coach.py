@@ -115,7 +115,7 @@ class Coach(SaveableObject):
         champion = self.best_player
         champion.simulations = self.eval_simulations
         self.current_best = champion
-        
+
         result = self.compare(champion.dummy_constructor)
         if result:
             self.save_best_model()

@@ -52,6 +52,9 @@ class NNMCTS(WideningMCTS):
         action = distribution.sample()
         prob = distribution.prob(action)
         return (
-            tf.clip_by_value(action,self.action_spec.minimum, self.action_spec.maximum),
+            tf.clip_by_value(
+                action,self.action_spec.minimum,
+                self.action_spec.maximum
+            ).numpy(),
             prob
         )
