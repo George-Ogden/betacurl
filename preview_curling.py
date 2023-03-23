@@ -8,10 +8,11 @@ import os
 
 def main(args):
     player = NNMCTSPlayer.load(args.model_directory)
-    player.eval_simulations = 25
+    player.eval_simulations = 50
     arena = Arena(players=[player.dummy_constructor, NNMCTSPlayer], game=CURLING_GAME)
-    arena.players[1].eval_simulations = 25
-    print(arena.play_game(display=True, training=False))
+    arena.players[1].eval_simulations = 50
+    for _ in range(10):
+        print(arena.play_game(display=True, training=False))
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
