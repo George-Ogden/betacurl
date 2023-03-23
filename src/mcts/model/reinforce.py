@@ -151,13 +151,10 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
                 policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
 
-                self.stats["clip_fraction"] += tf.reduce_sum(
-                    tf.reduce_mean(
-                        tf.cast(
-                            tf.greater(tf.abs(log_probs), self.clip_range),
-                            tf.float32
-                        ),
-                        other_dims
+                self.stats["clip_fraction"] += tf.reduce_mean(
+                    tf.cast(
+                        tf.greater(tf.abs(log_probs), self.clip_range),
+                        tf.float32
                     )
                 ).numpy()
             policy_loss /= action_groups.shape[0]
