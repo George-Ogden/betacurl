@@ -14,7 +14,6 @@ from tests.config import SAVE_DIR
 
 necessary_config = {
     "save_directory": SAVE_DIR,
-
 }
 
 time_limit = MujocoGame.time_limit
@@ -67,18 +66,41 @@ class GoodPlayerCoach(SinglePlayerCoach):
         return best_player
 
 @mark.probabilistic
-@mark.slow
-def test_benchmark():
+def test_benchmark_pass():
+    coach = GoodPlayerCoach(
+        game=game,
+        config=CoachConfig(
+            **necessary_config,
+            evaluation_games=2,
+            win_threshold=.99,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4,
+            )
+        )
+    )
+    coach.player = coach.best_player
+    assert coach.compare(
+        MCTSPlayer(
+            game_spec,
+            MCTSClass=BadMCTS,
+            config=copy(coach.config.player_config),
+        ).dummy_constructor
+    )
+
+@mark.probabilistic
+def test_benchmark_fail():
     coach = BadPlayerCoach(
         game=game,
         config=CoachConfig(
             **necessary_config,
-            evaluation_games=1,
+            win_threshold=.01,
+            evaluation_games=2,
             player_config=NNMCTSPlayerConfig(
-                num_simulations=5
+                num_simulations=4
             )
         )
     )
+    coach.player = coach.best_player
     assert not coach.compare(
         MCTSPlayer(
             game_spec,
