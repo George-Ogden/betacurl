@@ -23,5 +23,5 @@ class SinglePlayerCoach(Coach):
         current_player_results = np.array(arena.play_games(self.num_eval_games, display=False, training=False))
         arena = Arena([Opponent], game=self.game.clone())
         opponent_results = np.array(arena.play_games(self.num_eval_games, display=False, training=False))
-        wins = len(current_player_results >= opponent_results)
+        wins = (current_player_results >= opponent_results).sum()
         return wins > self.win_threshold
