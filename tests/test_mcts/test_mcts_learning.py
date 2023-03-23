@@ -42,6 +42,8 @@ def test_reinforce_model_stats(monkeypatch):
         for data in logs:
             assert key in data
             assert "val_" + key in data
+        assert 0 <= data["clip_fraction"] <= 1
+        assert 0 <= data["val_clip_fraction"] <= 1
 
 def test_ppo_model_stats(monkeypatch):
     logs = []
@@ -63,6 +65,8 @@ def test_ppo_model_stats(monkeypatch):
         for data in logs:
             assert key in data
             assert "val_" + key in data
+        assert 0 <= data["clip_fraction"] <= 1
+        assert 0 <= data["val_clip_fraction"] <= 1
 
 @mark.probabilistic
 def test_policy_learns():
