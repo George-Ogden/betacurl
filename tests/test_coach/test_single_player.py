@@ -18,7 +18,7 @@ necessary_config = {
 }
 
 time_limit = MujocoGame.time_limit
-MujocoGame.time_limit = 1000
+MujocoGame.time_limit = 10
 game = MujocoGame("cartpole", "swingup")
 MujocoGame.time_limit = time_limit
 
