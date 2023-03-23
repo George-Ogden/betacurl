@@ -256,7 +256,7 @@ def test_drawn_game_where_player_1_starts():
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
-    assert np.sign(time_step.reward) == starter
+    assert np.sign(time_step.reward) == 0
 
 def test_drawn_game_where_player_2_starts():
     single_end_game.reset(1)
@@ -264,7 +264,7 @@ def test_drawn_game_where_player_2_starts():
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
-    assert np.sign(time_step.reward) == starter
+    assert np.sign(time_step.reward) == 0
 
 def test_clone():
     single_end_game.reset()

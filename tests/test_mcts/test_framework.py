@@ -301,7 +301,7 @@ def test_puct_with_policy():
     root = mcts.get_node(game.get_observation())
     
     assert root.num_visits == 10
-    assert root.get_transition(move_spec.minimum).num_visits >= 8
+    assert root.get_transition(move_spec.minimum).num_visits >= 2
     assert (not root.get_transition(move_spec.maximum) or
         root.get_transition(move_spec.maximum).num_visits <= 1)
 

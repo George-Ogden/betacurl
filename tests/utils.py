@@ -63,7 +63,7 @@ class SparseStubGame(StubGame):
         super()._step(action, display)
         reward = float(self.get_observation()[0])
         if self.current_round == self.max_round - 1:
-            return reward if reward != 0 else self.eps * -self.player_delta
+            return reward
 
 class BadSymetryStubGame(StubGame):
     def get_symmetries(

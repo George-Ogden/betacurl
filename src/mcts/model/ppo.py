@@ -53,13 +53,10 @@ class PPOMCTSModel(MCTSModel):
                 target_log_probs = tf.reduce_sum(target_distribution.log_prob(actions), axis=-1)
                 
                 ratio = tf.exp(log_probs - target_log_probs)
-                self.stats["clip_fraction"] += tf.reduce_sum(
-                    tf.reduce_mean(
-                        tf.cast(
-                            tf.greater(tf.abs(ratio - 1), self.clip_range),
-                            tf.float32
-                        ),
-                        other_dims
+                self.stats["clip_fraction"] += tf.reduce_mean(
+                    tf.cast(
+                        tf.greater(tf.abs(ratio - 1), self.clip_range),
+                        tf.float32
                     )
                 ).numpy()
                 
