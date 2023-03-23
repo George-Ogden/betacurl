@@ -3,15 +3,13 @@ from glob import glob
 import numpy as np
 import os
 
-from pytest import mark
-
-from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
-from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
-from src.mcts import MCTSConfig, NNMCTS, NNMCTSConfig
+from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
+from src.coach import Coach, CoachConfig
 from src.model import TrainingConfig
-from src.game import Game, MujocoGame
+from src.mcts import MCTSConfig
+from src.game import Game
 
-from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
+from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 
 special_cases = dict(
@@ -52,19 +50,6 @@ boring_coach = Coach(
         **config_dict
     )
 )
-
-class FixedValueMCTS(NNMCTS):
-    CONFIG_CLASS = NNMCTSConfig
-    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig(), move = None):
-        super().__init__(game, config=config)
-        self.move = move
-
-    def select_action(self, observation: np.ndarray) -> np.ndarray:
-        super().select_action(observation)
-        return self.move.copy()
-
-    def _get_action_probs(self, game: Game, temperature: float):
-        return np.array([self.select_action(game.get_observation())]), np.array([1.])
 
 class GoodMCTS(FixedValueMCTS):
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
