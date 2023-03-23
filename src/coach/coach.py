@@ -119,7 +119,7 @@ class Coach(SaveableObject):
         result = self.compare(champion.dummy_constructor)
         if result:
             self.save_best_model()
-        self.stats["updated"] = result
+        self.stats["updated"] = float(result)
 
         wandb.log(self.stats)
         self.stats = {}
