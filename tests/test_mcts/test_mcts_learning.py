@@ -25,7 +25,7 @@ mixed_training_data *= 50
 def test_reinforce_model_stats(monkeypatch):
     logs = []
     def log(data, *args, **kwargs):
-        if "train" in data or "val" in data:
+        if len(data) > 1:
             logs.append(data)
 
     monkeypatch.setattr(wandb, "log", log)
@@ -40,13 +40,13 @@ def test_reinforce_model_stats(monkeypatch):
     assert len(logs) > 0
     for key in expected_keys:
         for data in logs:
-            assert key in data["train"]
-            assert key in data["val"]
+            assert key in data
+            assert "val_" + key in data
 
 def test_ppo_model_stats(monkeypatch):
     logs = []
     def log(data, *args, **kwargs):
-        if "train" in data or "val" in data:
+        if len(data) > 1:
             logs.append(data)
 
     monkeypatch.setattr(wandb, "log", log)
@@ -61,8 +61,8 @@ def test_ppo_model_stats(monkeypatch):
     assert len(logs) > 0
     for key in expected_keys:
         for data in logs:
-            assert key in data["train"]
-            assert key in data["val"]
+            assert key in data
+            assert "val_" + key in data
 
 @mark.probabilistic
 def test_policy_learns():
@@ -197,7 +197,7 @@ def test_kl_divergence_without_early_stopping():
     initial_distribution = model.generate_distribution(
         training_sample[1]
     )
-    training_data[-1] = [(initial_distribution.mean() + 100, 1.), (initial_distribution.mean() - 100, -1.)]
+    training_data[-1] = [(initial_distribution.mean() + 1000, 1.), (initial_distribution.mean() - 1000, -1.)]
     model.learn(
         training_data=[training_sample] * 100,
         augmentation_function=stub_game.no_symmetries,
