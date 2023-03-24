@@ -33,6 +33,7 @@ class Coach(SaveableObject):
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
         self.model_filename = config.model_filenames
+        self.current_best = None
         self.stats = {}
 
     def set_config(self, config: CoachConfig):
@@ -159,7 +160,7 @@ class Coach(SaveableObject):
     @property
     def best_player(self) -> NNMCTSPlayer:
         if os.path.exists(self.best_checkpoint_path):
-            return self.load_player(self.best_checkpoint_path)
+            return self.player.load(self.best_checkpoint_path)
         else:
             return NNMCTSPlayer(
                 self.game.game_spec,
@@ -178,9 +179,11 @@ class Coach(SaveableObject):
         self.save(self.best_checkpoint_path)
         del self.train_example_history[:]
 
-    @classmethod
-    def load_player(cls, directory: str) -> NNMCTSPlayer:
-        return NNMCTSPlayer.load(directory)
+    def save(self, directory: str):
+        current_best = self.current_best
+        del self.current_best
+        super().save(directory)
+        self.current_best = current_best
 
     def transform_history_for_training(
             self,
