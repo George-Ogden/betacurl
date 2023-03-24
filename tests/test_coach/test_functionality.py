@@ -155,7 +155,7 @@ def test_transform():
     history = coach.transform_history_for_training(game_history)
     previous_value = None
     p = None
-    for player, observation, action, value, *data in history[::-1]:
+    for player, observation, action, value, policy in history[::-1]:
         assert p is None or p == player * -1
         p = player
         assert np.allclose(observation, game.get_observation())
@@ -163,6 +163,10 @@ def test_transform():
         if previous_value is not None:
             assert previous_value == value
         previous_value = value
+        advantage_sum = 0.
+        for action, advantage in policy:
+            advantage_sum += advantage
+        assert np.allclose(advantage_sum, 0.)
 
 @requires_cleanup
 def test_train_examples_cleared_after_win():
