@@ -182,12 +182,6 @@ class Coach(SaveableObject):
     def load_player(cls, directory: str) -> NNMCTSPlayer:
         return NNMCTSPlayer.load(directory)
 
-    @classmethod
-    def load(cls, directory: str) -> "Self":
-        self = super().load(directory)
-        self.player = self.load_player(directory)
-        return self
-
     def transform_history_for_training(
             self,
             training_data: List[Tuple[Node, Transition]]
