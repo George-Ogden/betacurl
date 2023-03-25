@@ -1,13 +1,14 @@
-from copy import copy
+from copy import copy, deepcopy
+from dm_env import StepType
 from glob import glob
 import numpy as np
 import os
 
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
-from src.coach import Coach, CoachConfig
+from src.game import Game, MujocoGame
 from src.model import TrainingConfig
 from src.mcts import MCTSConfig
-from src.game import Game
 
 from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -92,6 +93,14 @@ class GoodPlayerCoach(Coach):
 
         self.current_best = best_player
         return best_player
+
+class EvalEnvSavingCoach(PPOCoach):
+    def __init__(self, game: Game, config: PPOCoachConfig = PPOCoachConfig()):
+        super().__init__(game, config)
+        self.eval_envs = []
+    def compare(self, Opponent) -> bool:
+        self.eval_envs.append(deepcopy(self.eval_environment))
+        return super().compare(Opponent)
 
 @requires_cleanup
 def test_no_default_best():
@@ -257,3 +266,47 @@ def test_logs_format(capsys):
     assert not "{" in captured.err
     assert not "}" in captured.out
     assert not "}" in captured.err
+
+@requires_cleanup
+def test_eval_arena_is_constant():
+    eval_envs = []
+    time_limit = MujocoGame.time_limit
+    timestep = MujocoGame.timestep
+    MujocoGame.time_limit = 6.
+    MujocoGame.timestep = .5
+    game = MujocoGame(domain_name="point_mass", task_name="easy")
+    MujocoGame.timestep = timestep
+    MujocoGame.time_limit = time_limit
+
+        
+    coach = EvalEnvSavingCoach(
+        game=game,
+        config=PPOCoachConfig(
+            num_iterations=3,
+            num_games_per_episode=1,
+            evaluation_games=1,
+            num_eval_simulations=2,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=2
+            ),
+            **necessary_config
+        )
+    )
+
+    coach.learn()
+    
+    move_spec = coach.game.game_spec.move_spec
+    actions = [np.random.uniform(low=move_spec.minimum, high=move_spec.maximum) for _ in range(10)]
+    timesteps = []
+    for env in eval_envs:
+        for i, action in enumerate(actions):
+            timestep = env.step(action)
+            if i == len(timesteps):
+                timesteps.append(timestep)
+            else:
+                assert timestep.discount == timesteps[i].discount
+                assert timestep.reward == timesteps[i].reward
+                assert (timestep.observation == timesteps[i].observation).all()
+                assert timestep.step_type == timesteps[i].step_type
+            if timestep.step_type == StepType.LAST:
+                env.reset()
