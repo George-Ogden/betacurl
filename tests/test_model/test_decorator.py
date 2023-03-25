@@ -177,7 +177,7 @@ def test_custom_model_uses_config():
             training_epochs=10,
             batch_size=32,
             lr=1e-1,
-            training_patience=0,
+            training_patience=None,
             additional_callbacks=[counter],
             optimizer_type="SGD",
             optimizer_kwargs={
