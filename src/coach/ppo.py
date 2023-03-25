@@ -2,6 +2,8 @@ from tqdm import trange
 import numpy as np
 import wandb
 
+from typing import Optional
+
 from ..mcts import PPOMCTSModel
 from ..player import Arena, NNMCTSPlayer, NNMCTSPlayerConfig
 from ..game import Game, GameSpec
@@ -17,7 +19,7 @@ class PPOCoach(SinglePlayerCoach):
     ):
         super().__init__(game=game, config=config)
         self.eval_environment = game.clone()
-        self.best_reward = 0.
+        self.best_reward = -float("inf")
     
     def update(self) -> float:
         eval_enviroment = self.eval_environment.clone()
@@ -46,6 +48,13 @@ class PPOCoach(SinglePlayerCoach):
             ModelClass=PPOMCTSModel,
             config=config
         )
+        self.player.model = self.player.create_model()
+    
+    def load_checkpoint(self) -> Optional[int]:
+        iteration = super().load_checkpoint()
+        if iteration is not None:
+            self.best_reward = -float("inf")
+        return iteration
 
     def update_patience(self, reward: float) -> bool:
         if reward > self.best_reward:

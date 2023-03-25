@@ -81,6 +81,7 @@ class Coach(SaveableObject):
             for k, v in vars(coach).items():
                 setattr(self, k, v)
             self.set_config(config)
+            self.update_patience(True)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
