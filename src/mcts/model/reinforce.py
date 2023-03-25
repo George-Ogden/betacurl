@@ -137,13 +137,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
-        
+
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
-            distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
 
             for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
-                distribution = type(predicted_distribution)(**{k: v[i] for k, v in distribution_properties.items()})
+                distribution = predicted_distribution[i]
                 other_dims = tuple(range(1, distribution.batch_shape.ndims))
 
                 log_probs = distribution.log_prob(actions.to_tensor())
@@ -237,7 +236,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             augmentation_function,
             training_config
         )
-        
+
         return self.fit(dataset, training_config)
 
     def preprocess_data(
@@ -262,7 +261,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
                     for policy in zip(*[
                         [
                             (augmented_action, advantage)
-                            for augmented_player, augmented_observation, augmented_action, augmented_reward 
+                            for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, reward)
                         ]
                         for action, advantage in policy
