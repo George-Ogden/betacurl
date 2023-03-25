@@ -25,7 +25,7 @@ class PPOCoach(SinglePlayerCoach):
         eval_enviroment = self.eval_environment.clone()
         self.player.simulations = self.eval_simulations
         arena = Arena([self.player.dummy_constructor], game=eval_enviroment)
-        rewards = [arena.play_game(training=False, return_history=False, display=False) for _ in trange(self.num_eval_games, desc="Evaluating")]
+        rewards = arena.play_games(training=False, return_history=False, display=False, num_games=self.num_eval_games)
         reward = np.mean(rewards)
 
         self.player.simulations = self.player_config.num_simulations
