@@ -1,5 +1,5 @@
+from tensorflow_probability import bijectors, distributions
 from tensorflow.keras import callbacks, layers, losses
-from tensorflow_probability import distributions
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
@@ -69,7 +69,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             input_shape=self.feature_size,
             output_shape=self.action_shape + (2,),
             config=DenseModelFactory.CONFIG_CLASS(
-                output_activation="linear"
+                output_activation="softplus" # parameters of beta distrbiution must be positive
             )
         )
 
@@ -205,19 +205,27 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         if not batch_throughput:
             raw_actions = tf.squeeze(raw_actions, 0).numpy()
 
-        means, log_stds = tf.split(raw_actions, 2, axis=-1)
-        means = tf.squeeze(means, -1)
-        log_stds = tf.squeeze(log_stds, -1)
-        stds = tf.exp(log_stds)
+        alphas, betas = tf.split(raw_actions, 2, axis=-1)
+        alphas = tf.squeeze(alphas, -1)
+        betas = tf.squeeze(betas, -1)
 
-        return distributions.Normal(means, stds)
+        # create underlying beta distribution
+        beta_distribution = distributions.Beta(alphas, betas)
+        # scale within action range
+        return distributions.TransformedDistribution(
+            distribution=beta_distribution,
+            bijector=bijectors.Shift(self.action_range[0])(
+                bijectors.Scale(self.action_range[1] - self.action_range[0])
+            ),
+            name="ScaledBetaDistribution"
+        )
 
     @classmethod
     def load(cls, directory: str) -> "Self":
         model = super().load(directory)
         model.setup_model()
         return model
-    
+
     def learn(
         self,
         training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
