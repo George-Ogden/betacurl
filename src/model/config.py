@@ -28,7 +28,7 @@ class TrainingConfig(Config):
     """number of epochs to train each model for"""
     batch_size: int = 256
     """training batch size"""
-    training_patience: int = 7
+    training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""
     lr: float = 1e-2
     """model learning rate"""
@@ -65,5 +65,5 @@ class TrainingConfig(Config):
                     monitor="val_" + (self.metrics[0] if len(self.metrics) > 0 else "loss"),
                     restore_best_weights=True
                 )
-            ] if self.training_patience > 0 else []
+            ] if self.training_patience is not None else []
         )

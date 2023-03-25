@@ -201,7 +201,6 @@ def test_kl_divergence_without_early_stopping():
     initial_distribution = model.generate_distribution(
         training_sample[1]
     )
-    training_data[-1] = [(initial_distribution.mean() + 1000, 1.), (initial_distribution.mean() - 1000, -1.)]
     model.learn(
         training_data=[training_sample] * 100,
         augmentation_function=stub_game.no_symmetries,
@@ -230,7 +229,6 @@ def test_kl_divergence_with_early_stopping():
     initial_distribution = model.generate_distribution(
         training_sample[1]
     )
-    training_data[-1] = [(initial_distribution.mean() + 100, 1.), (initial_distribution.mean() - 100, -1.)]
     model.learn(
         training_data=[training_sample] * 10,
         augmentation_function=stub_game.no_symmetries,
@@ -243,3 +241,38 @@ def test_kl_divergence_with_early_stopping():
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
     )) < 5
+
+def test_training_continues_within_kl_divergence():
+    model = PPOMCTSModel(
+        game_spec=game_spec,
+        config=PPOMCTSModelConfig(
+            target_kl=2.,
+            vf_coeff=0.,
+            ent_coeff=0.,
+        )
+    )
+    training_sample = training_data[0]
+    initial_distribution = model.generate_distribution(
+        training_sample[1]
+    )
+    training_sample = (*training_sample[:-1], [(initial_distribution.sample(), 0.) for _ in range(10)])
+    history = model.learn(
+        training_data=[training_sample] * 10,
+        augmentation_function=stub_game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=100,
+            lr=1e-3,
+            batch_size=1,
+            training_patience=None
+        )
+    )
+    assert history.params["epochs"] == 100
+    final_distribution = model.generate_distribution(
+        training_sample[1]
+    )
+    assert np.allclose(
+        initial_distribution.kl_divergence(
+            final_distribution
+        ).numpy(),
+        0
+    )
