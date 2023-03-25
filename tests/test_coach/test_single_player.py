@@ -65,7 +65,7 @@ class GoodPlayerCoach(SinglePlayerCoach):
         self.current_best = best_player
         return best_player
 
-@mark.probabilistic
+@mark.flaky
 def test_benchmark_pass():
     coach = GoodPlayerCoach(
         game=game,
@@ -87,7 +87,7 @@ def test_benchmark_pass():
         ).dummy_constructor
     )
 
-@mark.probabilistic
+@mark.flaky
 def test_benchmark_fail():
     coach = BadPlayerCoach(
         game=game,

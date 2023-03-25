@@ -29,7 +29,7 @@ player = MCTSPlayer(single_stone_game.game_spec)
 
 arena = Arena([MCTSPlayer, RandomPlayer], single_stone_game)
 
-@mark.probabilistic
+@mark.flaky
 def test_training_and_evaluation_matter():
     players = [
         MCTSPlayer(

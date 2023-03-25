@@ -11,7 +11,7 @@ random_player = RandomPlayer(stub_game.game_spec)
 forced_arena = Arena([GoodPlayer, BadPlayer], stub_game)
 random_arena = Arena([RandomPlayer, RandomPlayer], stub_game)
 
-@mark.probabilistic
+@mark.flaky
 def test_random_players_split_wins():
     results = np.array(random_arena.play_games(100))
     wins = np.sum(results > 0)

@@ -104,7 +104,7 @@ def test_predetermined_search():
     for i in range(10):
         assert tree.search() == 0.
 
-@mark.probabilistic
+@mark.flaky
 def test_search_expectation():
     game.reset()
     tree = RandomMCTS(game)
@@ -112,7 +112,7 @@ def test_search_expectation():
     assert np.abs(searches.mean()) < 10
     assert 4 < searches.std() < 7
 
-@mark.probabilistic
+@mark.flaky
 def test_sparse_search_expectation():
     sparse_game.reset()
     tree = RandomMCTS(sparse_game)
@@ -120,7 +120,7 @@ def test_sparse_search_expectation():
     assert np.abs(searches.mean()) < 10
     assert 4 < searches.std() < 7
 
-@mark.probabilistic
+@mark.flaky
 def test_high_actions_selected():
     game.reset(0)
     tree = RandomMCTS(game)
@@ -308,7 +308,7 @@ def test_puct_with_policy():
     # cleanup
     MDPStubGame.max_move = max_move
 
-@mark.probabilistic
+@mark.flaky
 def test_puct_with_rewards():
     game.reset()
     mcts = FixedMCTS(

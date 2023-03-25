@@ -68,7 +68,7 @@ def test_ppo_model_stats(monkeypatch):
         assert 0 <= data["clip_fraction"] <= 1
         assert 0 <= data["val_clip_fraction"] <= 1
 
-@mark.probabilistic
+@mark.flaky
 def test_policy_learns():
     model = MCTSModel(
         game_spec,
@@ -81,7 +81,7 @@ def test_policy_learns():
 
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).loc > .5 * game_spec.move_spec.maximum)
 
-@mark.probabilistic
+@mark.flaky
 def test_value_learns():
     model = MCTSModel(
         game_spec,
@@ -95,7 +95,7 @@ def test_value_learns():
 
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
 
-@mark.probabilistic
+@mark.flaky
 def test_entropy_increases():
     model = MCTSModel(
         game_spec,
@@ -108,7 +108,7 @@ def test_entropy_increases():
     model.learn(training_data, stub_game.no_symmetries)
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).scale > 1.)
 
-@mark.probabilistic
+@mark.flaky
 def test_model_losses_converge():
     model = MCTSModel(
         game_spec,
@@ -132,7 +132,7 @@ def test_model_losses_converge():
     assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
 
 @mark.slow
-@mark.probabilistic
+@mark.flaky
 def test_model_learns_from_multiple_actions():
     game = StubGame(2)
     game.reset(0)
@@ -162,7 +162,7 @@ def test_model_learns_from_multiple_actions():
     game.reset(0)
     assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
 
-@mark.probabilistic
+@mark.flaky
 def test_ppo_model_losses_converge():
     model = PPOMCTSModel(
         game_spec,
@@ -187,7 +187,7 @@ def test_ppo_model_losses_converge():
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
 
-@mark.probabilistic
+@mark.flaky
 def test_kl_divergence_without_early_stopping():
     model = PPOMCTSModel(
         game_spec=game_spec,
@@ -215,7 +215,7 @@ def test_kl_divergence_without_early_stopping():
     )) > 5
     
 
-@mark.probabilistic
+@mark.flaky
 def test_kl_divergence_with_early_stopping():
     model = PPOMCTSModel(
         game_spec=game_spec,

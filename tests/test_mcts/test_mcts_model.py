@@ -67,7 +67,7 @@ def test_fully_specified_scaling_spec():
     assert np.allclose(scaling_offset[:,0], move_spec.minimum)
     assert np.allclose(scaling_offset[:,1], np.log(move_spec.maximum))
 
-@mark.probabilistic
+@mark.flaky
 def test_features_are_reasonable():
     pseudo_observations = np.random.uniform(
         low=observation_spec.minimum,
@@ -172,7 +172,7 @@ def test_training_transform():
         assert observation[0] == 0 or tf.reduce_all(tf.sign(observation)[0] == tf.sign(values))
     assert len(seen_actions) == 5
 
-@mark.probabilistic
+@mark.flaky
 def test_without_bounds():
     game_spec = GameSpec(
         move_spec=BoundedArray(

@@ -17,7 +17,7 @@ def test_arena_allows_good_player_to_win():
 def test_good_player_always_wins():
     assert (forced_arena.play_games(10) > np.zeros(10)).all()
 
-@mark.probabilistic
+@mark.flaky
 def test_random_players_split_wins():
     results = np.array(random_arena.play_games(25))
     wins = (results > 0).sum()
