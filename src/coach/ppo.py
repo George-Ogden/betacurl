@@ -20,12 +20,12 @@ class PPOCoach(SinglePlayerCoach):
         super().__init__(game=game, config=config)
         self.eval_environment = game.clone()
         self.best_reward = -float("inf")
-    
+
     def update(self) -> float:
         eval_enviroment = self.eval_environment.clone()
         self.player.simulations = self.eval_simulations
         arena = Arena([self.player.dummy_constructor], game=eval_enviroment)
-        rewards = arena.play_games(training=False, return_history=False, display=False, num_games=self.num_eval_games)
+        rewards = arena.play_games(training=False, display=False, num_games=self.num_eval_games)
         reward = np.mean(rewards)
 
         self.player.simulations = self.player_config.num_simulations
@@ -37,7 +37,7 @@ class PPOCoach(SinglePlayerCoach):
         wandb.log({"evaluation reward": reward})
 
         return self.update_patience(reward)
-    
+
     def setup_player(
         self,
         game_spec: GameSpec,
@@ -61,7 +61,7 @@ class PPOCoach(SinglePlayerCoach):
             self.patience = self.learning_patience
         self.patience -= 1
         return self.patience <= 0
-    
+
     @property
     def best_player(self) -> NNMCTSPlayer:
         return self.player
