@@ -1,10 +1,11 @@
 from tensorflow.keras import callbacks
+from collections import defaultdict
 from tensorflow import data
 import tensorflow as tf
 from copy import copy
 import numpy as np
 
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple, Union
 from abc import abstractmethod, ABCMeta
 
 from ..utils import SaveableModel
@@ -35,12 +36,12 @@ class ModelDecorator(SaveableModel, Learnable):
     @staticmethod
     def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
         try:
-            return tf.constant(data, dtype=dtype)
+            return tf.convert_to_tensor(data, dtype=dtype)
         except ValueError:
             return tf.ragged.constant(data, dtype=dtype)
 
     @staticmethod
-    def create_dataset(dataset: List[Tuple[float]]) -> data.Dataset:
+    def create_dataset(dataset: List[Tuple[Union[float, np.ndarray, tf.Tensor]]]) -> data.Dataset:
         transposed_data = tuple(ModelDecorator.to_tensor(data, dtype=tf.float32) for data in zip(*dataset))
         return data.Dataset.from_tensor_slices(transposed_data)
 
@@ -134,14 +135,35 @@ class CustomDecorator(ModelDecorator):
         for epoch in range(training_config.training_epochs):
             callback.on_epoch_begin(epoch)
             loss = 0
+            self.stats = defaultdict(float)
             for step, batch in enumerate(train_dataset.batch(batch_size)):
                 callback.on_train_batch_begin(step)
                 loss += self.train_step(batch, optimizer)
                 callback.on_train_batch_end(step)
+            train_stats = {
+                "loss": loss / len(train_dataset)
+            } | {
+                k: v / len(train_dataset) for k, v in self.stats.items()
+            }
+            
+            self.stats = defaultdict(float)
             val_loss = 0
             for step, batch in enumerate(val_dataset.batch(batch_size)):
                 val_loss += self.compute_loss(*batch)
-            callback.on_epoch_end(epoch, {"loss": loss / len(train_dataset), "val_loss": val_loss / len(val_dataset)})
+            val_stats = {
+                "loss": val_loss / len(val_dataset)
+            } | {
+                k: v / len(val_dataset) for k, v in self.stats.items()
+            }
+
+            callback.on_epoch_end(
+                epoch,
+                {
+                    k: v for k, v in train_stats.items()
+                }  | {
+                    "val_" + k: v for k, v in val_stats.items()
+                }
+            )
             if self.model.stop_training:
                 break
         callback.on_train_end()

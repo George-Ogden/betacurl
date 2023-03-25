@@ -33,6 +33,8 @@ class Coach(SaveableObject):
         self.save_directory = config.save_directory
         self.best_model_file = config.best_checkpoint_path
         self.model_filename = config.model_filenames
+        self.current_best = None
+        self.stats = {}
 
     def set_config(self, config: CoachConfig):
         self.config = copy(config)
@@ -42,7 +44,7 @@ class Coach(SaveableObject):
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
         self.num_eval_games = config.evaluation_games
-        self.win_threshold = int(config.win_threshold * self.num_eval_games)
+        self.win_threshold = config.win_threshold
         self.resume_from_checkpoint = config.resume_from_checkpoint
         self.eval_simulations = config.num_eval_simulations
         self.learning_patience = config.successive_win_requirement
@@ -75,10 +77,11 @@ class Coach(SaveableObject):
 
         if last_iteration is not None:
             coach = self.load(self.get_checkpoint_path(last_iteration))
+            config = self.config
             for k, v in vars(coach).items():
-                if k != "config":
-                    setattr(self, k, v)
-                self.set_config(self.config)
+                setattr(self, k, v)
+            self.set_config(config)
+            self.update_patience(True)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
@@ -93,7 +96,8 @@ class Coach(SaveableObject):
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
-            train_arena = Arena([self.best_player.dummy_constructor] * self.game.num_players, game=self.game)
+            self.current_best = self.best_player
+            train_arena = Arena([self.current_best.dummy_constructor] * self.game.num_players, game=self.game)
             train_examples = np.empty(self.num_games_per_episode, dtype=object)
             for i in trange(self.num_games_per_episode, desc="Playing episode"):
                 result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
@@ -106,46 +110,63 @@ class Coach(SaveableObject):
             self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
             self.save_model(current_iteration=iteration + 1)
-            wins = self.evaluate()
-            if wins > self.win_threshold:
-                self.save_best_model()
-
-            wandb.log({"best_win_ratio": wins / self.num_eval_games})
-            if self.update_patience(wins):
+            if self.update():
                 break
 
-    def update_patience(self, wins: int) -> bool:
-        if wins > self.win_threshold:
-            self.patience = self.learning_patience
-        self.patience -= 1
-        return self.patience <= 0
-
-    def benchmark(self, Opponent: Type[Player]) -> Tuple[int, int]:
-        eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
-        wins, losses = eval_arena.play_games(self.num_eval_games, display=False, training=False)
-        return wins, losses
-
-    def evaluate(self) -> int:
+    def update(self):
         champion = self.best_player
         champion.simulations = self.eval_simulations
+        self.current_best = champion
+
+        result = self.compare(champion.dummy_constructor)
+        if result:
+            self.save_best_model()
+        self.stats["updated"] = float(result)
+
+        wandb.log(self.stats)
+        self.stats = {}
+        return self.update_patience(result)
+        
+
+    def update_patience(self, change: bool) -> bool:
+        if change:
+            self.patience = self.learning_patience
+
+        self.patience -= 1
+        self.stats["patience"] = self.patience
+        return self.patience <= 0
+
+    def compare(self, Opponent: Type[Player]) -> bool:
+        """
+        Returns:
+            bool: True if the current player is better else False
+        """
         self.player.simulations = self.eval_simulations
-        wins, losses = self.benchmark(champion.dummy_constructor)
+
+        eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
+        results = np.array(eval_arena.play_games(self.num_eval_games, display=False, training=False))
+
         self.player.simulations = self.player_config.num_simulations
-        print(f"Most recent model result: {wins}-{losses} (current-best)")
-        return wins
+        # return True if the current player won more than the win threshold
+        self.stats |= {
+            "win_rate": (results > 0).sum() / len(results),
+            "loss_rate": (results < 0).sum() / len(results),
+            "draw_rate": (results == 0).sum() / len(results),
+            "best_result": results.max(),
+            "worst_result": results.min(),
+            "avg_result": results.mean(),
+        }
+        return results.mean() >= (self.win_threshold + 1) / 2
 
     @property
-    def best_player(self):
+    def best_player(self) -> NNMCTSPlayer:
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            return self.player.load(self.best_checkpoint_path)
         else:
-            best_player = NNMCTSPlayer(
+            return NNMCTSPlayer(
                 self.game.game_spec,
                 self.config.player_config
             )
-
-        self.current_best = best_player
-        return best_player
 
     def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):
@@ -159,15 +180,11 @@ class Coach(SaveableObject):
         self.save(self.best_checkpoint_path)
         del self.train_example_history[:]
 
-    @classmethod
-    def load_player(cls, directory: str) -> NNMCTSPlayer:
-        return NNMCTSPlayer.load(directory)
-
-    @classmethod
-    def load(cls, directory: str) -> "Self":
-        self = super().load(directory)
-        self.player = self.load_player(directory)
-        return self
+    def save(self, directory: str):
+        current_best = self.current_best
+        del self.current_best
+        super().save(directory)
+        self.current_best = current_best
 
     def transform_history_for_training(
             self,

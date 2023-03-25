@@ -2,8 +2,11 @@ from copy import copy
 import numpy as np
 import os
 
-from src.coach import Coach, CoachConfig, Coach, CoachConfig
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
+from src.mcts import NNMCTSConfig, PPOMCTSModel
+from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
+from src.game import MujocoGame
 
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 from tests.utils import MDPStubGame, MDPSparseStubGame
@@ -55,7 +58,7 @@ def test_coach_saves_config():
         assert getattr(boring_coach, k) == v
 
     # special cases
-    assert boring_coach.win_threshold == 2
+    assert boring_coach.win_threshold == .5
     assert boring_coach.num_eval_games == 4
     assert boring_coach.learning_patience == 4
     assert boring_coach.eval_simulations == 5
@@ -89,3 +92,23 @@ def test_coach_uses_training_config():
     assert model.history.params["epochs"] == 10
     assert modified_model.history.params["epochs"] == 5
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
+
+@requires_cleanup
+def test_ppo_coach_uses_ppo_model():
+    copy_config = config_dict.copy()
+    del copy_config["win_threshold"]
+    coach = PPOCoach(
+        game=MujocoGame(
+            domain_name="cartpole",
+            task_name="swingup"
+        ),
+        config=PPOCoachConfig(
+            **copy_config,
+            player_config=NNMCTSPlayerConfig(
+                mcts_config=NNMCTSConfig()
+            )
+        )
+    )
+
+    assert coach.player.ModelClass == PPOMCTSModel
+    assert coach.best_player.ModelClass == PPOMCTSModel

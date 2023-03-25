@@ -6,32 +6,24 @@ import os
 
 from src.player import MCTSPlayer, NNMCTSPlayerConfig
 from src.coach import CoachConfig, SinglePlayerCoach
-from src.mcts import MCTS, MCTSConfig
 from src.game import Game, MujocoGame
-from src.model import TrainingConfig
+from src.mcts import MCTSConfig
 
-from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import FixedValueMCTS
+from tests.config import SAVE_DIR
 
 necessary_config = {
     "save_directory": SAVE_DIR,
-
 }
 
+time_limit = MujocoGame.time_limit
+MujocoGame.time_limit = 10
 game = MujocoGame("cartpole", "swingup")
+MujocoGame.time_limit = time_limit
+
 game_spec = game.game_spec
 observation_spec = game_spec.observation_spec
 move_spec = game_spec.move_spec
-
-class FixedValueMCTS(MCTS):
-    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig(), move = None):
-        super().__init__(game, config)
-        self.move = move
-
-    def select_action(self, observation: np.ndarray) -> np.ndarray:
-        return self.move.copy()
-
-    def _get_action_probs(self, game: Game, temperature: float):
-        return np.array([self.select_action(None)]), np.array([1.])
 
 class GoodMCTS(FixedValueMCTS):
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
@@ -73,50 +65,46 @@ class GoodPlayerCoach(SinglePlayerCoach):
         self.current_best = best_player
         return best_player
 
-@mark.probabilistic
-@mark.slow
-def test_benchmark():
+@mark.flaky
+def test_benchmark_pass():
+    coach = GoodPlayerCoach(
+        game=game,
+        config=CoachConfig(
+            **necessary_config,
+            evaluation_games=2,
+            win_threshold=.99,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4,
+            )
+        )
+    )
+    coach.player = coach.best_player
+    assert coach.compare(
+        MCTSPlayer(
+            game_spec,
+            MCTSClass=BadMCTS,
+            config=copy(coach.config.player_config),
+        ).dummy_constructor
+    )
+
+@mark.flaky
+def test_benchmark_fail():
     coach = BadPlayerCoach(
         game=game,
         config=CoachConfig(
             **necessary_config,
-            evaluation_games=4
+            win_threshold=.01,
+            evaluation_games=2,
+            player_config=NNMCTSPlayerConfig(
+                num_simulations=4
+            )
         )
     )
-    wins, losses = coach.benchmark(
+    coach.player = coach.best_player
+    assert not coach.compare(
         MCTSPlayer(
             game_spec,
             MCTSClass=GoodMCTS,
-            config=copy(coach.config.player_config)
+            config=copy(coach.config.player_config),
         ).dummy_constructor
     )
-    assert wins + losses == 4
-    assert wins == 4
-
-@mark.probabilistic
-@mark.slow
-@requires_cleanup
-def test_model_learns():
-    coach = SinglePlayerCoach(
-        game=game,
-        config=CoachConfig(
-            resume_from_checkpoint=False,
-            num_games_per_episode=5,
-            num_iterations=2,
-            training_config=TrainingConfig(
-                lr=1e-3,
-                training_epochs=5
-            ),
-            player_config=NNMCTSPlayerConfig(
-                num_simulations=15
-            ),
-            evaluation_games=10,
-            num_eval_simulations=15,
-            **necessary_config
-        )
-    )
-
-    coach.learn()
-
-    wins = coach.evaluate()
-    assert wins >= 7

@@ -49,7 +49,7 @@ def test_without_config():
     output = model(input)
     assert output.shape == (16, 1)
 
-@mark.probabilistic
+@mark.flaky
 def test_model_fits():
     model = StubModel()
     model.model = keras.Sequential(
@@ -146,7 +146,7 @@ def test_best_model_restored():
     assert np.argmin(val_loss) == len(val_loss) - 6
     assert np.allclose(val_loss[-6], final_loss)
 
-@mark.probabilistic
+@mark.flaky
 def test_custom_model_fits():
     model = CustomModel()
     input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)
@@ -177,7 +177,7 @@ def test_custom_model_uses_config():
             training_epochs=10,
             batch_size=32,
             lr=1e-1,
-            training_patience=0,
+            training_patience=None,
             additional_callbacks=[counter],
             optimizer_type="SGD",
             optimizer_kwargs={
@@ -194,7 +194,7 @@ def test_custom_model_uses_config():
     assert optimizer.learning_rate == 1e-1
     assert optimizer.momentum == 0.1
 
-@mark.probabilistic
+@mark.flaky
 def test_best_custom_model_restored():
     model = CustomModel()
     input_data = np.array([(x, y) for x in range(2) for y in range(2)], dtype=float)

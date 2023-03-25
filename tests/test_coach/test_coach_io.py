@@ -49,7 +49,7 @@ boring_coach = Coach(
 )
 
 @requires_cleanup
-def test_checkpoint_restored_correctly():
+def test_checkpoint_restores():
     coach = Coach(
         stub_game,
         config=CoachConfig(resume_from_checkpoint=True, **necessary_config)

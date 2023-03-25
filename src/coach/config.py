@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 from ..player import NNMCTSPlayerConfig
 from ..model import TrainingConfig
@@ -27,3 +28,9 @@ class CoachConfig(Config):
     model_filenames: str = "model-{:06}"
     player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     training_config: TrainingConfig = TrainingConfig()
+
+@dataclass
+class PPOCoachConfig(CoachConfig):
+    evaluation_games: int = 5
+    """number of episodes to evalute on"""
+    win_threshold: ClassVar[float] = 0.

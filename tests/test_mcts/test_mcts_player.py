@@ -4,7 +4,7 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSModel, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
 from src.game import Game, SingleEndCurlingGame
 
@@ -29,7 +29,7 @@ player = MCTSPlayer(single_stone_game.game_spec)
 
 arena = Arena([MCTSPlayer, RandomPlayer], single_stone_game)
 
-@mark.probabilistic
+@mark.flaky
 def test_training_and_evaluation_matter():
     players = [
         MCTSPlayer(
@@ -86,7 +86,8 @@ def test_works_with_less_information():
         )
     )
     arena = Arena(players=[free_player.dummy_constructor, forced_player.dummy_constructor], game=sparse_stub_game)
-    wins, losses = arena.play_games(2)
+    scores = arena.play_games(2)
+    assert len(scores) == 2
 
 def test_config_is_used():
     player = MCTSPlayer(
@@ -145,3 +146,16 @@ def test_mcts_config_is_used():
     assert (player.scaling_spec.reshape(-1)[:np.prod(observation_shape)] == 1).all()
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
+
+def test_nn_mcts_player_uses_model():
+    player = NNMCTSPlayer(
+        single_stone_game.game_spec,
+        ModelClass=MCTSModel
+    )
+    player.model = player.create_model()
+    
+    single_stone_game.reset()
+    player.move(single_stone_game)
+    
+    assert isinstance(player.mcts, MCTS)
+    assert isinstance(player.mcts.model, MCTSModel)

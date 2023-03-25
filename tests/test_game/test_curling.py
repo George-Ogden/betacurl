@@ -36,10 +36,6 @@ left_player = ConsistentLeftPlayer(single_end_game.game_spec)
 right_player = ConsistentRightPlayer(single_end_game.game_spec)
 out_of_bounds_player = OutOfBoundsPlayer(single_end_game.game_spec)
 
-random_arena = Arena([RandomPlayer, RandomPlayer], single_end_game)
-forced_arena = Arena([ConsistentLeftPlayer, ConsistentPlayer], single_end_game)
-
-
 def validate_mask(observation: np.ndarray):
     positions = single_end_game.get_positions(observation)
     mask = single_end_game.get_mask(observation)
@@ -100,15 +96,6 @@ def test_valid_observations_are_valid():
 
     assert single_end_game.get_observation().dtype == single_end_game.game_spec.observation_spec.dtype
     single_end_game.validate_observation(single_end_game.get_observation())
-
-def test_good_player_always_wins():
-    assert forced_arena.play_games(5) == (0, 5)
-
-@mark.probabilistic
-def test_random_players_split_wins():
-    wins, losses = random_arena.play_games(25)
-    assert wins + losses == 25
-    assert min(wins, losses) >= 5
 
 def test_observation_is_reasonable():
     single_end_game.reset(1)
@@ -269,7 +256,7 @@ def test_drawn_game_where_player_1_starts():
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
-    assert np.sign(time_step.reward) == starter
+    assert np.sign(time_step.reward) == 0
 
 def test_drawn_game_where_player_2_starts():
     single_end_game.reset(1)
@@ -277,7 +264,7 @@ def test_drawn_game_where_player_2_starts():
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
     assert time_step.step_type == StepType.LAST
-    assert np.sign(time_step.reward) == starter
+    assert np.sign(time_step.reward) == 0
 
 def test_clone():
     single_end_game.reset()

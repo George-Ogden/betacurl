@@ -1,17 +1,16 @@
-from copy import copy
+from copy import copy, deepcopy
+from dm_env import StepType
 from glob import glob
 import numpy as np
 import os
 
-from pytest import mark
-
-from src.player import Arena, MCTSPlayer, NNMCTSPlayer, NNMCTSPlayerConfig
-from src.coach import Coach, CoachConfig
-from src.mcts import MCTSConfig, NNMCTS, NNMCTSConfig
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
+from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
+from src.game import Game, MujocoGame
 from src.model import TrainingConfig
-from src.game import Game
+from src.mcts import MCTSConfig
 
-from tests.utils import BinaryStubGame, MDPStubGame, MDPSparseStubGame
+from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 
 special_cases = dict(
@@ -53,19 +52,6 @@ boring_coach = Coach(
     )
 )
 
-class FixedValueMCTS(NNMCTS):
-    CONFIG_CLASS = NNMCTSConfig
-    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig(), move = None):
-        super().__init__(game, config=config)
-        self.move = move
-
-    def select_action(self, observation: np.ndarray) -> np.ndarray:
-        super().select_action(observation)
-        return self.move.copy()
-
-    def _get_action_probs(self, game: Game, temperature: float):
-        return np.array([self.select_action(game.get_observation())]), np.array([1.])
-
 class GoodMCTS(FixedValueMCTS):
     def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
         super().__init__(game, config=config, move=game.game_spec.move_spec.maximum)
@@ -78,7 +64,7 @@ class BadPlayerCoach(Coach):
     @property
     def best_player(self):
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = -stub_game.max_move
@@ -95,7 +81,7 @@ class GoodPlayerCoach(Coach):
     @property
     def best_player(self):
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = stub_game.max_move * 2
@@ -107,6 +93,14 @@ class GoodPlayerCoach(Coach):
 
         self.current_best = best_player
         return best_player
+
+class EvalEnvSavingCoach(PPOCoach):
+    def __init__(self, game: Game, config: PPOCoachConfig = PPOCoachConfig()):
+        super().__init__(game, config)
+        self.eval_envs = []
+    def compare(self, Opponent) -> bool:
+        self.eval_envs.append(deepcopy(self.eval_environment))
+        return super().compare(Opponent)
 
 @requires_cleanup
 def test_no_default_best():
@@ -163,13 +157,14 @@ def test_transform():
     )
     game = coach.game
     game.discount = .9
-    arena = Arena([coach.best_player.dummy_constructor] * 2, game=game)
+    coach.current_best = coach.best_player
+    arena = Arena([coach.current_best.dummy_constructor] * 2, game=game)
     result, game_history = arena.play_game(0, return_history=True)
     game.reset(0)
     history = coach.transform_history_for_training(game_history)
     previous_value = None
     p = None
-    for player, observation, action, value, *data in history[::-1]:
+    for player, observation, action, value, policy in history[::-1]:
         assert p is None or p == player * -1
         p = player
         assert np.allclose(observation, game.get_observation())
@@ -177,6 +172,10 @@ def test_transform():
         if previous_value is not None:
             assert previous_value == value
         previous_value = value
+        advantage_sum = 0.
+        for action, advantage in policy:
+            advantage_sum += advantage
+        assert np.allclose(advantage_sum, 0.)
 
 @requires_cleanup
 def test_train_examples_cleared_after_win():
@@ -242,7 +241,7 @@ def test_eval_simulations_change():
     )
 
     coach.learn()
-    coach.evaluate()
+    coach.update()
 
     assert coach.current_best.simulations == 5
     assert coach.best_player.simulations == 20
@@ -268,46 +267,45 @@ def test_logs_format(capsys):
     assert not "}" in captured.out
     assert not "}" in captured.err
 
-@mark.probabilistic
-@mark.slow
 @requires_cleanup
-def test_model_learns():
-    max_move = BinaryStubGame.max_move
-    BinaryStubGame.max_move = 1
-    game = BinaryStubGame()
-    coach = Coach(
+def test_eval_arena_is_constant():
+    eval_envs = []
+    time_limit = MujocoGame.time_limit
+    timestep = MujocoGame.timestep
+    MujocoGame.time_limit = 6.
+    MujocoGame.timestep = .5
+    game = MujocoGame(domain_name="point_mass", task_name="easy")
+    MujocoGame.timestep = timestep
+    MujocoGame.time_limit = time_limit
+
+    coach = EvalEnvSavingCoach(
         game=game,
-        config=CoachConfig(
-            resume_from_checkpoint=False,
-            num_games_per_episode=100,
-            num_iterations=2,
-            training_config=TrainingConfig(
-                lr=1e-3,
-                training_epochs=2
-            ),
+        config=PPOCoachConfig(
+            num_iterations=3,
+            num_games_per_episode=1,
+            evaluation_games=1,
+            num_eval_simulations=2,
             player_config=NNMCTSPlayerConfig(
-                num_simulations=3
+                num_simulations=2
             ),
-            num_eval_simulations=3,
-            **necessary_config,
+            **necessary_config
         )
     )
 
     coach.learn()
-
-    arena = Arena(
-        game=game,
-        players=[
-            coach.best_player.dummy_constructor, NNMCTSPlayer(
-                game_spec=game.game_spec,
-                config=NNMCTSPlayerConfig(
-                    num_simulations=3
-                )
-            ).dummy_constructor
-        ]
-    )
-    wins, losses = arena.play_games(100)
-    assert wins >= 60
-
-    # cleanup
-    BinaryStubGame.max_move = max_move
+    
+    move_spec = coach.game.game_spec.move_spec
+    actions = [np.random.uniform(low=move_spec.minimum, high=move_spec.maximum) for _ in range(10)]
+    timesteps = []
+    for env in eval_envs:
+        for i, action in enumerate(actions):
+            timestep = env.step(action)
+            if i == len(timesteps):
+                timesteps.append(timestep)
+            else:
+                assert timestep.discount == timesteps[i].discount
+                assert timestep.reward == timesteps[i].reward
+                assert (timestep.observation == timesteps[i].observation).all()
+                assert timestep.step_type == timesteps[i].step_type
+            if timestep.step_type == StepType.LAST:
+                env.reset()
