@@ -77,10 +77,10 @@ class Coach(SaveableObject):
 
         if last_iteration is not None:
             coach = self.load(self.get_checkpoint_path(last_iteration))
+            config = self.config
             for k, v in vars(coach).items():
-                if k != "config":
-                    setattr(self, k, v)
-                self.set_config(self.config)
+                setattr(self, k, v)
+            self.set_config(config)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
