@@ -37,7 +37,7 @@ class PPOMCTSModel(MCTSModel):
         
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
-            approx_kl_div = 0.
+            kl_div = 0.
 
             distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
             target_distribution_properties = {attr: getattr(target_distribution, attr) for attr in target_distribution.parameter_properties()}
@@ -64,7 +64,7 @@ class PPOMCTSModel(MCTSModel):
                 policy_loss_2 = tf.clip_by_value(ratio, 1 - self.clip_range, 1 + self.clip_range) * advantages
                 policy_loss -= tf.reduce_mean(tf.minimum(policy_loss_1, policy_loss_2))
                 
-                approx_kl_div += tf.reduce_mean(
+                kl_div += tf.reduce_mean(
                     tf.reduce_sum(
                         target_distribution.kl_divergence(distribution),
                         other_dims
@@ -72,7 +72,7 @@ class PPOMCTSModel(MCTSModel):
                 )
 
             policy_loss /= action_groups.shape[0]
-            approx_kl_div /= action_groups.shape[0]
+            kl_div /= action_groups.shape[0]
         else:
             action_groups = tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim)))
             advantage_groups = tf.transpose(advantage_groups, (1, 0, *range(2, advantage_groups.ndim)))
@@ -95,13 +95,18 @@ class PPOMCTSModel(MCTSModel):
             policy_loss_2 = tf.clip_by_value(ratio, 1 - self.clip_range, 1 + self.clip_range) * advantage_groups
             policy_loss = -tf.reduce_mean(tf.minimum(policy_loss_1, policy_loss_2))
 
-            approx_kl_div = tf.reduce_sum(
+            kl_div = tf.reduce_sum(
                 target_distribution.kl_divergence(predicted_distribution),
                 other_dims
             )
 
         value_loss = losses.mean_squared_error(values, predicted_values)
-        entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
+        entropy_loss = -tf.reduce_mean(
+            tf.reduce_sum(
+                predicted_distribution.entropy(),
+                axis=range(1, predicted_distribution.batch_shape.ndims)
+            )
+        )
 
         loss = policy_loss + self.vf_coeff * value_loss
 
@@ -114,11 +119,11 @@ class PPOMCTSModel(MCTSModel):
         self.stats["entropy_loss"] += entropy_loss.numpy()
         self.stats["value_loss"] += value_loss.numpy()
         self.stats["loss"] += loss.numpy()
-        self.stats["approx_kl_div"] += tf.reduce_sum(approx_kl_div).numpy()
+        self.stats["kl_div"] += tf.reduce_sum(kl_div).numpy()
         self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 
         # stop early when KL divergence is too high
-        if self.target_kl is not None and tf.reduce_mean(approx_kl_div) > 1.5 * self.target_kl:
+        if self.target_kl is not None and tf.reduce_mean(kl_div) > self.target_kl:
             self.model.stop_training = True
             loss *= 0.
 
