@@ -61,3 +61,10 @@ class NNMCTS(WideningMCTS, SaveableObject):
             ).numpy(),
             prob.numpy()
         )
+
+    def save(self, directory: str):
+        # don't save planned actions
+        planned_actions = self.planned_actions
+        self.planned_actions = {}
+        super().save(directory)
+        self.planned_actions = planned_actions
