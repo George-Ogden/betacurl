@@ -1,6 +1,6 @@
 from pytest import mark
 
-from src.mcts import FixedMCTS, WideningMCTS
+from src.mcts import FixedMCTS, WideningMCTS, WideningMCTSConfig
 from src.game import SingleEndCurlingGame
 
 @mark.flaky
@@ -36,7 +36,13 @@ def test_fixed_mcts_helps():
 @mark.flaky
 def test_widening_mcts_helps():
     game = SingleEndCurlingGame()
-    mcts = WideningMCTS(game)
+    mcts = WideningMCTS(
+        game,
+        config=WideningMCTSConfig(
+            cpw=.75,
+            kappa=1.
+        )
+    )
     game.reset(0)
     for i in range(game.num_stones_per_end):
         if i % 2 == 0:
