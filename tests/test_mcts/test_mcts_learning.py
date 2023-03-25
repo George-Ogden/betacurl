@@ -141,21 +141,32 @@ def test_model_learns_from_multiple_actions():
         1, game.get_observation(), 7 * move, 1., [
             (move * 3, -1.),
             (move * 5, 0.),
-            (move * 7, 1.)
+            (move * 7, 2.)
         ],
     )]
     game.step(move * 7)
     training_data.append((
         0, game.get_observation(), 6 * move, 1., [
             (move * 4, -1.),
-            (move * 6, 1.)
+            (move * 6, 2.)
         ],
     ))
     training_data *= 100
 
-    model = MCTSModel(game_spec)
+    model = MCTSModel(
+        game_spec,
+        config=MCTSModelConfig(
+            vf_coeff=.5,
+            ent_coeff=0.
+        )
+    )
     model.learn(
-        training_data, game.get_symmetries
+        training_data,
+        stub_game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=20,
+            lr=1e-2
+        )
     )
 
     assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
@@ -213,7 +224,7 @@ def test_kl_divergence_without_early_stopping():
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
     )) > 5
-    
+
 
 @mark.flaky
 def test_kl_divergence_with_early_stopping():
