@@ -64,7 +64,7 @@ class BadPlayerCoach(Coach):
     @property
     def best_player(self):
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = -stub_game.max_move
@@ -81,7 +81,7 @@ class GoodPlayerCoach(Coach):
     @property
     def best_player(self):
         if os.path.exists(self.best_checkpoint_path):
-            best_player = self.load_player(self.best_checkpoint_path)
+            best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
             config.scaling_spec = stub_game.max_move * 2
@@ -278,7 +278,6 @@ def test_eval_arena_is_constant():
     MujocoGame.timestep = timestep
     MujocoGame.time_limit = time_limit
 
-        
     coach = EvalEnvSavingCoach(
         game=game,
         config=PPOCoachConfig(
