@@ -4,9 +4,9 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSModel, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSModel, NNMCTS, NNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
-from src.game import Game, SingleEndCurlingGame
+from src.game import Game, MujocoGame, SingleEndCurlingGame
 
 from tests.utils import StubGame, SparseStubGame
 
@@ -24,6 +24,14 @@ Curling.num_stones_per_end = 2
 single_stone_game = SingleEndCurlingGame()
 Curling.num_stones_per_end = 16
 single_stone_game.num_stones_per_end = 2
+
+time_limit = MujocoGame.time_limit
+MujocoGame.time_limit = 1.
+single_player_game = MujocoGame(
+    domain_name="point_mass",
+    task_name="easy"
+)
+MujocoGame.time_limit = time_limit
 
 player = MCTSPlayer(single_stone_game.game_spec)
 
@@ -159,3 +167,29 @@ def test_nn_mcts_player_uses_model():
     
     assert isinstance(player.mcts, MCTS)
     assert isinstance(player.mcts.model, MCTSModel)
+
+def test_nn_mcts_players_play_without_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    scores = arena.play_games(2)
+    assert len(scores) == 2
+    
+def test_reinforce_nn_mcts_players_play_with_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec,
+        ModelClass=MCTSModel
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    score = arena.play_game()
+    assert score > 0
+
+def test_ppo_nn_mcts_players_play_with_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec,
+        ModelClass=PPOMCTSModel
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    score = arena.play_game()
+    assert score > 0
