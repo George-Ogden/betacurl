@@ -209,8 +209,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         )
 
         if not batch_throughput:
-            raw_actions = tf.squeeze(raw_actions, 0).numpy()
+            raw_actions = tf.squeeze(raw_actions, 0)
 
+        return self._generate_distribution(raw_actions)
+
+    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         alphas, betas = tf.split(raw_actions, 2, axis=-1)
         alphas = tf.squeeze(alphas, -1)
         betas = tf.squeeze(betas, -1)

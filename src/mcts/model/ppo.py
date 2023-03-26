@@ -4,7 +4,7 @@ from tensorflow import data
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple
 
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
@@ -24,23 +24,7 @@ class PPOMCTSModel(MCTSModel):
         super().__init__(game_spec, scaling_spec, model_factory, config)
         self.target_kl = config.target_kl
 
-    def generate_distribution(
-        self,
-        observation: Union[tf.Tensor, np.ndarray],
-        training: bool=False
-    ) -> distributions.Distribution:
-
-        batch_throughput = True
-        if observation.ndim == len(self.observation_shape):
-            batch_throughput = False
-            observation = np.expand_dims(observation, 0)
-
-        features = self.feature_extractor(observation, training=training)
-        raw_actions = self.policy_head(features, training=training)
-
-        if not batch_throughput:
-            raw_actions = tf.squeeze(raw_actions, 0).numpy()
-
+    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         means, log_stds = tf.split(raw_actions, 2, axis=-1)
         means = tf.squeeze(means, -1)
         log_stds = tf.squeeze(log_stds, -1)
