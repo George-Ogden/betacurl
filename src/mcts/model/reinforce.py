@@ -1,5 +1,5 @@
-from tensorflow_probability import bijectors, distributions
 from tensorflow.keras import callbacks, layers, losses
+from tensorflow_probability import distributions
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
@@ -204,9 +204,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             observation = np.expand_dims(observation, 0)
 
         features = self.feature_extractor(observation, training=training)
-        raw_actions = tf.nn.softplus(
-            self.policy_head(features, training=training)
-        )
+        raw_actions = self.policy_head(features, training=training)
 
         if not batch_throughput:
             raw_actions = tf.squeeze(raw_actions, 0)
@@ -214,20 +212,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         return self._generate_distribution(raw_actions)
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        alphas, betas = tf.split(raw_actions, 2, axis=-1)
-        alphas = tf.squeeze(alphas, -1)
-        betas = tf.squeeze(betas, -1)
+        means, log_stds = tf.split(raw_actions, 2, axis=-1)
+        means = tf.squeeze(means, -1)
+        log_stds = tf.squeeze(log_stds, -1)
+        stds = tf.exp(log_stds)
 
-        # create underlying beta distribution
-        beta_distribution = distributions.Beta(alphas, betas)
-        # scale within action range
-        return distributions.TransformedDistribution(
-            distribution=beta_distribution,
-            bijector=bijectors.Shift(self.action_range[0])(
-                bijectors.Scale(self.action_range[1] - self.action_range[0])
-            ),
-            name="ScaledBetaDistribution"
-        )
+        return distributions.Normal(means, stds)
 
     @classmethod
     def load(cls, directory: str) -> "Self":
