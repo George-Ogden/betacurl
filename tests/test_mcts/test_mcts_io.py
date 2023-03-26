@@ -49,8 +49,7 @@ def test_mcts_model_io():
     copy = save_load(model)
 
     observation = np.random.randn(*game.game_spec.observation_spec.shape)
-    assert tf.reduce_all(model.generate_distribution(observation).loc == copy.generate_distribution(observation).loc)
-    assert tf.reduce_all(model.generate_distribution(observation).scale == copy.generate_distribution(observation).scale)
+    assert np.allclose(model.generate_distribution(observation).kl_divergence(copy.generate_distribution(observation)).numpy(), 0.)
     assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
 
 @requires_cleanup
@@ -68,11 +67,10 @@ def test_nn_player_io_with_model():
     model.generate_distribution(game.get_observation())
 
     generic_save_test(player)
-    
+
     copy = save_load(player).model
-    
+
     observation = np.random.randn(*game.game_spec.observation_spec.shape)
-    assert tf.reduce_all(model.generate_distribution(observation).loc == copy.generate_distribution(observation).loc)
-    assert tf.reduce_all(model.generate_distribution(observation).scale == copy.generate_distribution(observation).scale)
+    assert np.allclose(model.generate_distribution(observation).kl_divergence(copy.generate_distribution(observation)).numpy(), 0.)
     assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
     assert copy.model is not None

@@ -52,8 +52,8 @@ def test_actions_use_model():
     mcts = NNMCTS(game, model)
     distribution = model.generate_distribution(game.get_observation())
     actions, probs = zip(*[mcts.generate_action(game.get_observation()) for _ in range(1000)])
-    assert np.allclose(distribution.loc, np.mean(actions, axis=0), atol=.1)
-    assert np.allclose(distribution.scale, np.std(actions, axis=0), atol=.1)
+    assert np.allclose(distribution.mean(), np.mean(actions, axis=0), atol=.1)
+    assert np.allclose(distribution.stddev(), np.std(actions, axis=0), atol=.1)
 
 def test_config_is_used():
     blowup_game.reset()

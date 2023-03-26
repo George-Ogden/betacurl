@@ -39,7 +39,7 @@ def test_widening_mcts_helps():
     mcts = WideningMCTS(
         game,
         config=WideningMCTSConfig(
-            cpw=.75,
+            cpw=.9,
             kappa=1.
         )
     )

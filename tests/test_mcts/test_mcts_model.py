@@ -117,8 +117,7 @@ def test_deterministic_outside_training():
     dist = model.generate_distribution(observation, training=False)
     dist2 = model.generate_distribution(observation, training=False)
 
-    assert tf.reduce_all(dist.loc == dist2.loc)
-    assert tf.reduce_all(dist.scale == dist2.scale)
+    assert np.allclose(dist.kl_divergence(dist2), 0.)
 
 def test_non_deterministic_during_trainiwng():
     observation = np.ones_like(game.get_observation())
@@ -133,8 +132,7 @@ def test_non_deterministic_during_trainiwng():
 
     dist = model.generate_distribution(observation, training=True)
     dist2 = model.generate_distribution(observation, training=True)
-    assert not tf.reduce_all(dist.loc == dist2.loc)
-    assert not tf.reduce_all(dist.scale == dist2.scale)
+    assert not np.allclose(dist.kl_divergence(dist2), 0.)
 
 def test_training_transform():
     game = StubGame(2)
@@ -158,7 +156,7 @@ def test_training_transform():
     class DummyMCTSModel(MCTSModel):
         def fit(self, dataset, training_config):
             self.dataset = dataset
-    
+
     model = DummyMCTSModel(game_spec)
     model.learn(
         training_data, game.get_symmetries
@@ -191,6 +189,6 @@ def test_without_bounds():
     )
     observations = np.random.randn(100, 3)
     moves = model.generate_distribution(observation=observations)
-    assert moves.loc.numpy().mean() < 2.
+    assert tf.reduce_mean(moves.mean()) < 2.
     values = model.predict_values(observations)
     assert values.shape == (100, )

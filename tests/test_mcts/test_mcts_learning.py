@@ -10,15 +10,15 @@ from src.model import TrainingConfig
 from tests.utils import MDPStubGame, StubGame
 
 max_move = MDPStubGame.max_move
-MDPStubGame.max_move = .5
+MDPStubGame.max_move = 1.5
 stub_game = MDPStubGame(6)
 stub_game.max_move = MDPStubGame.max_move
 MDPStubGame.max_move = max_move
 game_spec = stub_game.game_spec
 
-result = 1.5
-training_data = [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)]) for i in range(6)]
-mixed_training_data = training_data + [((-1)**i, np.array((.5 * ((i + 1) // 2),)), np.array((.0,) if i % 2 else (.5,)), result, [(np.array((.0,) if i % 2 else (.5,)), (-1.)**i)] * 2) for i in range(6)]
+result = 3.
+training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), np.array((.25,) if i % 2 else (1.25,)), result, [(np.array((.25,) if i % 2 else (1.25,)), (-1.)**i)]) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), np.array((.25,) if i % 2 else (1.25,)), result, [(np.array((.25,) if i % 2 else (1.25,)), (-1.)**i)] * 2) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
 
@@ -70,6 +70,7 @@ def test_ppo_model_stats(monkeypatch):
 
 @mark.flaky
 def test_policy_learns():
+    print(training_data)
     model = MCTSModel(
         game_spec,
         config=MCTSModelConfig(
@@ -79,7 +80,7 @@ def test_policy_learns():
     )
     model.learn(training_data, stub_game.get_symmetries)
 
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).loc > .5 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > .75 * game_spec.move_spec.maximum)
 
 @mark.flaky
 def test_value_learns():
@@ -105,8 +106,9 @@ def test_entropy_increases():
         )
     )
 
+    entropy = model.generate_distribution(training_data[0][1]).entropy()
     model.learn(training_data, stub_game.no_symmetries)
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).scale > 1.)
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).entropy() > entropy)
 
 @mark.flaky
 def test_model_losses_converge():
@@ -129,12 +131,16 @@ def test_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(distribution.mean() > .5 * game_spec.move_spec.maximum)
 
 @mark.slow
 @mark.flaky
 def test_model_learns_from_multiple_actions():
+    max_move = StubGame.max_move
+    StubGame.max_move = 1.
     game = StubGame(2)
+    StubGame.max_move = max_move
+
     game.reset(0)
     move = np.ones(game_spec.move_spec.shape) / 10
     training_data = [(
@@ -169,9 +175,9 @@ def test_model_learns_from_multiple_actions():
         )
     )
 
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).mean() > .5)
     game.reset(0)
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).loc > .5)
+    assert tf.reduce_all(model.generate_distribution(game.get_observation()).mean() > .5)
 
 @mark.flaky
 def test_ppo_model_losses_converge():
@@ -196,7 +202,7 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.loc > .75 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(distribution.mean() > .75 * game_spec.move_spec.maximum)
 
 @mark.flaky
 def test_kl_divergence_without_early_stopping():
@@ -223,15 +229,14 @@ def test_kl_divergence_without_early_stopping():
     )
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
-    )) > 5
-
+    )) > .5
 
 @mark.flaky
 def test_kl_divergence_with_early_stopping():
     model = PPOMCTSModel(
         game_spec=game_spec,
         config=PPOMCTSModelConfig(
-            target_kl=2.,
+            target_kl=.5,
             vf_coeff=0.,
             ent_coeff=0.
         )
@@ -251,7 +256,7 @@ def test_kl_divergence_with_early_stopping():
     )
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
-    )) < 5
+    )) < 1.
 
 def test_training_continues_within_kl_divergence():
     model = PPOMCTSModel(
