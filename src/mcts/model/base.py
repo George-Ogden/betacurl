@@ -1,5 +1,6 @@
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
+from tensorflow import data
 import tensorflow as tf
 import numpy as np
 
@@ -99,3 +100,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         )
 
         return self.fit(dataset, training_config)
+
+    def preprocess_data(
+        self,
+        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> data.Dataset:
+        return self.create_dataset(training_data)
