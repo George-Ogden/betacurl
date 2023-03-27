@@ -1,21 +1,18 @@
-from tensorflow.keras import callbacks, layers, losses
 from tensorflow_probability import distributions
+from tensorflow.keras import layers, losses
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from dm_env.specs import BoundedArray
-from copy import copy
-
 from typing import Callable, List, Optional, Tuple, Union
 
-from ...model import CustomDecorator, DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ...utils import SaveableMultiModel
+from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
-from .config import MCTSModelConfig
+from .config import ReinforceMCTSModelConfig
+from .base import MCTSModel
 
-class MCTSModel(SaveableMultiModel, CustomDecorator):
+class ReinforceMCTSModel(MCTSModel):
     MODELS = {
         "feature_extractor": "feature_extractor.h5",
         "policy_head": "policy.h5",
@@ -26,24 +23,13 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         game_spec: GameSpec,
         scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: MCTSModelConfig = MCTSModelConfig()
+        config: ReinforceMCTSModelConfig = ReinforceMCTSModelConfig()
     ):
-        action_spec = game_spec.move_spec
-        observation_spec = game_spec.observation_spec
-
-        self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0)
-        self.action_shape = action_spec.shape
-        self.observation_range = (
-            np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
-            if isinstance(observation_spec, BoundedArray)
-            else None
+        super().__init__(
+            game_spec=game_spec,
+            scaling_spec=scaling_spec,
+            config=config
         )
-        self.observation_shape = observation_spec.shape
-
-        self.config = copy(config)
-        self.feature_size = config.feature_size
-        self.max_grad_norm = config.max_grad_norm
-        self.vf_coeff = config.vf_coeff
         self.ent_coeff = config.ent_coeff
         self.clip_range = config.clip_range
 
@@ -81,22 +67,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
             )
         )
 
-        if scaling_spec is None:
-            self.scaling_spec = np.stack(
-                (self.action_range.mean(axis=0), np.zeros(self.action_shape)),
-                axis=-1
-            )
-        elif scaling_spec.ndim == 1:
-            self.scaling_spec = np.stack(
-                (scaling_spec, np.zeros(self.action_shape)),
-                axis=-1
-            )
-        else:
-            self.scaling_spec = scaling_spec.copy()
-            self.scaling_spec[:, 1] = np.log(scaling_spec[:, 1])
-
-        assert self.scaling_spec.shape == self.action_shape + (2,)
-
         self.policy_head = keras.Sequential(
             [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
         )
@@ -114,7 +84,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         )
         self.model(np.random.randn(1, *self.observation_shape))
 
-    def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool=False) -> Union[tf.Tensor, np.ndarray]:
+    def predict_values(
+        self,
+        observation: Union[tf.Tensor, np.ndarray],
+        training: bool=False
+    ) -> Union[tf.Tensor, np.ndarray]:
         batch_throughput = True
         if observation.ndim == len(self.observation_shape):
             batch_throughput = False
@@ -192,25 +166,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
 
         return loss
 
-    def generate_distribution(
-        self,
-        observation: Union[tf.Tensor, np.ndarray],
-        training: bool=False
-    ) -> distributions.Distribution:
-
-        batch_throughput = True
-        if observation.ndim == len(self.observation_shape):
-            batch_throughput = False
-            observation = np.expand_dims(observation, 0)
-
-        features = self.feature_extractor(observation, training=training)
-        raw_actions = self.policy_head(features, training=training)
-
-        if not batch_throughput:
-            raw_actions = tf.squeeze(raw_actions, 0)
-
-        return self._generate_distribution(raw_actions)
-
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         means, log_stds = tf.split(raw_actions, 2, axis=-1)
         means = tf.squeeze(means, -1)
@@ -224,20 +179,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator):
         model = super().load(directory)
         model.setup_model()
         return model
-
-    def learn(
-        self,
-        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
-        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
-        training_config: TrainingConfig = TrainingConfig()
-    ) -> callbacks.History:
-        dataset = self.preprocess_data(
-            training_data,
-            augmentation_function,
-            training_config
-        )
-
-        return self.fit(dataset, training_config)
 
     def preprocess_data(
         self,

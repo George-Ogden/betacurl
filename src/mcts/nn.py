@@ -10,7 +10,7 @@ from ..game import Game
 
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
-from .model.reinforce import MCTSModel
+from .model.reinforce import ReinforceMCTSModel
 
 class NNMCTS(WideningMCTS, SaveableObject):
     CONFIG_CLASS = NNMCTSConfig
@@ -19,7 +19,7 @@ class NNMCTS(WideningMCTS, SaveableObject):
     def __init__(
         self,
         game: Game,
-        model: Optional[MCTSModel] = None,
+        model: Optional[ReinforceMCTSModel] = None,
         config: NNMCTSConfig = NNMCTSConfig()
     ):
         super().__init__(game, config=config, action_generator=self.generate_action)

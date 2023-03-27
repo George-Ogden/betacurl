@@ -1,4 +1,3 @@
-from tensorflow_probability import distributions
 from tensorflow.keras import losses
 from tensorflow import data
 import tensorflow as tf
@@ -11,9 +10,9 @@ from ...game import GameSpec
 
 from .config import PPOMCTSModelConfig
 
-from .reinforce import MCTSModel
+from .reinforce import ReinforceMCTSModel
 
-class PPOMCTSModel(MCTSModel):
+class PPOMCTSModel(ReinforceMCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,

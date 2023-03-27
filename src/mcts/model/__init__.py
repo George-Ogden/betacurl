@@ -1,3 +1,4 @@
-from .config import MCTSModelConfig, PPOMCTSModelConfig
-from .reinforce import MCTSModel
+from .config import ReinforceMCTSModelConfig, PPOMCTSModelConfig, ReinforceMCTSModelConfig
+from .reinforce import ReinforceMCTSModel
 from .ppo import PPOMCTSModel
+from .base import MCTSModel
