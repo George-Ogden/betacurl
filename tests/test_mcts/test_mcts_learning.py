@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import MCTSModel, MCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig
+from src.mcts import ReinforceMCTSModel, ReinforceMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -29,7 +29,7 @@ def test_reinforce_model_stats(monkeypatch):
             logs.append(data)
 
     monkeypatch.setattr(wandb, "log", log)
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec
     )
     model.learn(training_data[:10], stub_game.get_symmetries)
@@ -71,9 +71,9 @@ def test_ppo_model_stats(monkeypatch):
 @mark.flaky
 def test_policy_learns():
     print(training_data)
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
         ),
@@ -84,9 +84,9 @@ def test_policy_learns():
 
 @mark.flaky
 def test_value_learns():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             vf_coeff=1000,
             ent_coeff=0.,
         ),
@@ -98,9 +98,9 @@ def test_value_learns():
 
 @mark.flaky
 def test_entropy_increases():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=1000.,
         )
@@ -112,9 +112,9 @@ def test_entropy_increases():
 
 @mark.flaky
 def test_model_losses_converge():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.,
         )
@@ -159,9 +159,9 @@ def test_model_learns_from_multiple_actions():
     ))
     training_data *= 100
 
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.
         )

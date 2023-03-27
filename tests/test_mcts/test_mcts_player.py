@@ -4,7 +4,7 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, MCTSModel, NNMCTS, NNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, ReinforceMCTSModel, NNMCTS, NNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
 from src.game import Game, MujocoGame, SingleEndCurlingGame
 
@@ -158,7 +158,7 @@ def test_mcts_config_is_used():
 def test_nn_mcts_player_uses_model():
     player = NNMCTSPlayer(
         single_stone_game.game_spec,
-        ModelClass=MCTSModel
+        ModelClass=ReinforceMCTSModel
     )
     player.model = player.create_model()
     
@@ -166,7 +166,7 @@ def test_nn_mcts_player_uses_model():
     player.move(single_stone_game)
     
     assert isinstance(player.mcts, MCTS)
-    assert isinstance(player.mcts.model, MCTSModel)
+    assert isinstance(player.mcts.model, ReinforceMCTSModel)
 
 def test_nn_mcts_players_play_without_model():
     player = NNMCTSPlayer(
@@ -179,7 +179,7 @@ def test_nn_mcts_players_play_without_model():
 def test_reinforce_nn_mcts_players_play_with_model():
     player = NNMCTSPlayer(
         single_player_game.game_spec,
-        ModelClass=MCTSModel
+        ModelClass=ReinforceMCTSModel
     )
     arena = Arena([player.dummy_constructor], single_player_game)
     score = arena.play_game()

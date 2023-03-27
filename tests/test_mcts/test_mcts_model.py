@@ -4,7 +4,7 @@ import numpy as np
 from dm_env.specs import Array, BoundedArray
 from pytest import mark
 
-from src.mcts import MCTSModel, MCTSModelConfig
+from src.mcts import ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import DenseModelFactory
 from src.game import GameSpec
 
@@ -16,7 +16,7 @@ game_spec = game.game_spec
 move_spec = game_spec.move_spec
 observation_spec = game_spec.observation_spec
 
-model = MCTSModel(
+model = ReinforceMCTSModel(
     game_spec=game_spec,
 )
 
@@ -37,7 +37,7 @@ def test_policy_network():
         game.validate_action(distribution.sample().numpy())
 
 def test_default_scaling_spec():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec
     )
     mean = (move_spec.minimum + move_spec.maximum) / 2
@@ -45,7 +45,7 @@ def test_default_scaling_spec():
     assert np.allclose(scaling_offset[:,0], mean)
 
 def test_half_specified_scaling_spec():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec,
         scaling_spec=move_spec.maximum
     )
@@ -53,7 +53,7 @@ def test_half_specified_scaling_spec():
     assert np.allclose(scaling_offset[:,0], move_spec.maximum)
 
 def test_fully_specified_scaling_spec():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec,
         scaling_spec=np.stack(
             (
@@ -79,10 +79,10 @@ def test_features_are_reasonable():
     assert np.std(features) < 1.
 
 def test_config_is_used():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec,
         model_factory=DenseModelFactory,
-        config=MCTSModelConfig(
+        config=ReinforceMCTSModelConfig(
             feature_size=10,
             vf_coeff=.5,
             ent_coeff=.1,
@@ -101,7 +101,7 @@ def test_config_is_used():
     assert model.clip_range == 1.5
 
 def test_deterministic_outside_training():
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec
     )
 
@@ -153,7 +153,7 @@ def test_training_transform():
         ],
     ))
 
-    class DummyMCTSModel(MCTSModel):
+    class DummyMCTSModel(ReinforceMCTSModel):
         def fit(self, dataset, training_config):
             self.dataset = dataset
 
@@ -184,7 +184,7 @@ def test_without_bounds():
             dtype=np.float32
         )
     )
-    model = MCTSModel(
+    model = ReinforceMCTSModel(
         game_spec=game_spec
     )
     observations = np.random.randn(100, 3)

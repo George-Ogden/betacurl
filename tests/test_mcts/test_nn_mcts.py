@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import pytest
 
-from src.mcts import MCTSModel, NNMCTS, NNMCTSConfig
+from src.mcts import ReinforceMCTSModel, NNMCTS, NNMCTSConfig
 
 from tests.utils import MDPStubGame, MDPSparseStubGame
 
@@ -20,7 +20,7 @@ class BlowUpGame(MDPSparseStubGame):
 
 blowup_game = BlowUpGame(50)
 game = MDPStubGame()
-model = MCTSModel(game.game_spec)
+model = ReinforceMCTSModel(game.game_spec)
 
 def test_end_never_reached():
     blowup_game.reset()

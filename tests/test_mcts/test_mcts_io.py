@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from src.player import Arena, MCTSPlayer, NNMCTSPlayer
-from src.mcts import MCTSModel
+from src.mcts import ReinforceMCTSModel
 
 from tests.utils import MDPStubGame, generic_save_load_test, generic_save_test, save_load
 from tests.config import cleanup, requires_cleanup
@@ -41,7 +41,7 @@ def test_nn_player_io_without_model():
 @requires_cleanup
 def test_mcts_model_io():
     game.reset()
-    model = MCTSModel(game.game_spec)
+    model = ReinforceMCTSModel(game.game_spec)
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
 
