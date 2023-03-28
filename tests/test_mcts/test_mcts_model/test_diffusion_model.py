@@ -6,6 +6,10 @@ from tests.utils import MDPStubGame
 
 game = MDPStubGame(6)
 game_spec = game.game_spec
+observation_spec = game_spec.observation_spec
+move_spec = game_spec.move_spec
+
+model = DiffusionMCTSModel(game_spec=game_spec)
 
 def test_config_is_used():
     model = DiffusionMCTSModel(
@@ -29,4 +33,20 @@ def test_config_is_used():
     ):
         assert np.all(array >= 0) and np.all(array <= 1)
         assert array.dtype == np.float32
-        
+
+def test_distribution():
+    observation = np.random.uniform(low=observation_spec.minimum, high=observation_spec.maximum)
+    distribution = model.generate_distribution(observation)
+    mean = distribution.mean().numpy()
+    assert mean.shape == move_spec.shape
+    assert (mean >= move_spec.minimum).all() and (mean <= move_spec.maximum).all()
+    
+    std = distribution.stddev().numpy()
+    assert std.shape == move_spec.shape
+    assert (std > 0.).all() and (std < np.sqrt(move_spec.maximum - move_spec.minimum)).all()
+    
+    for _ in range(10000):
+        sample = distribution.sample().numpy()
+        assert sample.shape == move_spec.shape
+        assert (sample >= move_spec.minimum).all() and (sample <= move_spec.maximum).all()
+        assert np.prod(distribution.prob(sample).numpy()) > 0.
