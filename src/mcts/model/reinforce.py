@@ -58,6 +58,9 @@ class ReinforceMCTSModel(MCTSModel):
                 output_activation="linear"
             )
         )
+        self.policy_head = keras.Sequential(
+            [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
+        )
 
         self.value_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
@@ -67,19 +70,16 @@ class ReinforceMCTSModel(MCTSModel):
             )
         )
 
-        self.policy_head = keras.Sequential(
-            [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
-        )
-
         self.setup_model()
 
     def setup_model(self):
         input = keras.Input(self.observation_shape)
+        features = self.feature_extractor(input)
         self.model = keras.Model(
             inputs=input,
             outputs=[
-                self.policy_head(self.feature_extractor(input)),
-                self.value_head(self.feature_extractor(input)),
+                self.policy_head(features),
+                self.value_head(features),
             ]
         )
         self.model(np.random.randn(1, *self.observation_shape))
@@ -166,6 +166,24 @@ class ReinforceMCTSModel(MCTSModel):
 
         return loss
 
+    def generate_distribution(
+        self,
+        observation: Union[tf.Tensor, np.ndarray],
+        training: bool = False
+    ) -> distributions.Distribution:
+        batch_throughput = True
+        if observation.ndim == len(self.observation_shape):
+            batch_throughput = False
+            observation = np.expand_dims(observation, 0)
+
+        features = self.feature_extractor(observation, training=training)
+        raw_actions = self.policy_head(features, training=training)
+
+        if not batch_throughput:
+            raw_actions = tf.squeeze(raw_actions, 0)
+
+        return self._generate_distribution(raw_actions)
+
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         means, log_stds = tf.split(raw_actions, 2, axis=-1)
         means = tf.squeeze(means, -1)
@@ -173,12 +191,6 @@ class ReinforceMCTSModel(MCTSModel):
         stds = tf.exp(log_stds)
 
         return distributions.Normal(means, stds)
-
-    @classmethod
-    def load(cls, directory: str) -> "Self":
-        model = super().load(directory)
-        model.setup_model()
-        return model
 
     def preprocess_data(
         self,

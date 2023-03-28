@@ -64,27 +64,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
     ) -> Union[tf.Tensor, np.ndarray]:
         ...
 
+    @abstractmethod
     def generate_distribution(
         self,
         observation: Union[tf.Tensor, np.ndarray],
         training: bool=False
     ) -> distributions.Distribution:
-
-        batch_throughput = True
-        if observation.ndim == len(self.observation_shape):
-            batch_throughput = False
-            observation = np.expand_dims(observation, 0)
-
-        features = self.feature_extractor(observation, training=training)
-        raw_actions = self.policy_head(features, training=training)
-
-        if not batch_throughput:
-            raw_actions = tf.squeeze(raw_actions, 0)
-
-        return self._generate_distribution(raw_actions)
-
-    @abstractmethod
-    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         ...
 
     def learn(
