@@ -15,6 +15,7 @@ from ...utils import SaveableMultiModel
 from ...game import GameSpec
 
 from .config import DiffusionMCTSModelConfig
+from .reinforce import ReinforceMCTSModel
 from .base import MCTSModel
 
 class DiffusionMCTSModel(MCTSModel):
@@ -151,10 +152,10 @@ class DiffusionMCTSModel(MCTSModel):
             actions += tf.random.normal(shape=(actions.shape), dtype=tf.float32) * np.sqrt(self.posterior_variance[i])
             actions = self.diffusion_model([actions, observation], training=training)
         return actions
-    
+
     def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool = False) -> Union[tf.Tensor, np.ndarray]:
-        ...
-    
+        return ReinforceMCTSModel.predict_values(self, observation, training)
+
     def compute_loss(self, *batch: List[tf.Tensor]) -> tf.Tensor:
         ...
 
