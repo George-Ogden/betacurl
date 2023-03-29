@@ -25,7 +25,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
 
     def compute_loss(
         self,
-        observations: np.ndarray,
+        observations: tf.Tensor,
         action_groups: tf.RaggedTensor,
         values: tf.Tensor,
         advantage_groups: tf.RaggedTensor,
@@ -75,7 +75,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
             kl_div /= action_groups.shape[0]
         else:
             action_groups = tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim)))
-            advantage_groups = tf.transpose(advantage_groups, (1, 0, *range(2, advantage_groups.ndim)))
+            advantage_groups = tf.transpose(advantage_groups, (1, 0))
             log_probs = tf.reduce_sum(predicted_distribution.log_prob(action_groups), axis=-1)
             target_log_probs = tf.reduce_sum(target_distribution.log_prob(action_groups), axis=-1)
             other_dims = tuple(range(1, predicted_distribution.batch_shape.ndims))
