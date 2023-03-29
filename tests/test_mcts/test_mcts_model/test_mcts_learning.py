@@ -68,6 +68,29 @@ def test_ppo_model_stats(monkeypatch):
         assert 0 <= data["clip_fraction"] <= 1
         assert 0 <= data["val_clip_fraction"] <= 1
 
+def test_diffusion_model_stats(monkeypatch):
+    logs = []
+    def log(data, *args, **kwargs):
+        if len(data) > 1:
+            logs.append(data)
+
+    monkeypatch.setattr(wandb, "log", log)
+    model = DiffusionMCTSModel(
+        game_spec
+    )
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+
+    expected_keys = ["loss", "value_loss", "policy_loss"]
+
+    assert len(logs) > 0
+    for key in expected_keys:
+        for data in logs:
+            assert key in data
+            assert "val_" + key in data
+            assert data[key] >= 0
+            assert data["val_" + key] >= 0
+
 @mark.flaky
 def test_policy_learns():
     print(training_data)
