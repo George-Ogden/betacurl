@@ -165,7 +165,7 @@ class Coach(SaveableObject):
         else:
             return NNMCTSPlayer(
                 self.game.game_spec,
-                self.config.player_config
+                config=self.config.player_config
             )
 
     def save_model(self, current_iteration):
