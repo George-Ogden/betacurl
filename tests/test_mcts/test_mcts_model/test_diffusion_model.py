@@ -27,7 +27,7 @@ def test_config_is_used():
     for array in (
         model.betas,
         model.noise_weight,
-        model.image_weight,
+        model.action_weight,
         model.alphas,
         model.posterior_variance,
     ):

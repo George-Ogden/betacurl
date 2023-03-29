@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import ReinforceMCTSModel, ReinforceMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig
+from src.mcts import DiffusionMCTSModel, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -15,10 +15,11 @@ stub_game = MDPStubGame(6)
 stub_game.max_move = MDPStubGame.max_move
 MDPStubGame.max_move = max_move
 game_spec = stub_game.game_spec
+move = np.ones(game_spec.move_spec.shape)
 
 result = 3.
-training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), np.array((.25,) if i % 2 else (1.25,)), result, [(np.array((.25,) if i % 2 else (1.25,)), (-1.)**i)]) for i in range(6)]
-mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), np.array((.25,) if i % 2 else (1.25,)), result, [(np.array((.25,) if i % 2 else (1.25,)), (-1.)**i)] * 2) for i in range(6)]
+training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)] * 2) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)]) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
 
