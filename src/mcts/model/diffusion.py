@@ -53,7 +53,7 @@ class DiffusionMCTSModel(MCTSModel):
         alphas_cumprod = np.cumprod(self.alphas)
         alphas_cumprod_prev = np.concatenate(([1], alphas_cumprod[:-1]), dtype=np.float32)
         self.noise_weight = np.sqrt(alphas_cumprod)
-        self.image_weight = np.sqrt(1 - alphas_cumprod)
+        self.action_weight = np.sqrt(1 - alphas_cumprod)
         self.posterior_variance = (
             self.betas * (1 - alphas_cumprod_prev) / (1 - alphas_cumprod)
         )
@@ -156,9 +156,71 @@ class DiffusionMCTSModel(MCTSModel):
     def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool = False) -> Union[tf.Tensor, np.ndarray]:
         return ReinforceMCTSModel.predict_values(self, observation, training)
 
-    def compute_loss(self, *batch: List[tf.Tensor]) -> tf.Tensor:
-        ...
+    def compute_loss(
+        self,
+        observations: tf.Tensor,
+        actions: tf.Tensor,
+        values: tf.Tensor
+    ) -> tf.Tensor:
+        predicted_values = self.predict_values(observations, training=True)
 
+        timesteps = np.random.randint(self.diffusion_steps, size=len(actions))
+
+        noise = tf.random.normal(shape=actions.shape, dtype=tf.float32)
+        noisy_actions = tf.reshape(
+            tf.repeat(
+                self.action_weight[timesteps],
+                (np.prod(actions.shape[1:]),)
+            ),
+            actions.shape
+        ) * actions + tf.reshape(
+            tf.repeat(
+                self.noise_weight[timesteps],
+                (np.prod(noise.shape[1:]),)
+            ),
+            noise.shape
+        ) * noise
+
+        predicted_actions = self.diffusion_model([noisy_actions, observations], training=True)
+
+        policy_loss = tf.reduce_mean(
+            losses.mean_squared_error(
+                actions,
+                predicted_actions
+            )
+        )
+
+        value_loss = losses.mean_squared_error(values, predicted_values)
+
+        loss = policy_loss + self.vf_coeff * value_loss
+
+        # record values for logging
+        self.stats["policy_loss"] += policy_loss.numpy()
+        self.stats["value_loss"] += value_loss.numpy()
+        self.stats["loss"] += loss.numpy()
+
+        return loss
+
+    def preprocess_data(
+        self,
+        training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
+        augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
+        training_config: TrainingConfig = TrainingConfig()
+    ) -> data.Dataset:
+        training_data = [
+            (
+                augmented_observation,
+                augmented_action,
+                augmented_reward
+            ) for player, observation, action, reward, policy in training_data
+                for (augmented_player, augmented_observation, augmented_action, augmented_reward) 
+                in augmentation_function(player, observation, action, reward)
+        ]
+
+        training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
+
+        return self.create_dataset(training_data)
+            
 class DiffusionDistribution(distributions.Distribution):
     batch_size: int = 1024
     def __init__(
