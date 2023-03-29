@@ -104,7 +104,7 @@ class ReinforceMCTSModel(MCTSModel):
 
     def compute_loss(
         self,
-        observations: np.ndarray,
+        observations: tf.Tensor,
         action_groups: tf.RaggedTensor,
         values: tf.Tensor,
         advantage_groups: tf.RaggedTensor
@@ -133,10 +133,16 @@ class ReinforceMCTSModel(MCTSModel):
             policy_loss /= action_groups.shape[0]
         else:
             log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
+            advantage_groups = tf.transpose(advantage_groups, (1, 0))
             other_dims = tuple(range(2, predicted_distribution.batch_shape.ndims))
 
             clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-            policy_loss = -tf.reduce_mean(advantage_groups * tf.reduce_sum(clipped_log_probs, axis=other_dims))
+            policy_loss = -tf.reduce_mean(
+                tf.transpose(
+                    tf.reduce_sum(clipped_log_probs, axis=(other_dims)),
+                    (2, 0, 1)
+                ) * advantage_groups
+            )
 
             self.stats["clip_fraction"] += tf.reduce_sum(
                 tf.reduce_mean(
