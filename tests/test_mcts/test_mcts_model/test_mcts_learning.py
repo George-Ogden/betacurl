@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import DiffusionMCTSModel, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -94,7 +94,6 @@ def test_diffusion_model_stats(monkeypatch):
 
 @mark.flaky
 def test_policy_learns():
-    print(training_data)
     model = ReinforceMCTSModel(
         game_spec,
         config=ReinforceMCTSModelConfig(
@@ -104,7 +103,7 @@ def test_policy_learns():
     )
     model.learn(training_data, stub_game.get_symmetries)
 
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > .75 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move)
 
 @mark.flaky
 def test_value_learns():
@@ -226,7 +225,7 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > .75 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(distribution.mean() > move)
 
 @mark.flaky
 def test_kl_divergence_without_early_stopping():
@@ -316,3 +315,37 @@ def test_training_continues_within_kl_divergence():
         ).numpy(),
         0
     )
+
+@mark.flaky
+def test_diffusion_learns_policy():
+    model = DiffusionMCTSModel(
+        game_spec,
+        config=DiffusionMCTSModelConfig(
+            vf_coeff=0.,
+        ),
+    )
+    model.learn(training_data, stub_game.get_symmetries)
+
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move)
+
+@mark.flaky
+def test_diffusion_model_losses_converge():
+    model = DiffusionMCTSModel(
+        game_spec,
+        config=DiffusionMCTSModelConfig(
+            vf_coeff=.5,
+        )
+    )
+
+    model.learn(
+        training_data,
+        stub_game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=10,
+            lr=1e-2
+        )
+    )
+
+    distribution = model.generate_distribution(training_data[0][1])
+    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
+    assert tf.reduce_all(distribution.mean() > move)
