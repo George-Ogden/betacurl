@@ -16,6 +16,7 @@ class ReinforceMCTSModelConfig(MCTSModelConfig):
 
 @dataclass
 class PPOMCTSModelConfig(ReinforceMCTSModelConfig):
+    clip_range: float = .1
     target_kl: Optional[float] = 1.5
 
 @dataclass
