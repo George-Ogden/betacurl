@@ -1,12 +1,11 @@
-from tqdm import trange
 import numpy as np
 import wandb
 
 from typing import Optional
 
-from ..mcts import PPOMCTSModel
 from ..player import Arena, NNMCTSPlayer, NNMCTSPlayerConfig
 from ..game import Game, GameSpec
+from ..mcts import PPOMCTSModel
 
 from .single_player import SinglePlayerCoach
 from .config import PPOCoachConfig
@@ -38,17 +37,18 @@ class PPOCoach(SinglePlayerCoach):
 
         return self.update_patience(reward)
 
-    def setup_player(
+    def create_player(
         self,
         game_spec: GameSpec,
         config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
-    ):
-        self.player = NNMCTSPlayer(
+    ) -> NNMCTSPlayer:
+        player = NNMCTSPlayer(
             game_spec=game_spec,
             ModelClass=PPOMCTSModel,
             config=config
         )
-        self.player.model = self.player.create_model()
+        player.model = player.create_model()
+        return player
     
     def load_checkpoint(self) -> Optional[int]:
         iteration = super().load_checkpoint()

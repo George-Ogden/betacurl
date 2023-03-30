@@ -24,7 +24,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
 
         self.scaling_spec = config.scaling_spec
         self.ModelClass = ModelClass
-        self.model: Optional[MCTSModel] = self.create_model()
+        self.model: Optional[MCTSModel] = None # self.create_model()
 
     def create_mcts(self, game: Game) -> NNMCTS:
         return self.MCTSClass(

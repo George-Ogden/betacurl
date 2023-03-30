@@ -22,7 +22,7 @@ class Coach(SaveableObject):
         config: CoachConfig = CoachConfig()
     ):
         self.game = game
-        self.setup_player(
+        self.player = self.create_player(
             game_spec=game.game_spec,
             config=config.player_config
         )
@@ -51,12 +51,12 @@ class Coach(SaveableObject):
         # start training with full patience
         self.patience = self.learning_patience
 
-    def setup_player(
+    def create_player(
         self,
         game_spec: GameSpec,
         config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
-    ):
-        self.player = NNMCTSPlayer(
+    ) -> NNMCTSPlayer:
+        return NNMCTSPlayer(
             game_spec=game_spec,
             config=config
         )
@@ -93,6 +93,7 @@ class Coach(SaveableObject):
 
         print("Starting the learning process")
         self.save_model(current_iteration=start_iteration)
+        assert self.best_player.model is None
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
@@ -163,10 +164,7 @@ class Coach(SaveableObject):
         if os.path.exists(self.best_checkpoint_path):
             return self.player.load(self.best_checkpoint_path)
         else:
-            return NNMCTSPlayer(
-                self.game.game_spec,
-                config=self.config.player_config
-            )
+            return self.create_player(self.game.game_spec, self.player_config)
 
     def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):
