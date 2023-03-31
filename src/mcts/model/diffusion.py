@@ -21,6 +21,7 @@ class DiffusionMCTSModel(MCTSModel):
         "value_head": "value.h5",
         "action_encoder": "action_encoder.h5",
         "action_decoder": "action_decoder.h5",
+        "timestep_encoder": "time_encoder.h5",
         "diffusion_model": "diffusion.h5"
     }
     def __init__(
