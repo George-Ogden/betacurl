@@ -317,7 +317,7 @@ def test_training_continues_within_kl_divergence():
     )
 
 @mark.flaky
-def test_diffusion_learns_policy():
+def test_diffusion_model_learns_policy():
     model = DiffusionMCTSModel(
         game_spec,
         config=DiffusionMCTSModelConfig(

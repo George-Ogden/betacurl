@@ -8,7 +8,7 @@ import numpy as np
 
 from typing import Callable, List, Optional, Tuple, Union
 
-from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, EmbeddingFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import DiffusionMCTSModelConfig
@@ -81,6 +81,15 @@ class DiffusionMCTSModel(MCTSModel):
             )
         )
 
+        # the number of diffusion steps is small so we can use an embedding
+        self.timestep_encoder = EmbeddingFactory.create_model(
+            self.diffusion_steps,
+            self.diffusion_steps // 2,# smaller embedding (but not much smaller)
+            config=EmbeddingFactory.CONFIG_CLASS(
+                output_activation="linear"
+            )
+        )
+
         self.action_encoder = model_factory.create_model(
             input_shape=self.action_shape,
             output_shape=self.feature_size,
@@ -90,7 +99,7 @@ class DiffusionMCTSModel(MCTSModel):
         )
 
         self.action_decoder = model_factory.create_model(
-            input_shape=self.feature_size * 2,
+            input_shape=self.feature_size * 2 + self.diffusion_steps // 2,
             output_shape=self.action_shape,
             config=model_factory.CONFIG_CLASS(
                 output_activation="sigmoid"
@@ -110,18 +119,20 @@ class DiffusionMCTSModel(MCTSModel):
     def setup_model(self):
         observation_input = layers.Input(shape=self.observation_shape)
         action_input = layers.Input(shape=self.action_shape)
+        time_input = layers.Input(shape=(), dtype=tf.int32)        
         features = self.feature_extractor(observation_input)
         self.diffusion_model = keras.Model(
-            inputs=[action_input, observation_input],
+            inputs=[action_input, observation_input, time_input],
             outputs=self.action_decoder(
                 layers.Concatenate()([
                     self.action_encoder(action_input),
-                    features
+                    features,
+                    self.timestep_encoder(time_input)
                 ])
             )
         )
         self.model = keras.Model(
-            inputs=[observation_input, action_input],
+            inputs=[observation_input, action_input, time_input],
             outputs=[
                 self.value_head(features),
                 self.diffusion_model.outputs
@@ -147,7 +158,14 @@ class DiffusionMCTSModel(MCTSModel):
         actions = tf.random.normal(shape=(observation.shape[0],) + self.action_shape, dtype=tf.float32)
         for i in reversed(range(self.diffusion_steps)):
             actions += tf.random.normal(shape=(actions.shape), dtype=tf.float32) * np.sqrt(self.posterior_variance[i])
-            actions = self.diffusion_model([actions, observation], training=training)
+            actions = self.diffusion_model(
+                [
+                    actions,
+                    observation,
+                    tf.repeat(i, (len(actions),))
+                ],
+                training=training
+            )
         return actions
 
     def predict_values(self, observation: Union[tf.Tensor, np.ndarray], training: bool = False) -> Union[tf.Tensor, np.ndarray]:
@@ -178,7 +196,7 @@ class DiffusionMCTSModel(MCTSModel):
             noise.shape
         ) * noise
 
-        predicted_actions = self.diffusion_model([noisy_actions, observations], training=True)
+        predicted_actions = self.diffusion_model([noisy_actions, observations, timesteps], training=True)
 
         policy_loss = tf.reduce_mean(
             losses.mean_squared_error(
