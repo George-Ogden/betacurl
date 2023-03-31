@@ -11,7 +11,8 @@ class MultiLayerModelFactory(ModelFactory):
     CONFIG_CLASS = FCNNConfig
     @classmethod
     def _create_model(cls, input_size: int, output_size: int, config: Optional[FCNNConfig] = FCNNConfig()) -> Model:
-        return keras.Sequential(name=cls.get_name(),
+        return keras.Sequential(
+            name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
             ] + [
