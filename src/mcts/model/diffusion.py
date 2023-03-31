@@ -5,7 +5,6 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-
 from typing import Callable, List, Optional, Tuple, Union
 
 from ...model import DenseModelFactory, EmbeddingFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
@@ -103,12 +102,26 @@ class DiffusionMCTSModel(MCTSModel):
             input_shape=self.feature_size * 2 + self.diffusion_steps // 2,
             output_shape=self.action_shape,
             config=model_factory.CONFIG_CLASS(
-                output_activation="sigmoid"
+                output_activation="linear"
             )
         )
-        # TODO: use scaling spec
+
+        mean, log_std = self.scaling_spec.T
+        # scale mean within action range
+        mean = (mean - self.action_range[0]) / np.diff(self.action_range, axis=0).squeeze(0)
+        assert (0 < mean).all() and (mean < 1).all()
+        mean = np.log(mean / (1 - mean))
+        std = np.exp(log_std)
+        assert (std > 0).all()
+
+        # mean and standard deviation are approximately correct
         self.action_decoder = keras.Sequential([
             self.action_decoder,
+            layers.Rescaling(
+                scale=2 * std,
+                offset=-mean
+            ),
+            layers.Activation("sigmoid"),
             layers.Rescaling(
                 scale=self.action_range[1] - self.action_range[0],
                 offset=self.action_range[0]
