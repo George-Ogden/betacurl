@@ -3,7 +3,7 @@ from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 
-from src.model import DenseModelFactory, ModelConfig, ModelFactory, MLPModelFactory, MultiLayerModelFactory, BEST_MODEL_FACTORY
+from src.model import DenseModelFactory, EmbeddingFactory, ModelConfig, ModelFactory, MLPModelFactory, MultiLayerModelFactory, BEST_MODEL_FACTORY
 
 from tests.utils import find_hidden_size
 
@@ -30,6 +30,23 @@ def test_mlp_factory():
 
 def test_multi_layer_factory():
     generic_factory_test(MultiLayerModelFactory)
+
+def test_best_model_factory():
+    generic_factory_test(BEST_MODEL_FACTORY)
+
+def test_embedding_factory():
+    embedding_layer = EmbeddingFactory.create_model(
+        10,
+        3,
+        config=EmbeddingFactory.CONFIG_CLASS(
+            output_activation="sigmoid"
+        )
+    )
+    assert isinstance(embedding_layer, keras.Model)
+    batch = np.arange(10, dtype=np.int32)
+    output = embedding_layer(batch).numpy()
+    assert output.shape == (10, 3)
+    assert (0 <= output).all() and (output <= 1).all()
 
 def test_config_applied_to_multi_layer_model():
     short_model = MultiLayerModelFactory.create_model(
