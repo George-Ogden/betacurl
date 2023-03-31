@@ -93,7 +93,6 @@ class Coach(SaveableObject):
 
         print("Starting the learning process")
         self.save_model(current_iteration=start_iteration)
-        assert self.best_player.model is None
 
         for iteration in range(start_iteration, self.num_iterations):
             print(f"Starting iteration {iteration}")
