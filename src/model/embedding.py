@@ -14,7 +14,7 @@ class EmbeddingFactory(ModelFactory):
         return keras.Sequential(
             name=cls.get_name(),
             layers=[
-                keras.Input(shape=(input_dim,)),
+                keras.Input(shape=()),
                 layers.Embedding(input_dim, output_dim),
                 layers.Activation(config.output_activation)
             ]
