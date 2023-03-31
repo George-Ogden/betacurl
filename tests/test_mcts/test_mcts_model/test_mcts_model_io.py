@@ -37,7 +37,8 @@ def test_mcts_diffusion_model_io():
 
     observation = np.random.randn(1, *game.game_spec.observation_spec.shape)
     noise = np.random.randn(1, *game.game_spec.move_spec.shape)
-    assert np.allclose(model.diffusion_model([noise, observation]), copy.diffusion_model([noise, observation]))
+    timestep = np.zeros((1,), dtype=int)
+    assert np.allclose(model.diffusion_model([noise, observation, timestep]), copy.diffusion_model([noise, observation, timestep]))
     assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
 
 @requires_cleanup
