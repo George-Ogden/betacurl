@@ -2,7 +2,7 @@ from copy import copy
 import numpy as np
 import os
 
-from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
+from src.coach import Coach, CoachConfig, DiffusionCoach, PPOCoach, PPOCoachConfig, SinglePlayerCoach
 from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
@@ -42,6 +42,8 @@ stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
+
+single_player_game = MujocoGame("point_mass", "easy")
 
 boring_coach = Coach(
     game=stub_game,
@@ -98,10 +100,7 @@ def test_ppo_coach_uses_ppo_model():
     copy_config = config_dict.copy()
     del copy_config["win_threshold"]
     coach = PPOCoach(
-        game=MujocoGame(
-            domain_name="cartpole",
-            task_name="swingup"
-        ),
+        game=single_player_game,
         config=PPOCoachConfig(
             **copy_config,
             player_config=NNMCTSPlayerConfig(
@@ -112,3 +111,52 @@ def test_ppo_coach_uses_ppo_model():
 
     assert coach.player.ModelClass == PPOMCTSModel
     assert coach.best_player.ModelClass == PPOMCTSModel
+
+@requires_cleanup
+def test_coach_initial_model_states():
+    coach = Coach(
+        game=stub_game,
+        config=CoachConfig(
+            **config_dict |
+            {"num_iterations":0}
+        )
+    )
+    coach.learn()
+    assert coach.best_player.model is None
+
+@requires_cleanup
+def test_single_player_coach_initial_model_states():
+    coach = SinglePlayerCoach(
+        game=single_player_game,
+        config=CoachConfig(
+            **config_dict |
+            {"num_iterations":0}
+        )
+    )
+    coach.learn()
+    assert coach.best_player.model is None
+
+@requires_cleanup
+def test_ppo_coach_initial_model_states():
+    coach = PPOCoach(
+        game=single_player_game,
+        config=CoachConfig(
+            **config_dict |
+            {"num_iterations":0}
+        )
+    )
+    coach.learn()
+    assert coach.best_player.model is not None
+    assert isinstance(coach.best_player.model, PPOMCTSModel)
+
+@requires_cleanup
+def test_diffusion_coach_initial_model_states():
+    coach = DiffusionCoach(
+        game=stub_game,
+        config=CoachConfig(
+            **config_dict |
+            {"num_iterations":0}
+        )
+    )
+    coach.learn()
+    assert coach.best_player.model is None
