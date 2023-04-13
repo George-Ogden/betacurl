@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions
 from tensorflow.keras import layers, losses
@@ -134,4 +136,9 @@ class FourierDistribution(distributions.Distribution):
         return tf.gather(self.pdf, indices, axis=-1) * delta + tf.gather(self.pdf, indices + 1, axis=-1) * (1 - delta)
 
     def entropy(self) -> tf.Tensor:
-        return -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1)
+        return -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1) / self.granularity
+
+    def kl_divergence(self, other: FourierDistribution) -> tf.Tensor:
+        pdf = tf.maximum(self.pdf, 1e-10)
+        other_pdf = tf.maximum(other.pdf, 1e-10)
+        return tf.reduce_sum(pdf * tf.math.log(pdf / other_pdf), axis=-1) / self.granularity
