@@ -6,10 +6,21 @@ from pytest import mark
 from src.mcts.model.fourier import FourierDistribution
 from src.mcts import FourierMCTSModel, FourierMCTSModelConfig
 
+from tests.utils import MDPStubGame
+
 test_distribution = FourierDistribution(
     coefficients = tf.reshape(tf.range(24, dtype=tf.float32), (4, 3, 2)),
     range = tf.constant([2., 4.]),
 )
+
+action_size = MDPStubGame.action_size
+MDPStubGame.action_size = 1
+game = MDPStubGame(6)
+MDPStubGame.action_size = action_size
+
+game_spec = game.game_spec
+observation_spec = game_spec.observation_spec
+move_spec = game_spec.move_spec
 
 def test_distribution_pdf_cdf():
     assert tf.reduce_all(test_distribution.pdf >= 0)
@@ -38,3 +49,19 @@ def test_distribution_sample():
         assert sample.shape == (4,)
         assert tf.reduce_all(2 <= sample) and tf.reduce_all(sample <= 4)
         assert tf.reduce_all(test_distribution.prob(sample) >= 0)
+
+def test_config_is_used():
+    model = FourierMCTSModel(
+        game_spec=game_spec,
+        config=FourierMCTSModelConfig(
+            fourier_features=7,
+            feature_size=32
+        )
+    )
+
+    assert np.prod(model.policy_head(np.random.rand(1, 32)).shape) % 7 == 0
+
+def test_distribution_generation():
+    model = FourierMCTSModel(game_spec=game_spec)
+    distribution = model.generate_distribution(game.reset().observation)
+    assert distribution.sample().shape == ()
