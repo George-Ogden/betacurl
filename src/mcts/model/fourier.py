@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from tensorflow_probability.python.internal import dtype_util
-from tensorflow_probability import distributions
+from tensorflow_probability import distributions, util
 from tensorflow.keras import layers, losses
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 import math
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from ...model import DenseModelFactory, EmbeddingFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
@@ -28,7 +28,7 @@ class FourierMCTSModel(PPOMCTSModel):
         assert self.action_shape == (1,)
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=(config.fourier_features,2),
+            output_shape=(config.fourier_features, 2),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -36,8 +36,14 @@ class FourierMCTSModel(PPOMCTSModel):
 
         self.setup_model()
 
-    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:        
-        return FourierDistribution(raw_actions, range=self.action_range.squeeze(-1))
+    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
+        range = self.action_range.squeeze(-1)
+        if raw_actions.ndim == 3:
+            range = np.tile(self.action_range.squeeze(-1), (len(raw_actions), 1))
+        return FourierDistribution(
+            raw_actions,
+            range=range
+        )
 
 class FourierDistribution(distributions.Distribution):
     granularity: int = 1000
@@ -47,14 +53,20 @@ class FourierDistribution(distributions.Distribution):
         range: tf.Tensor,
         validate_args: bool = False,
     ):
-        self.batched = True
-        if coefficients.ndim == 2:
+        self.batched = coefficients.ndim != 2
+        if not self.batched:
             coefficients = tf.expand_dims(coefficients, 0)
-            self.batched = False
 
         assert coefficients.ndim == 3
         assert coefficients.shape[-1] == 2
-        assert range.shape == (2,)
+
+        if range.ndim == 1:
+            range = tf.expand_dims(range, 0)
+        assert range.ndim == 2
+        assert range.shape[-1] == 2
+
+        assert len(range) == len(coefficients)
+
         dtype = dtype_util.common_dtype([coefficients], dtype_hint=tf.float32)
         super().__init__(
             dtype=dtype,
@@ -86,38 +98,64 @@ class FourierDistribution(distributions.Distribution):
         )
         self.pdf /= tf.reduce_sum(self.pdf, axis=-1, keepdims=True)
         self.cdf = tf.concat((tf.cumsum(self.pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self.pdf, axis=-1, keepdims=True))), axis=-1)
-        self.points = tf.linspace(*range, self.granularity)
+        self.points = tf.transpose(tf.linspace(range[:, 0], range[:, 1], self.granularity))
+        assert self.points.shape == self.pdf.shape
+
+        self.n = len(self.pdf)
         self.range = range
+        self.coefficients = coefficients
+
+    def _parameter_properties(self, dtype=None, num_classes=None) -> Dict[str, util.ParameterProperties]:
+        return {
+            "coefficients": util.ParameterProperties(),
+            "range": util.ParameterProperties(),
+        }
 
     def _sample_shape(self) -> Tuple[int, ...]:
         return ()
 
     def _batch_shape(self) -> Tuple[int, ...]:
-        return self.pdf.shape[:-1] if self.batched else ()
+        return (self.n,) if self.batched else ()
 
     def _sample_n(self, n: int, seed=None) -> tf.Tensor:
         # sample n points from the cdf using linear interpolation
         random_points = tf.random.uniform(
-            (len(self.pdf), n),
+            (self.n, n),
             dtype=self.dtype,
             seed=seed
         )
-        samples = tf.transpose(
-            tf.gather(
-                self.points,
-                tf.cast(
-                    tf.searchsorted(
-                        self.cdf,
-                        random_points,
-                        side="right"
+        samples = tf.gather_nd(
+            self.points,
+            tf.stack(
+                (
+                    tf.stack(
+                        [tf.range(self.n, dtype=tf.int32)] * n,
+                        axis=-1
                     ),
-                    tf.int32
-                )
+                    tf.cast(
+                        tf.searchsorted(
+                            self.cdf,
+                            random_points,
+                            side="right"
+                        ),
+                        tf.int32
+                    )
+                ),
+                axis=-1
             )
         )
         if not self.batched:
             samples = tf.squeeze(samples, -1)
-        return samples
+        return tf.transpose(
+            samples
+        )
+
+    def _prob(self, action: tf.Tensor) -> tf.Tensor:
+        # interpolate between pdf values
+        scaled = (action - self.range[:, 0]) / (self.range[:, 1] - self.range[:, 0]) * (self.granularity - 1)
+        indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
+        delta = scaled - tf.cast(indices, self.dtype)
+        return tf.gather(self.pdf, indices, axis=-1) * delta + tf.gather(self.pdf, indices + 1, axis=-1) * (1 - delta)
 
     def _mean(self) -> tf.Tensor:
         return tf.reduce_sum(self.points * self.pdf, axis=-1)
@@ -126,14 +164,16 @@ class FourierDistribution(distributions.Distribution):
         return tf.reduce_sum(self.points ** 2 * self.pdf, axis=-1) - self._mean() ** 2
 
     def _mode(self) -> tf.Tensor:
-        return tf.gather(self.points, tf.argmax(self.pdf, axis=-1))
-
-    def prob(self, action: tf.Tensor) -> tf.Tensor:
-        # interpolate between pdf values
-        scaled = (action - self.range[0]) / (self.range[1] - self.range[0]) * (self.granularity - 1)
-        indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
-        delta = scaled - tf.cast(indices, self.dtype)
-        return tf.gather(self.pdf, indices, axis=-1) * delta + tf.gather(self.pdf, indices + 1, axis=-1) * (1 - delta)
+        return tf.gather_nd(
+            self.points,
+            tf.stack(
+                (
+                    tf.range(self.n),
+                    tf.argmax(self.pdf, axis=-1, output_type=tf.int32)
+                ),
+                axis=-1
+            )
+        )
 
     def entropy(self) -> tf.Tensor:
         return -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1) / self.granularity
