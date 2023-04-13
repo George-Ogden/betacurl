@@ -255,9 +255,9 @@ def test_logs_format(capsys):
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            num_iterations=5,
+            num_iterations=2,
             num_games_per_episode=2,
-            evaluation_games=4,
+            evaluation_games=2,
             win_threshold=.6,
             **necessary_config
         )

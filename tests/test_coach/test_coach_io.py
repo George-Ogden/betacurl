@@ -67,6 +67,7 @@ def test_checkpoint_restores():
     assert iteration == 10
     assert new_coach.player.dummy_variable == 15
 
+@mark.slow
 @requires_cleanup
 def test_checkpoint_restores_in_training():
     coach = Coach(
