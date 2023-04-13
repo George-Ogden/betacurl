@@ -1,14 +1,10 @@
 from tqdm import trange
 import numpy as np
-import wandb
-import os
 
-from typing import List, Optional, Tuple, Type
-from copy import copy
+from typing import Tuple, Type
 
-from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..game import Game, GameSpec
-from ..utils import SaveableObject
+from ..player import Arena, Player
+from ..game import Game
 
 from .config import CoachConfig
 from .coach import Coach
@@ -22,20 +18,10 @@ class SinglePlayerCoach(Coach):
         super().__init__(game=game, config=config)
         assert self.game.num_players == 1, f"the `{type(self).__name__}` class is for single player games only"
 
-    def benchmark(self, Opponent: Type[Player]) -> Tuple[int, int]:
-        arenas = [
-            Arena([self.player.dummy_constructor], game=self.game.clone()),
-            Arena([Opponent], game=self.game)
-        ]
-        results = [0, 0]
-        for _ in trange(self.num_eval_games, desc="Playing games"):
-            returns = [
-                arena.play_game(
-                    starting_player=0,
-                    display=False,
-                    return_history=False,
-                    training=False
-                ) for arena in arenas
-            ]
-            results[np.argmax(returns)] += 1
-        return tuple(results)
+    def compare(self, Opponent: Type[Player]) -> bool:
+        arena = Arena([self.player.dummy_constructor], game=self.game.clone())
+        current_player_results = np.array(arena.play_games(self.num_eval_games, display=False, training=False))
+        arena = Arena([Opponent], game=self.game.clone())
+        opponent_results = np.array(arena.play_games(self.num_eval_games, display=False, training=False))
+        wins = (current_player_results >= opponent_results).sum()
+        return wins > self.win_threshold

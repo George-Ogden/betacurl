@@ -1,18 +1,19 @@
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Type
 import numpy as np
 
+from ..mcts import MCTSModel, NNMCTS, ReinforceMCTSModel
 from ..model import Learnable, TrainingConfig
-from ..mcts import MCTSModel, NNMCTS
 from ..game import Game, GameSpec
 
 from .config import NNMCTSPlayerConfig
 from .mcts import MCTSPlayer
 
 class NNMCTSPlayer(MCTSPlayer, Learnable):
-    SEPARATE_ATTRIBUTES = ["model"]
+    SEPARATE_ATTRIBUTES = ["model", "mcts"]
     def __init__(
         self,
         game_spec: GameSpec,
+        ModelClass: Type[ReinforceMCTSModel]=ReinforceMCTSModel,
         config: Optional[NNMCTSPlayerConfig]=NNMCTSPlayerConfig()
     ):
         super().__init__(
@@ -22,13 +23,20 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
         )
 
         self.scaling_spec = config.scaling_spec
-        self.model: Optional[MCTSModel] = None
+        self.ModelClass = ModelClass
+        self.model: Optional[MCTSModel] = None # self.create_model()
 
     def create_mcts(self, game: Game) -> NNMCTS:
         return self.MCTSClass(
             game=game,
             model=self.model,
             config=self.config.mcts_config
+        )
+
+    def create_model(self) -> ReinforceMCTSModel:
+        return self.ModelClass(
+            game_spec=self.game_spec,
+            scaling_spec=self.scaling_spec
         )
 
     def learn(
@@ -38,8 +46,5 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
         training_config: TrainingConfig = TrainingConfig()
     ):
         if self.model is None:
-            self.model = MCTSModel(
-                self.game_spec,
-                self.scaling_spec
-            )
+            self.model = self.create_model()
         self.model.learn(training_history, augmentation_function, training_config)

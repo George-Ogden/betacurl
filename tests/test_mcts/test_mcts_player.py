@@ -4,9 +4,9 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, NNMCTS, NNMCTSConfig, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, ReinforceMCTSModel, NNMCTS, NNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
-from src.game import Game, SingleEndCurlingGame
+from src.game import Game, MujocoGame, SingleEndCurlingGame
 
 from tests.utils import StubGame, SparseStubGame
 
@@ -25,11 +25,19 @@ single_stone_game = SingleEndCurlingGame()
 Curling.num_stones_per_end = 16
 single_stone_game.num_stones_per_end = 2
 
+time_limit = MujocoGame.time_limit
+MujocoGame.time_limit = 1.
+single_player_game = MujocoGame(
+    domain_name="point_mass",
+    task_name="easy"
+)
+MujocoGame.time_limit = time_limit
+
 player = MCTSPlayer(single_stone_game.game_spec)
 
 arena = Arena([MCTSPlayer, RandomPlayer], single_stone_game)
 
-@mark.probabilistic
+@mark.flaky
 def test_training_and_evaluation_matter():
     players = [
         MCTSPlayer(
@@ -86,7 +94,8 @@ def test_works_with_less_information():
         )
     )
     arena = Arena(players=[free_player.dummy_constructor, forced_player.dummy_constructor], game=sparse_stub_game)
-    wins, losses = arena.play_games(2)
+    scores = arena.play_games(2)
+    assert len(scores) == 2
 
 def test_config_is_used():
     player = MCTSPlayer(
@@ -145,3 +154,42 @@ def test_mcts_config_is_used():
     assert (player.scaling_spec.reshape(-1)[:np.prod(observation_shape)] == 1).all()
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
+
+def test_nn_mcts_player_uses_model():
+    player = NNMCTSPlayer(
+        single_stone_game.game_spec,
+        ModelClass=ReinforceMCTSModel
+    )
+    player.model = player.create_model()
+    
+    single_stone_game.reset()
+    player.move(single_stone_game)
+    
+    assert isinstance(player.mcts, MCTS)
+    assert isinstance(player.mcts.model, ReinforceMCTSModel)
+
+def test_nn_mcts_players_play_without_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    scores = arena.play_games(2)
+    assert len(scores) == 2
+    
+def test_reinforce_nn_mcts_players_play_with_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec,
+        ModelClass=ReinforceMCTSModel
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    score = arena.play_game()
+    assert score > 0
+
+def test_ppo_nn_mcts_players_play_with_model():
+    player = NNMCTSPlayer(
+        single_player_game.game_spec,
+        ModelClass=PPOMCTSModel
+    )
+    arena = Arena([player.dummy_constructor], single_player_game)
+    score = arena.play_game()
+    assert score > 0

@@ -1,6 +1,6 @@
 import wandb
 
-from src.coach import SinglePlayerCoach, CoachConfig
+from src.coach import PPOCoach, PPOCoachConfig
 from src.utils import ParserBuilder
 from src.game import MujocoGame
 
@@ -13,8 +13,8 @@ def main(args):
         task_name=args.task_name,
     )
 
-    coach_config = CoachConfig.from_args(args)
-    coach = SinglePlayerCoach(
+    coach_config = PPOCoachConfig.from_args(args)
+    coach = PPOCoach(
         game=env,
         config=coach_config
     )
@@ -22,7 +22,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ParserBuilder().add_dataclass(
-        CoachConfig()
+        PPOCoachConfig()
     ).add_argument(
         name="domain_name",
         help="mujoco domain",

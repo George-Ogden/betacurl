@@ -33,7 +33,6 @@ class Game(metaclass=ABCMeta):
     max_round = 0
     player_deltas: List[int] = [1, -1]
     discount = 1.
-    eps: float = 1e-6 # used in the event of a "draw"
 
     @classproperty
     def num_players(cls):

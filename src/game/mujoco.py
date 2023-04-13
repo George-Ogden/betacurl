@@ -41,10 +41,11 @@ class MujocoGame(Game):
         return flat_observation
 
     def _step(self, action: np.ndarray, display: bool = False) -> float:
+        timestep = self.env.step(action)
         if display:
-            print(self.get_observation())
+            print(timestep)
         # scale so that return is between 0 and 1
-        return (self.env.step(action).reward or 0) * (1 - self.discount)
+        return (timestep.reward or 0) * (1 - self.discount)
 
     def clone(self) -> "Self":
         # reduce memory by only copying the parts that change

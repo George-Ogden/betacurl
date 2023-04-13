@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import pytest
 
-from src.mcts import MCTSModel, NNMCTS, NNMCTSConfig
+from src.mcts import ReinforceMCTSModel, NNMCTS, NNMCTSConfig
 
 from tests.utils import MDPStubGame, MDPSparseStubGame
 
@@ -20,7 +20,7 @@ class BlowUpGame(MDPSparseStubGame):
 
 blowup_game = BlowUpGame(50)
 game = MDPStubGame()
-model = MCTSModel(game.game_spec)
+model = ReinforceMCTSModel(game.game_spec)
 
 def test_end_never_reached():
     blowup_game.reset()
@@ -46,14 +46,14 @@ def test_end_reached_with_stepping():
     else:
         assert False, "did not reach game end"
 
-@mark.probabilistic
+@mark.flaky
 def test_actions_use_model():
     game.reset()
     mcts = NNMCTS(game, model)
     distribution = model.generate_distribution(game.get_observation())
     actions, probs = zip(*[mcts.generate_action(game.get_observation()) for _ in range(1000)])
-    assert np.allclose(distribution.loc, np.mean(actions, axis=0), atol=.1)
-    assert np.allclose(distribution.scale, np.std(actions, axis=0), atol=.1)
+    assert np.allclose(distribution.mean(), np.mean(actions, axis=0), atol=.1)
+    assert np.allclose(distribution.stddev(), np.std(actions, axis=0), atol=.1)
 
 def test_config_is_used():
     blowup_game.reset()

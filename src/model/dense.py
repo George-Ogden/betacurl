@@ -11,7 +11,8 @@ class DenseModelFactory(ModelFactory):
     CONFIG_CLASS = ModelConfig
     @classmethod
     def _create_model(cls, input_size: int, output_size: int, config: Optional[ModelConfig] = ModelConfig()) -> Model:
-        return keras.Sequential(name=cls.get_name(),
+        return keras.Sequential(
+            name=cls.get_name(),
             layers=[
                 keras.Input(shape=(input_size,)),
                 layers.Dense(output_size, activation=config.output_activation, kernel_regularizer="l2")

@@ -62,4 +62,8 @@ class SaveableMultiModel(SaveableModel):
                 )
             else:
                 setattr(model, attr, None)
+        model.setup_model()
         return model
+
+    def setup_model(self):
+        ...

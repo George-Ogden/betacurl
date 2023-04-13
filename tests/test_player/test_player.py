@@ -1,3 +1,5 @@
+import numpy as np
+
 from pytest import mark
 
 from src.player import Arena, RandomPlayer
@@ -9,11 +11,15 @@ random_player = RandomPlayer(stub_game.game_spec)
 forced_arena = Arena([GoodPlayer, BadPlayer], stub_game)
 random_arena = Arena([RandomPlayer, RandomPlayer], stub_game)
 
-@mark.probabilistic
+@mark.flaky
 def test_random_players_split_wins():
-    wins, losses = random_arena.play_games(100)
-    assert wins + losses == 100
-    assert min(wins, losses) > 25
+    results = np.array(random_arena.play_games(100))
+    wins = np.sum(results > 0)
+    draws = np.sum(results == 0)
+    losses = np.sum(results < 0)
+
+    assert wins + draws + losses == 100
+    assert min(wins, losses) + draws > 25
 
 def test_dummy_constructor():
     player = RandomPlayer(stub_game.game_spec)

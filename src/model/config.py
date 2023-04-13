@@ -9,28 +9,28 @@ from ..utils import Config
 
 @dataclass
 class ModelConfig(Config):
-    output_activation: str = "sigmoid"
+    output_activation: str = "linear"
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 32
+    hidden_size: int = 64
     dropout: float = .1
 
 @dataclass
 class FCNNConfig(MLPModelConfig):
-    hidden_layers: int = 3
+    hidden_layers: int = 2
     def __post_init__(self):
         assert self.hidden_layers >= 1
 
 @dataclass
 class TrainingConfig(Config):
-    training_epochs: int = 10
+    training_epochs: int = 20
     """number of epochs to train each model for"""
-    batch_size: int = 64
+    batch_size: int = 256
     """training batch size"""
-    training_patience: int = 7
+    training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""
-    lr: float = 1e-3
+    lr: float = 1e-2
     """model learning rate"""
     validation_split: float = 0.1
     """proportion of data to validate on"""
@@ -65,5 +65,5 @@ class TrainingConfig(Config):
                     monitor="val_" + (self.metrics[0] if len(self.metrics) > 0 else "loss"),
                     restore_best_weights=True
                 )
-            ] if self.training_patience > 0 else []
+            ] if self.training_patience is not None else []
         )

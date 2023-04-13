@@ -40,14 +40,17 @@ class MCTSPlayer(Player):
     def get_current_node(self, game: Game) -> Node:
         return self.mcts.get_node(game.get_observation())
 
+    def create_mcts(self, game: Game) -> MCTS:
+        return self.MCTSClass(
+            game,
+            config=self.MCTSClass.CONFIG_CLASS(
+                **self.config.mcts_config
+            )
+        )
+
     def move(self, game: Game) -> np.ndarray:
         if self.mcts is None:
-            self.mcts = self.MCTSClass(
-                game,
-                config=self.MCTSClass.CONFIG_CLASS(
-                    **self.config.mcts_config
-                )
-            )
+            self.mcts = self.create_mcts(game)
         else:
             self.mcts.cleanup(game)
 
