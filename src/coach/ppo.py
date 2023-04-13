@@ -1,7 +1,7 @@
 import numpy as np
 import wandb
 
-from typing import Optional
+from typing import Optional, Type
 
 from ..player import Arena, NNMCTSPlayer, NNMCTSPlayerConfig
 from ..game import Game, GameSpec
@@ -14,9 +14,10 @@ class PPOCoach(SinglePlayerCoach):
     def __init__(
         self,
         game: Game,
-        config: PPOCoachConfig = PPOCoachConfig()
+        config: PPOCoachConfig = PPOCoachConfig(),
+        ModelClass: Type[PPOMCTSModel] = PPOMCTSModel,
     ):
-        super().__init__(game=game, config=config)
+        super().__init__(game=game, config=config, ModelClass=ModelClass)
         self.eval_environment = game.clone()
         self.best_reward = -float("inf")
 
@@ -42,11 +43,7 @@ class PPOCoach(SinglePlayerCoach):
         game_spec: GameSpec,
         config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     ) -> NNMCTSPlayer:
-        player = NNMCTSPlayer(
-            game_spec=game_spec,
-            ModelClass=PPOMCTSModel,
-            config=config
-        )
+        player = super().create_player(game_spec, config)
         player.model = player.create_model()
         return player
     

@@ -1,10 +1,10 @@
-from tqdm import trange
 import numpy as np
 
-from typing import Tuple, Type
+from typing import Type
 
 from ..player import Arena, Player
 from ..game import Game
+from ..mcts import ReinforceMCTSModel
 
 from .config import CoachConfig
 from .coach import Coach
@@ -13,9 +13,10 @@ class SinglePlayerCoach(Coach):
     def __init__(
         self,
         game: Game,
-        config: CoachConfig = CoachConfig()
+        config: CoachConfig=CoachConfig(),
+        ModelClass: Type[ReinforceMCTSModel]=ReinforceMCTSModel,
     ):
-        super().__init__(game=game, config=config)
+        super().__init__(game=game, config=config, ModelClass=ModelClass)
         assert self.game.num_players == 1, f"the `{type(self).__name__}` class is for single player games only"
 
     def compare(self, Opponent: Type[Player]) -> bool:

@@ -157,5 +157,8 @@ class PPOMCTSModel(ReinforceMCTSModel):
 
         # zip with dataset
         return self.create_dataset(
-            zip(*zip(*dataset), *target_distribution_parameters, strict=True)
+            [
+                (*(data.numpy() for data in data), *(parameter.numpy() for parameter in parameters))
+                for data, *parameters in zip(dataset, *target_distribution_parameters, strict=True)
+            ]
         )

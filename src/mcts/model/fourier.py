@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions, util
-from tensorflow.keras import layers, losses
-from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
-import math
 
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
-from ...model import DenseModelFactory, EmbeddingFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import FourierMCTSModelConfig
