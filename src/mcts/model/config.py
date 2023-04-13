@@ -24,3 +24,7 @@ class DiffusionMCTSModelConfig(MCTSModelConfig):
     diffusion_coef_min: float = 2e-4
     diffusion_coef_max: float = 2e-2
     diffusion_steps: int = 10
+
+@dataclass
+class FourierMCTSModelConfig(MCTSModelConfig):
+    fourier_features: int = 16
