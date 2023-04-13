@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+from pytest import mark
+
 from src.mcts.model.fourier import FourierDistribution
 from src.mcts import FourierMCTSModel, FourierMCTSModelConfig
 
@@ -30,3 +32,9 @@ def test_distribution_stats():
     assert tf.reduce_all(2 <= mode) and tf.reduce_all(mode <= 4)
     assert tf.reduce_all(0 < variance) and tf.reduce_all(variance < 1)
     assert np.allclose(std, tf.sqrt(variance))
+
+def test_distribution_sample():
+    for sample in test_distribution.sample(1000):
+        assert sample.shape == (4,)
+        assert tf.reduce_all(2 <= sample) and tf.reduce_all(sample <= 4)
+        assert tf.reduce_all(test_distribution.prob(sample) >= 0)
