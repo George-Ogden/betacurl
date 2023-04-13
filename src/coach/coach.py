@@ -156,7 +156,7 @@ class Coach(SaveableObject):
             "worst_result": results.min(),
             "avg_result": results.mean(),
         }
-        return results.mean() >= (self.win_threshold + 1) / 2
+        return results.mean() >= self.win_threshold * 2 - 1
 
     @property
     def best_player(self) -> NNMCTSPlayer:
