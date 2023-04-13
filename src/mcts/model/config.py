@@ -27,4 +27,4 @@ class DiffusionMCTSModelConfig(MCTSModelConfig):
 
 @dataclass
 class FourierMCTSModelConfig(PPOMCTSModelConfig):
-    fourier_features: int = 16
+    fourier_features: int = 4

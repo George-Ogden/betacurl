@@ -99,8 +99,8 @@ class FourierDistribution(distributions.Distribution):
         assert self.points.shape == self.pdf.shape
 
         self.n = len(self.pdf)
-        self.range = range
-        self.coefficients = coefficients
+        self.range = tf.cast(range, self.dtype)
+        self.coefficients = tf.cast(coefficients, self.dtype)
 
     def _parameter_properties(self, dtype=None, num_classes=None) -> Dict[str, util.ParameterProperties]:
         return {
@@ -143,12 +143,16 @@ class FourierDistribution(distributions.Distribution):
         )
         if not self.batched:
             samples = tf.squeeze(samples, -1)
-        return tf.transpose(
-            samples
+        return tf.expand_dims(
+            tf.transpose(
+                samples
+            ),
+            axis=-1
         )
 
     def _prob(self, action: tf.Tensor) -> tf.Tensor:
         # interpolate between pdf values
+        action = tf.cast(action, self.dtype)
         scaled = (action - self.range[:, 0]) / (self.range[:, 1] - self.range[:, 0]) * (self.granularity - 1)
         indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
         delta = scaled - tf.cast(indices, self.dtype)
@@ -173,9 +177,10 @@ class FourierDistribution(distributions.Distribution):
         )
 
     def entropy(self) -> tf.Tensor:
-        return -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1) / self.granularity
+        pdf = tf.maximum(self.pdf, 1e-10)
+        return -tf.reduce_sum(self.pdf * tf.math.log(pdf), axis=-1) / self.granularity
 
     def kl_divergence(self, other: FourierDistribution) -> tf.Tensor:
         pdf = tf.maximum(self.pdf, 1e-10)
         other_pdf = tf.maximum(other.pdf, 1e-10)
-        return tf.reduce_sum(pdf * tf.math.log(pdf / other_pdf), axis=-1) / self.granularity
+        return tf.reduce_sum(self.pdf * tf.math.log(pdf / other_pdf), axis=-1) / self.granularity
