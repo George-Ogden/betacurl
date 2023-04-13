@@ -27,6 +27,7 @@ class FourierDistribution(distributions.Distribution):
     ):
         assert coefficients.ndim == 3
         assert coefficients.shape[-1] == 2
+        assert range.shape == (2,)
         dtype = dtype_util.common_dtype([coefficients], dtype_hint=tf.float32)
         super().__init__(
             dtype=dtype,
@@ -58,5 +59,14 @@ class FourierDistribution(distributions.Distribution):
         )
         self.pdf /= tf.reduce_sum(self.pdf, axis=-1, keepdims=True)
         self.cdf = tf.cumsum(self.pdf, axis=-1)
-        self.points = np.linspace(*range, self.granularity)
+        self.points = tf.linspace(*range, self.granularity)
         self.range = range
+
+    def _mean(self):
+        return tf.reduce_sum(self.points * self.pdf, axis=-1)
+
+    def _variance(self):
+        return tf.reduce_sum(self.points ** 2 * self.pdf, axis=-1) - self._mean() ** 2
+
+    def _mode(self):
+        return tf.gather(self.points, tf.argmax(self.pdf, axis=-1))
