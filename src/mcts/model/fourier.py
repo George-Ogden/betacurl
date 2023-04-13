@@ -15,7 +15,27 @@ from .config import FourierMCTSModelConfig
 from .ppo import PPOMCTSModel
 
 class FourierMCTSModel(PPOMCTSModel):
-    ...
+    def __init__(
+        self,
+        game_spec: GameSpec,
+        scaling_spec: Optional[np.ndarray] = None,
+        model_factory: ModelFactory = BEST_MODEL_FACTORY,
+        config: FourierMCTSModelConfig = FourierMCTSModelConfig()
+    ):
+        super().__init__(game_spec, scaling_spec, model_factory, config)
+        assert self.action_shape == (1,)
+        self.policy_head = DenseModelFactory.create_model(
+            input_shape=self.feature_size,
+            output_shape=(config.fourier_features,2),
+            config=DenseModelFactory.CONFIG_CLASS(
+                output_activation="linear"
+            )
+        )
+
+        self.setup_model()
+
+    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:        
+        return FourierDistribution(raw_actions, range=self.action_range.squeeze(-1))
 
 class FourierDistribution(distributions.Distribution):
     granularity: int = 1000
@@ -25,6 +45,11 @@ class FourierDistribution(distributions.Distribution):
         range: tf.Tensor,
         validate_args: bool = False,
     ):
+        self.batched = True
+        if coefficients.ndim == 2:
+            coefficients = tf.expand_dims(coefficients, 0)
+            self.batched = False
+
         assert coefficients.ndim == 3
         assert coefficients.shape[-1] == 2
         assert range.shape == (2,)
@@ -66,7 +91,7 @@ class FourierDistribution(distributions.Distribution):
         return ()
 
     def _batch_shape(self) -> Tuple[int, ...]:
-        return self.pdf.shape[:-1]
+        return self.pdf.shape[:-1] if self.batched else ()
 
     def _sample_n(self, n: int, seed=None) -> tf.Tensor:
         # sample n points from the cdf using linear interpolation
@@ -75,7 +100,7 @@ class FourierDistribution(distributions.Distribution):
             dtype=self.dtype,
             seed=seed
         )
-        return tf.transpose(
+        samples = tf.transpose(
             tf.gather(
                 self.points,
                 tf.cast(
@@ -88,6 +113,9 @@ class FourierDistribution(distributions.Distribution):
                 )
             )
         )
+        if not self.batched:
+            samples = tf.squeeze(samples, -1)
+        return samples
 
     def _mean(self) -> tf.Tensor:
         return tf.reduce_sum(self.points * self.pdf, axis=-1)
@@ -104,3 +132,6 @@ class FourierDistribution(distributions.Distribution):
         indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
         delta = scaled - tf.cast(indices, self.dtype)
         return tf.gather(self.pdf, indices, axis=-1) * delta + tf.gather(self.pdf, indices + 1, axis=-1) * (1 - delta)
+
+    def entropy(self) -> tf.Tensor:
+        return -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1)
