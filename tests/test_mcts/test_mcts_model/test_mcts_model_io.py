@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from src.mcts import DiffusionMCTSModel, ReinforceMCTSModel
+from src.mcts import DiffusionMCTSModel, FourierMCTSModel, ReinforceMCTSModel
 from src.player import NNMCTSPlayer
 
 from tests.utils import MDPStubGame, generic_save_test, save_load
@@ -39,6 +39,25 @@ def test_mcts_diffusion_model_io():
     noise = np.random.randn(1, *game.game_spec.move_spec.shape)
     timestep = np.zeros((1,), dtype=int)
     assert np.allclose(model.diffusion_model([noise, observation, timestep]), copy.diffusion_model([noise, observation, timestep]))
+    assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
+
+@requires_cleanup
+def test_mcts_fourier_model_io():
+    action_size = MDPStubGame.action_size
+    MDPStubGame.action_size = 1
+    game = MDPStubGame(6)
+    MDPStubGame.action_size = action_size
+    game.reset()
+    
+    model = FourierMCTSModel(game.game_spec)
+    model.predict_values(game.get_observation())
+    model.generate_distribution(game.get_observation())
+
+    generic_save_test(model)
+    copy = save_load(model)
+
+    observation = np.random.randn(*game.game_spec.observation_spec.shape)
+    assert np.allclose(model.generate_distribution(observation).kl_divergence(copy.generate_distribution(observation)).numpy(), 0.)
     assert tf.reduce_all(model.predict_values(observation) == copy.predict_values(observation))
 
 @requires_cleanup
