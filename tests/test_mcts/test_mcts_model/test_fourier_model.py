@@ -57,10 +57,10 @@ def test_distribution_stats():
     assert np.allclose(std, tf.sqrt(variance))
 
 def test_distribution_sample():
-    for sample in test_distribution.sample(100):
-        assert sample.shape == (4,)
-        assert tf.reduce_all(2 <= sample) and tf.reduce_all(sample <= 4)
-        assert tf.reduce_all(test_distribution.prob(sample) >= 0)
+    for batch in test_distribution.sample(100):
+        assert batch.shape in {(4,1), (4,1)}
+        assert tf.reduce_all(2 <= batch) and tf.reduce_all(batch <= 4)
+        assert tf.reduce_all(test_distribution.prob(batch) >= 0)
 
 def test_config_is_used():
     model = FourierMCTSModel(
