@@ -3,6 +3,8 @@ from copy import copy
 import time
 import os
 
+from pytest import mark
+
 from src.coach import Coach, CoachConfig, Coach, CoachConfig
 from src.player import NNMCTSPlayer, NNMCTSPlayerConfig
 from src.model import TrainingConfig
@@ -94,6 +96,7 @@ def test_checkpoint_restores_in_training():
     assert os.path.getmtime(coach.get_checkpoint_path(2)) > update_time
     assert coach.dummy_variable == 25
 
+@mark.slow
 @requires_cleanup
 def test_training_history_restored():
     coach = Coach(
@@ -109,6 +112,7 @@ def test_training_history_restored():
     coach.load_checkpoint()
     assert len(coach.train_example_history) > 0
 
+@mark.slow
 @requires_cleanup
 def test_best_player_saves_and_loads():
     coach = Coach(
@@ -133,6 +137,7 @@ def test_best_player_saves_and_loads():
     best_player = coach.best_player
     assert best_player.dummy_variable == 22
 
+@mark.slow
 @requires_cleanup
 def test_reloading_mcts_coach(capsys):
     coach = Coach(

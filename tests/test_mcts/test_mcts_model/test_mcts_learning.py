@@ -281,6 +281,7 @@ def test_kl_divergence_with_early_stopping():
         model.generate_distribution(training_sample[1])
     )) < 1.
 
+@mark.slow
 def test_training_continues_within_kl_divergence():
     model = PPOMCTSModel(
         game_spec=game_spec,

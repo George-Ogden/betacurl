@@ -4,6 +4,8 @@ from glob import glob
 import numpy as np
 import os
 
+from pytest import mark
+
 from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
 from src.game import Game, MujocoGame
@@ -206,6 +208,7 @@ def test_train_examples_cleared_after_win():
     coach.learn()
     assert len(coach.train_example_history) == 0
 
+@mark.slow
 @requires_cleanup
 def test_learning_patience():
     coach = GoodPlayerCoach(
