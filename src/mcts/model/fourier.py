@@ -91,7 +91,7 @@ class FourierDistribution(distributions.Distribution):
                 ) * tf.expand_dims(coefficients, 1),
                 axis=(-1, -2)
             ),
-            0
+            1e-10 # avoid numerical instability
         )
         self.pdf /= tf.reduce_sum(self.pdf, axis=-1, keepdims=True)
         self.cdf = tf.concat((tf.cumsum(self.pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self.pdf, axis=-1, keepdims=True))), axis=-1)
