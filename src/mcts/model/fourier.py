@@ -22,10 +22,9 @@ class FourierMCTSModel(PPOMCTSModel):
         config: FourierMCTSModelConfig = FourierMCTSModelConfig()
     ):
         super().__init__(game_spec, scaling_spec, model_factory, config)
-        assert self.action_shape == (1,)
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=(config.fourier_features, 2),
+            output_shape=(*self.action_shape, config.fourier_features, 2),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -34,12 +33,15 @@ class FourierMCTSModel(PPOMCTSModel):
         self.setup_model()
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        range = self.action_range.squeeze(-1)
-        if raw_actions.ndim == 3:
-            range = np.tile(self.action_range.squeeze(-1), (len(raw_actions), 1))
+        range_dim = self.action_range.ndim
+        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
+        bounds = np.tile(
+            action_range,
+            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
+        )
         return FourierDistribution(
             raw_actions,
-            range=range
+            bounds=bounds
         )
 
 class FourierDistribution(distributions.Distribution):
@@ -47,15 +49,15 @@ class FourierDistribution(distributions.Distribution):
     def __init__(
         self,
         coefficients: tf.Tensor,
-        range: tf.Tensor,
+        bounds: tf.Tensor,
         validate_args: bool = False,
     ):
         assert coefficients.shape[-1] == 2, "coefficients must come in pairs (sin-cos)"
-        assert range.shape[-1] == 2, "the range must come in pairs (min-max)"
+        assert bounds.shape[-1] == 2, "the bounds must come in pairs (min-max)"
         self.batch_size = coefficients.shape[:-2]
-        assert range.shape[:-1] == self.batch_size, "the range must have the same batch size as the coefficients"
+        assert bounds.shape[:-1] == self.batch_size, "the bounds must have the same batch size as the coefficients"
 
-        dtype = dtype_util.common_dtype([coefficients, range], dtype_hint=tf.float32)
+        dtype = dtype_util.common_dtype([coefficients, bounds], dtype_hint=tf.float32)
         super().__init__(
             dtype=dtype,
             reparameterization_type=distributions.FULLY_REPARAMETERIZED,
@@ -66,11 +68,11 @@ class FourierDistribution(distributions.Distribution):
 
         # store in original shape for reinitialisation
         self.coefficients = coefficients
-        self.range = range
+        self.bounds = bounds
 
         # flatten for easier processing
         self._coefficients = tf.reshape(self.coefficients, (-1, *coefficients.shape[-2:]))
-        self._range = tf.reshape(self.range, (-1, 2))
+        self._bounds = tf.reshape(self.bounds, (-1, 2))
         self.n = len(self._coefficients)
 
         # sample 1000 points
@@ -92,17 +94,17 @@ class FourierDistribution(distributions.Distribution):
                 ) * tf.expand_dims(self._coefficients, 1),
                 axis=(-1, -2)
             ),
-            0
+            1e-10
         )
         self.pdf /= tf.reduce_sum(self.pdf, axis=-1, keepdims=True)
         self.cdf = tf.concat((tf.cumsum(self.pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self.pdf, axis=-1, keepdims=True))), axis=-1)
-        self.points = tf.transpose(tf.linspace(self._range[:, 0], self._range[:, 1], self.granularity))
+        self.points = tf.transpose(tf.linspace(self._bounds[:, 0], self._bounds[:, 1], self.granularity))
         assert self.points.shape == self.pdf.shape
 
     def _parameter_properties(self, dtype=None, num_classes=None) -> Dict[str, util.ParameterProperties]:
         return {
             "coefficients": util.ParameterProperties(),
-            "range": util.ParameterProperties(),
+            "bounds": util.ParameterProperties(),
         }
 
     def _sample_shape(self) -> Tuple[int, ...]:
@@ -153,7 +155,7 @@ class FourierDistribution(distributions.Distribution):
         )
 
         # interpolate between pdf values
-        scaled = (action - self._range[:, 0]) / (self._range[:, 1] - self._range[:, 0]) * (self.granularity - 1)
+        scaled = (action - self._bounds[:, 0]) / (self._bounds[:, 1] - self._bounds[:, 0]) * (self.granularity - 1)
         pdf_indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
         delta = scaled - tf.cast(pdf_indices, self.dtype)
         # additional index for gathering
@@ -212,16 +214,13 @@ class FourierDistribution(distributions.Distribution):
         )
 
     def entropy(self) -> tf.Tensor:
-        pdf = tf.maximum(self.pdf, 1e-10)
         return tf.reshape(
-            -tf.reduce_sum(self.pdf * tf.math.log(pdf), axis=-1) / self.granularity,
+            -tf.reduce_sum(self.pdf * tf.math.log(self.pdf), axis=-1) / self.granularity,
             self.batch_size
         )
 
     def kl_divergence(self, other: FourierDistribution) -> tf.Tensor:
-        pdf = tf.maximum(self.pdf, 1e-10)
-        other_pdf = tf.maximum(other.pdf, 1e-10)
         return tf.reshape(
-            tf.reduce_sum(self.pdf * tf.math.log(pdf / other_pdf), axis=-1) / self.granularity,
+            tf.reduce_sum(self.pdf * tf.math.log(self.pdf / other.pdf), axis=-1) / self.granularity,
             self.batch_size
         )
