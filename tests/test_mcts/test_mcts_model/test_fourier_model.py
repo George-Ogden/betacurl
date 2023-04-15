@@ -3,19 +3,18 @@ import numpy as np
 
 from pytest import mark
 
-from src.mcts.model.fourier import FourierDistribution
 from src.mcts import FourierMCTSModel, FourierMCTSModelConfig
-from src.model import TrainingConfig
+from src.mcts.model.fourier import FourierDistribution
 
 from tests.utils import MDPStubGame
 
 test_distribution = FourierDistribution(
     coefficients = tf.reshape(tf.range(24, dtype=tf.float32), (4, 3, 2)),
-    range = tf.constant([[2., 4.] for _ in range(4)]),
+    bounds = tf.constant([[2., 4.] for _ in range(4)]),
 )
 test_multi_distribution = FourierDistribution(
     coefficients = tf.reshape(tf.range(120, dtype=tf.float32), (5, 4, 3, 2)),
-    range = tf.constant([[[2., 4.] for _ in range(4)] for _ in range(5)]),
+    bounds = tf.constant([[[2., 4.] for _ in range(4)] for _ in range(5)]),
 )
 
 max_move = MDPStubGame.max_move
@@ -124,41 +123,4 @@ def test_config_is_used():
 def test_distribution_generation():
     model = FourierMCTSModel(game_spec=game_spec)
     distribution = model.generate_distribution(stub_game.reset().observation)
-    assert distribution.sample().shape in {(), (1,)}
-
-@mark.flaky
-def test_fourier_model_learns_policy():
-    model = FourierMCTSModel(
-        game_spec,
-        config=FourierMCTSModelConfig(
-            vf_coeff=0.,
-            ent_coeff=0.,
-            fourier_features=4
-        ),
-    )
-    model.learn(training_data, stub_game.get_symmetries)
-
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move / 2)
-
-@mark.flaky
-def test_fourier_model_losses_converge():
-    model = FourierMCTSModel(
-        game_spec,
-        config=FourierMCTSModelConfig(
-            vf_coeff=.5,
-            fourier_features=4
-        ),
-    )
-
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=10,
-            lr=1e-2
-        )
-    )
-
-    distribution = model.generate_distribution(training_data[0][1])
-    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > move / 2)
+    assert distribution.sample().shape == (1,)

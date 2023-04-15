@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, FourierMCTSModel, FourierMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -39,12 +39,12 @@ def test_reinforce_model_stats(monkeypatch):
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
     assert len(logs) > 0
-    for key in expected_keys:
-        for data in logs:
+    for data in logs:
+        for key in expected_keys:
             assert key in data
             assert "val_" + key in data
-        assert 0 <= data["clip_fraction"] <= 1
-        assert 0 <= data["val_clip_fraction"] <= 1
+        assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
+        assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
 
 def test_ppo_model_stats(monkeypatch):
     logs = []
@@ -62,12 +62,35 @@ def test_ppo_model_stats(monkeypatch):
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
     assert len(logs) > 0
-    for key in expected_keys:
-        for data in logs:
+    for data in logs:
+        for key in expected_keys:
             assert key in data
             assert "val_" + key in data
-        assert 0 <= data["clip_fraction"] <= 1
-        assert 0 <= data["val_clip_fraction"] <= 1
+        assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
+        assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
+
+def test_fourier_model_stats(monkeypatch):
+    logs = []
+    def log(data, *args, **kwargs):
+        if len(data) > 1:
+            logs.append(data)
+
+    monkeypatch.setattr(wandb, "log", log)
+    model = FourierMCTSModel(
+        game_spec
+    )
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+
+    expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
+
+    assert len(logs) > 0
+    for data in logs:
+        for key in expected_keys:
+            assert key in data
+            assert "val_" + key in data
+        assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
+        assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
 
 def test_diffusion_model_stats(monkeypatch):
     logs = []
@@ -350,3 +373,40 @@ def test_diffusion_model_losses_converge():
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_all(distribution.mean() > move)
+
+@mark.flaky
+def test_fourier_model_learns_policy():
+    model = FourierMCTSModel(
+        game_spec,
+        config=FourierMCTSModelConfig(
+            vf_coeff=0.,
+            ent_coeff=0.,
+            fourier_features=4
+        ),
+    )
+    model.learn(training_data, stub_game.get_symmetries)
+
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move / 2)
+
+@mark.flaky
+def test_fourier_model_losses_converge():
+    model = FourierMCTSModel(
+        game_spec,
+        config=FourierMCTSModelConfig(
+            vf_coeff=5.,
+            fourier_features=4
+        ),
+    )
+
+    model.learn(
+        training_data,
+        stub_game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=10,
+            lr=1e-2
+        )
+    )
+
+    distribution = model.generate_distribution(training_data[0][1])
+    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
+    assert tf.reduce_all(distribution.mean() > move / 2)
