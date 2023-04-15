@@ -114,6 +114,7 @@ class ReinforceMCTSModel(MCTSModel):
 
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
+            clip_fraction = 0.
 
             for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
                 distribution = predicted_distribution[i]
@@ -124,13 +125,14 @@ class ReinforceMCTSModel(MCTSModel):
 
                 policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
 
-                self.stats["clip_fraction"] += tf.reduce_mean(
+                clip_fraction += tf.reduce_mean(
                     tf.cast(
                         tf.greater(tf.abs(log_probs), self.clip_range),
                         tf.float32
                     )
                 ).numpy()
             policy_loss /= action_groups.shape[0]
+            clip_fraction /= action_groups.shape[0]
         else:
             log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
             advantage_groups = tf.transpose(advantage_groups, (1, 0))
@@ -144,7 +146,7 @@ class ReinforceMCTSModel(MCTSModel):
                 ) * advantage_groups
             )
 
-            self.stats["clip_fraction"] += tf.reduce_sum(
+            clip_fraction = tf.reduce_mean(
                 tf.reduce_mean(
                     tf.cast(
                         tf.greater(tf.abs(log_probs), self.clip_range),
@@ -168,6 +170,7 @@ class ReinforceMCTSModel(MCTSModel):
         self.stats["entropy_loss"] += entropy_loss.numpy()
         self.stats["value_loss"] += value_loss.numpy()
         self.stats["loss"] += loss.numpy()
+        self.stats["clip_fraction"] += clip_fraction
         self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 
         return loss
