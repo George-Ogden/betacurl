@@ -26,7 +26,7 @@ class FCNNConfig(MLPModelConfig):
 class TrainingConfig(Config):
     training_epochs: int = 20
     """number of epochs to train each model for"""
-    batch_size: int = 256
+    batch_size: int = 64
     """training batch size"""
     training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""

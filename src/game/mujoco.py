@@ -7,9 +7,9 @@ from .game import Game, GameSpec
 
 class MujocoGame(Game):
     player_deltas = [1]
-    discount = .9
-    time_limit = 20.
-    timestep = .1
+    discount = .95
+    time_limit = 15.
+    timestep = .05
     def __init__(self, domain_name: str, task_name: str):
         super().__init__()
         self.name = (domain_name, task_name)
