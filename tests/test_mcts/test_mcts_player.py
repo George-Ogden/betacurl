@@ -132,7 +132,6 @@ def test_mcts_config_is_used():
         stub_game.game_spec,
         config=NNMCTSPlayerConfig(
             num_simulations=5,
-            scaling_spec=np.ones(observation_shape),
             mcts_config=NNMCTSConfig(
                 max_rollout_depth=4,
                 cpuct=3.4
@@ -150,8 +149,6 @@ def test_mcts_config_is_used():
     assert player.mcts.cpuct == 3.4
     assert player.mcts.max_depth == 4
     assert isinstance(player.mcts, NNMCTS)
-    assert player.scaling_spec.shape[:len(observation_shape)] == observation_shape
-    assert (player.scaling_spec.reshape(-1)[:np.prod(observation_shape)] == 1).all()
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
 

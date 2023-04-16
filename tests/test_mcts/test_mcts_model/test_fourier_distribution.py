@@ -3,7 +3,6 @@ import numpy as np
 
 from pytest import mark
 
-from src.mcts import FourierMCTSModel, FourierMCTSModelConfig
 from src.mcts.model.fourier import FourierDistribution
 
 from tests.utils import MDPStubGame
@@ -108,19 +107,3 @@ def test_distribution_correlations():
 
     correlations = np.corrcoef(samples.reshape(5000, 4), rowvar=False) - np.eye(4)
     assert np.allclose(correlations, 0., atol=.8)
-
-def test_config_is_used():
-    model = FourierMCTSModel(
-        game_spec=game_spec,
-        config=FourierMCTSModelConfig(
-            fourier_features=7,
-            feature_size=32
-        )
-    )
-
-    assert np.prod(model.policy_head(np.random.rand(1, 32)).shape) % 7 == 0
-
-def test_distribution_generation():
-    model = FourierMCTSModel(game_spec=game_spec)
-    distribution = model.generate_distribution(stub_game.reset().observation)
-    assert distribution.sample().shape == (1,)

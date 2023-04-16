@@ -69,7 +69,6 @@ class BadPlayerCoach(Coach):
             best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
-            config.scaling_spec = -stub_game.max_move
             best_player = MCTSPlayer(
                 self.game.game_spec,
                 MCTSClass=BadMCTS,
@@ -86,7 +85,6 @@ class GoodPlayerCoach(Coach):
             best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
-            config.scaling_spec = stub_game.max_move * 2
             best_player = MCTSPlayer(
                 self.game.game_spec,
                 MCTSClass=GoodMCTS,

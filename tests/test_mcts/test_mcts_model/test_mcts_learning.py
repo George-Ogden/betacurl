@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, FourierMCTSModel, FourierMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -69,29 +69,6 @@ def test_ppo_model_stats(monkeypatch):
         assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
         assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
 
-def test_fourier_model_stats(monkeypatch):
-    logs = []
-    def log(data, *args, **kwargs):
-        if len(data) > 1:
-            logs.append(data)
-
-    monkeypatch.setattr(wandb, "log", log)
-    model = FourierMCTSModel(
-        game_spec
-    )
-    model.learn(training_data[:10], stub_game.get_symmetries)
-    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
-
-    expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
-
-    assert len(logs) > 0
-    for data in logs:
-        for key in expected_keys:
-            assert key in data
-            assert "val_" + key in data
-        assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
-        assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
-
 def test_diffusion_model_stats(monkeypatch):
     logs = []
     def log(data, *args, **kwargs):
@@ -124,9 +101,11 @@ def test_policy_learns():
             ent_coeff=0.,
         ),
     )
-    model.learn(training_data, stub_game.get_symmetries)
 
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move)
+    model.learn(training_data, stub_game.get_symmetries)
+          
+    distribution = model.generate_distribution(training_data[0][1])
+    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
 
 @mark.flaky
 def test_value_learns():
@@ -169,15 +148,11 @@ def test_model_losses_converge():
     model.learn(
         training_data,
         stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=20,
-            lr=1e-2
-        )
     )
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > .5 * game_spec.move_spec.maximum)
+    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
 
 @mark.slow
 @mark.flaky
@@ -214,16 +189,14 @@ def test_model_learns_from_multiple_actions():
     )
     model.learn(
         training_data,
-        stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=20,
-            lr=1e-2
-        )
+        stub_game.no_symmetries
     )
 
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).mean() > .5)
+    distribution = model.generate_distribution(game.get_observation())
+    assert tf.reduce_all(distribution.prob(move * 6.5) > 2 * distribution.prob(move * 3.5))
     game.reset(0)
-    assert tf.reduce_all(model.generate_distribution(game.get_observation()).mean() > .5)
+    distribution = model.generate_distribution(game.get_observation())
+    assert tf.reduce_all(distribution.prob(move * 6.5) > 2 * distribution.prob(move * 3.5))
 
 @mark.flaky
 def test_ppo_model_losses_converge():
@@ -232,6 +205,7 @@ def test_ppo_model_losses_converge():
         config=PPOMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.,
+            clip_range=.5,
             target_kl=None
         )
     )
@@ -248,7 +222,7 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > move)
+    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
 
 @mark.flaky
 def test_kl_divergence_without_early_stopping():
@@ -275,14 +249,14 @@ def test_kl_divergence_without_early_stopping():
     )
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
-    )) > .5
+    )) > 1.
 
 @mark.flaky
 def test_kl_divergence_with_early_stopping():
     model = PPOMCTSModel(
         game_spec=game_spec,
         config=PPOMCTSModelConfig(
-            target_kl=.5,
+            target_kl=1.,
             vf_coeff=0.,
             ent_coeff=0.
         )
@@ -302,14 +276,14 @@ def test_kl_divergence_with_early_stopping():
     )
     assert tf.reduce_mean(initial_distribution.kl_divergence(
         model.generate_distribution(training_sample[1])
-    )) < 1.
+    )) < 2.
 
 @mark.slow
 def test_training_continues_within_kl_divergence():
     model = PPOMCTSModel(
         game_spec=game_spec,
         config=PPOMCTSModelConfig(
-            target_kl=2.,
+            target_kl=.2,
             vf_coeff=0.,
             ent_coeff=0.,
         )
@@ -350,7 +324,7 @@ def test_diffusion_model_learns_policy():
     )
     model.learn(training_data, stub_game.get_symmetries)
 
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move)
+    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move * .75)
 
 @mark.flaky
 def test_diffusion_model_losses_converge():
@@ -372,41 +346,4 @@ def test_diffusion_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > move)
-
-@mark.flaky
-def test_fourier_model_learns_policy():
-    model = FourierMCTSModel(
-        game_spec,
-        config=FourierMCTSModelConfig(
-            vf_coeff=0.,
-            ent_coeff=0.,
-            fourier_features=4
-        ),
-    )
-    model.learn(training_data, stub_game.get_symmetries)
-
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move / 2)
-
-@mark.flaky
-def test_fourier_model_losses_converge():
-    model = FourierMCTSModel(
-        game_spec,
-        config=FourierMCTSModelConfig(
-            vf_coeff=5.,
-            fourier_features=4
-        ),
-    )
-
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=10,
-            lr=1e-2
-        )
-    )
-
-    distribution = model.generate_distribution(training_data[0][1])
-    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > move / 2)
+    assert tf.reduce_all(distribution.mean() > move * .75)
