@@ -10,6 +10,7 @@ from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL
 from ...game import GameSpec
 
 from .config import ReinforceMCTSModelConfig
+from .fourier import FourierDistribution
 from .base import MCTSModel
 
 class ReinforceMCTSModel(MCTSModel):
@@ -21,13 +22,11 @@ class ReinforceMCTSModel(MCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: ReinforceMCTSModelConfig = ReinforceMCTSModelConfig()
     ):
         super().__init__(
             game_spec=game_spec,
-            scaling_spec=scaling_spec,
             config=config
         )
         self.ent_coeff = config.ent_coeff
@@ -53,13 +52,10 @@ class ReinforceMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.action_shape + (2,),
+            output_shape=self.action_shape + (config.fourier_features, 2),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
-        )
-        self.policy_head = keras.Sequential(
-            [self.policy_head, layers.Rescaling(offset=self.scaling_spec, scale=1.)]
         )
 
         self.value_head = DenseModelFactory.create_model(
@@ -194,12 +190,16 @@ class ReinforceMCTSModel(MCTSModel):
         return self._generate_distribution(raw_actions)
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        means, log_stds = tf.split(raw_actions, 2, axis=-1)
-        means = tf.squeeze(means, -1)
-        log_stds = tf.squeeze(log_stds, -1)
-        stds = tf.exp(log_stds)
-
-        return distributions.Normal(means, stds)
+        range_dim = self.action_range.ndim
+        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
+        bounds = np.tile(
+            action_range,
+            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
+        )
+        return FourierDistribution(
+            raw_actions,
+            bounds=bounds
+        )
 
     def preprocess_data(
         self,

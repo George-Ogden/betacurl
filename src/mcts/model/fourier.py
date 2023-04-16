@@ -5,44 +5,7 @@ from tensorflow_probability import distributions, util
 import tensorflow as tf
 import numpy as np
 
-from typing import Dict, Optional, Tuple
-
-from ...model import DenseModelFactory, ModelFactory, BEST_MODEL_FACTORY
-from ...game import GameSpec
-
-from .config import FourierMCTSModelConfig
-from .ppo import PPOMCTSModel
-
-class FourierMCTSModel(PPOMCTSModel):
-    def __init__(
-        self,
-        game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
-        model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: FourierMCTSModelConfig = FourierMCTSModelConfig()
-    ):
-        super().__init__(game_spec, scaling_spec, model_factory, config)
-        self.policy_head = DenseModelFactory.create_model(
-            input_shape=self.feature_size,
-            output_shape=(*self.action_shape, config.fourier_features, 2),
-            config=DenseModelFactory.CONFIG_CLASS(
-                output_activation="linear"
-            )
-        )
-
-        self.setup_model()
-
-    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        range_dim = self.action_range.ndim
-        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
-        bounds = np.tile(
-            action_range,
-            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
-        )
-        return FourierDistribution(
-            raw_actions,
-            bounds=bounds
-        )
+from typing import Dict, Tuple
 
 class FourierDistribution(distributions.Distribution):
     granularity: int = 1000
@@ -184,7 +147,7 @@ class FourierDistribution(distributions.Distribution):
                 )
             ) * (1 - delta),
             action_shape
-        )
+        ) * self.granularity
 
     def _mean(self) -> tf.Tensor:
         return tf.reshape(
@@ -223,4 +186,4 @@ class FourierDistribution(distributions.Distribution):
         return tf.reshape(
             tf.reduce_sum(self.pdf * tf.math.log(self.pdf / other.pdf), axis=-1) / self.granularity,
             self.batch_size
-        )
+        ) * self.granularity

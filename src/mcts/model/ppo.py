@@ -16,11 +16,10 @@ class PPOMCTSModel(ReinforceMCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: PPOMCTSModelConfig = PPOMCTSModelConfig()
     ):
-        super().__init__(game_spec, scaling_spec, model_factory, config)
+        super().__init__(game_spec, model_factory, config)
         self.target_kl = config.target_kl
 
     def compute_loss(

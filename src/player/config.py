@@ -19,4 +19,3 @@ class MCTSPlayerConfig(Config):
 @dataclass
 class NNMCTSPlayerConfig(MCTSPlayerConfig):
     mcts_config: NNMCTSConfig = NNMCTSConfig()
-    scaling_spec: Optional[np.ndarray] = None
