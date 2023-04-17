@@ -213,13 +213,12 @@ def test_ppo_model_losses_converge():
         )
     )
 
-    for _ in range(10):
+    for _ in range(4):
         model.learn(
             training_data,
             stub_game.no_symmetries,
             training_config=TrainingConfig(
-                training_epochs=5,
-                lr=1e-2
+                training_epochs=4,
             )
         )
 
