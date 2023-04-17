@@ -72,7 +72,7 @@ class PPOCoach(SinglePlayerCoach):
 
         # compute td-lambda targets
         value_predictions = self.player.model.predict_values(
-            np.array([observation for _, observation, _, _, _ in training_data])
+            np.array([node.game.get_observation() for node, _ in training_data])
         )
         next_value_predictions = np.concatenate(
             (value_predictions[1:], value_predictions[-1:])
