@@ -13,7 +13,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
     def __init__(
         self,
         game_spec: GameSpec,
-        ModelClass: Type[ReinforceMCTSModel]=ReinforceMCTSModel,
+        ModelClass: Optional[Type[MCTSModel]]=None,
         config: Optional[NNMCTSPlayerConfig]=NNMCTSPlayerConfig()
     ):
         super().__init__(
@@ -23,8 +23,8 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
         )
 
         self.scaling_spec = config.scaling_spec
-        self.ModelClass = ModelClass
-        self.model: Optional[MCTSModel] = None # self.create_model()
+        self.ModelClass = ModelClass or ReinforceMCTSModel
+        self.model: Optional[MCTSModel] = None
 
     def create_mcts(self, game: Game) -> NNMCTS:
         return self.MCTSClass(

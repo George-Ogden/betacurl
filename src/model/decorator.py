@@ -35,6 +35,8 @@ class ModelDecorator(SaveableModel, Learnable):
 
     @staticmethod
     def to_tensor(data: Any, dtype: Optional[Any] = None) -> tf.Tensor:
+        if isinstance(data, (tf.Tensor, tf.RaggedTensor)):
+            return data
         try:
             return tf.convert_to_tensor(data, dtype=dtype)
         except ValueError:
