@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import DiffusionMCTSModel, DiffusionMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -68,29 +68,6 @@ def test_ppo_model_stats(monkeypatch):
             assert "val_" + key in data
         assert 0 <= data["clip_fraction"] and data["clip_fraction"] <= 1
         assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
-
-def test_diffusion_model_stats(monkeypatch):
-    logs = []
-    def log(data, *args, **kwargs):
-        if len(data) > 1:
-            logs.append(data)
-
-    monkeypatch.setattr(wandb, "log", log)
-    model = DiffusionMCTSModel(
-        game_spec
-    )
-    model.learn(training_data[:10], stub_game.get_symmetries)
-    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
-
-    expected_keys = ["loss", "value_loss", "policy_loss"]
-
-    assert len(logs) > 0
-    for key in expected_keys:
-        for data in logs:
-            assert key in data
-            assert "val_" + key in data
-            assert data[key] >= 0
-            assert data["val_" + key] >= 0
 
 @mark.flaky
 def test_policy_learns():
@@ -312,37 +289,3 @@ def test_training_continues_within_kl_divergence():
         ).numpy(),
         0
     )
-
-@mark.flaky
-def test_diffusion_model_learns_policy():
-    model = DiffusionMCTSModel(
-        game_spec,
-        config=DiffusionMCTSModelConfig(
-            vf_coeff=0.,
-        ),
-    )
-    model.learn(training_data, stub_game.get_symmetries)
-
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).mean() > move * .75)
-
-@mark.flaky
-def test_diffusion_model_losses_converge():
-    model = DiffusionMCTSModel(
-        game_spec,
-        config=DiffusionMCTSModelConfig(
-            vf_coeff=.5,
-        )
-    )
-
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=10,
-            lr=1e-2
-        )
-    )
-
-    distribution = model.generate_distribution(training_data[0][1])
-    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.mean() > move * .75)
