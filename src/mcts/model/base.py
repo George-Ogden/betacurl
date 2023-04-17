@@ -20,13 +20,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
     def __init__(
         self,
         game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
         config: MCTSModelConfig = MCTSModelConfig()
     ):
         action_spec = game_spec.move_spec
         observation_spec = game_spec.observation_spec
 
-        self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0)
+        self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0, dtype=np.float32)
         self.action_shape = action_spec.shape
         self.observation_range = (
             np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
@@ -39,22 +38,6 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         self.feature_size = config.feature_size
         self.max_grad_norm = config.max_grad_norm
         self.vf_coeff = config.vf_coeff
-
-        if scaling_spec is None:
-            self.scaling_spec = np.stack(
-                (self.action_range.mean(axis=0), np.zeros(self.action_shape)),
-                axis=-1
-            )
-        elif scaling_spec.ndim == 1:
-            self.scaling_spec = np.stack(
-                (scaling_spec, np.zeros(self.action_shape)),
-                axis=-1
-            )
-        else:
-            self.scaling_spec = scaling_spec.copy()
-            self.scaling_spec[:, 1] = np.log(scaling_spec[:, 1])
-
-        assert self.scaling_spec.shape == self.action_shape + (2,)
 
     @abstractmethod
     def predict_values(

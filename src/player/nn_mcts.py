@@ -22,7 +22,6 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
             config=config
         )
 
-        self.scaling_spec = config.scaling_spec
         self.ModelClass = ModelClass or ReinforceMCTSModel
         self.model: Optional[MCTSModel] = None
 
@@ -35,8 +34,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
 
     def create_model(self) -> ReinforceMCTSModel:
         return self.ModelClass(
-            game_spec=self.game_spec,
-            scaling_spec=self.scaling_spec
+            game_spec=self.game_spec
         )
 
     def learn(

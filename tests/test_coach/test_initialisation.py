@@ -1,9 +1,11 @@
 from copy import copy
 import numpy as np
+
+from pytest import mark
 import os
 
-from src.coach import Coach, CoachConfig, DiffusionCoach, PPOCoach, PPOCoachConfig, SinglePlayerCoach
-from src.mcts import FourierMCTSModel, NNMCTSConfig, PPOMCTSModel
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig, SinglePlayerCoach
+from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
 from src.game import MujocoGame
@@ -68,6 +70,7 @@ def test_coach_saves_config():
 
     assert type(boring_coach.game) == MDPStubGame
 
+@mark.slow
 @requires_cleanup
 def test_coach_uses_training_config():
     coach = Coach(
@@ -151,22 +154,10 @@ def test_ppo_coach_initial_model_states():
     assert isinstance(coach.best_player.model, PPOMCTSModel)
 
 @requires_cleanup
-def test_diffusion_coach_initial_model_states():
-    coach = DiffusionCoach(
-        game=stub_game,
-        config=CoachConfig(
-            **config_dict |
-            {"num_iterations":0}
-        )
-    )
-    coach.learn()
-    assert coach.best_player.model is None
-
-@requires_cleanup
 def test_ppo_coach_propagates_model():
     coach = PPOCoach(
         game=swingup,
-        ModelClass=FourierMCTSModel,
+        ModelClass=PPOMCTSModel,
         config=PPOCoachConfig(
             **necessary_config,
             player_config=NNMCTSPlayerConfig(
@@ -175,5 +166,5 @@ def test_ppo_coach_propagates_model():
         )
     )
 
-    assert coach.player.ModelClass == FourierMCTSModel
-    assert coach.best_player.ModelClass == FourierMCTSModel
+    assert coach.player.ModelClass == PPOMCTSModel
+    assert coach.best_player.ModelClass == PPOMCTSModel

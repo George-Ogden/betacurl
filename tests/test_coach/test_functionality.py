@@ -69,7 +69,6 @@ class BadPlayerCoach(Coach):
             best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
-            config.scaling_spec = -stub_game.max_move
             best_player = MCTSPlayer(
                 self.game.game_spec,
                 MCTSClass=BadMCTS,
@@ -86,7 +85,6 @@ class GoodPlayerCoach(Coach):
             best_player = self.player.load(self.best_checkpoint_path)
         else:
             config = copy(self.config.player_config)
-            config.scaling_spec = stub_game.max_move * 2
             best_player = MCTSPlayer(
                 self.game.game_spec,
                 MCTSClass=GoodMCTS,
@@ -118,7 +116,7 @@ def test_no_default_best():
     assert not os.path.exists(coach.best_checkpoint_path)
 
 @requires_cleanup
-def test_sparse_game_for_coaching():
+def test_sparse_game_for_coaching_good_player():
     coach = GoodPlayerCoach(
         game=sparse_stub_game,
         config=CoachConfig(
@@ -127,12 +125,14 @@ def test_sparse_game_for_coaching():
             evaluation_games=4,
             win_threshold=.6,
             training_config=custom_training_config,
-            **necessary_config
+            **necessary_config,
         )
     )
     coach.learn()
     assert coach.best_player.MCTSClass == GoodMCTS
 
+@requires_cleanup
+def test_sparse_game_for_coaching_bad_player():
     coach = BadPlayerCoach(
         game=sparse_stub_game,
         config=CoachConfig(
@@ -182,7 +182,7 @@ def test_transform():
         assert np.allclose(advantage_sum, 0.)
 
 @requires_cleanup
-def test_train_examples_cleared_after_win():
+def test_train_examples_not_cleared_after_loss():
     coach = GoodPlayerCoach(
         game=sparse_stub_game,
         config=CoachConfig(
@@ -197,6 +197,8 @@ def test_train_examples_cleared_after_win():
     assert coach.best_player.MCTSClass == GoodMCTS
     assert len(coach.train_example_history) > 0
 
+@requires_cleanup
+def test_train_examples_cleared_after_win():
     coach = BadPlayerCoach(
         game=sparse_stub_game,
         config=CoachConfig(
@@ -261,7 +263,8 @@ def test_logs_format(capsys):
             num_games_per_episode=2,
             evaluation_games=2,
             win_threshold=.6,
-            **necessary_config
+            **necessary_config,
+            training_config=custom_training_config
         )
     )
     coach.learn()
