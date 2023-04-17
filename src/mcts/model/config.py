@@ -13,6 +13,7 @@ class MCTSModelConfig(Config):
 class ReinforceMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.
     clip_range: float = 2.
+    fourier_features: int = 8
 
 @dataclass
 class PPOMCTSModelConfig(ReinforceMCTSModelConfig):
@@ -24,7 +25,3 @@ class DiffusionMCTSModelConfig(MCTSModelConfig):
     diffusion_coef_min: float = 2e-4
     diffusion_coef_max: float = 2e-2
     diffusion_steps: int = 10
-
-@dataclass
-class FourierMCTSModelConfig(PPOMCTSModelConfig):
-    fourier_features: int = 4

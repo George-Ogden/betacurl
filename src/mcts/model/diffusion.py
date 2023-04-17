@@ -26,13 +26,11 @@ class DiffusionMCTSModel(MCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: DiffusionMCTSModelConfig = DiffusionMCTSModelConfig()
     ):
         super().__init__(
             game_spec,
-            scaling_spec=scaling_spec,
             config=config
         )
         self.diffusion_steps = config.diffusion_steps
@@ -105,28 +103,6 @@ class DiffusionMCTSModel(MCTSModel):
                 output_activation="linear"
             )
         )
-
-        mean, log_std = self.scaling_spec.T
-        # scale mean within action range
-        mean = (mean - self.action_range[0]) / np.diff(self.action_range, axis=0).squeeze(0)
-        assert (0 < mean).all() and (mean < 1).all()
-        mean = np.log(mean / (1 - mean))
-        std = np.exp(log_std)
-        assert (std > 0).all()
-
-        # mean and standard deviation are approximately correct
-        self.action_decoder = keras.Sequential([
-            self.action_decoder,
-            layers.Rescaling(
-                scale=2 * std,
-                offset=-mean
-            ),
-            layers.Activation("sigmoid"),
-            layers.Rescaling(
-                scale=self.action_range[1] - self.action_range[0],
-                offset=self.action_range[0]
-            )
-        ])
 
         self.setup_model()
     

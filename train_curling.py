@@ -1,17 +1,16 @@
 import wandb
 
-from src.game import StoneThrow, CURLING_GAME
-from src.coach import CoachConfig, DiffusionCoach
+from src.coach import Coach, CoachConfig
 from src.utils import ParserBuilder
+from src.game import CURLING_GAME
 
 def main(args):
     wandb.init(project=args.project_name, dir=args.save_directory)
     wandb.config.update(args)
 
     coach_config = CoachConfig.from_args(args)
-    coach_config.player_config.scaling_spec = StoneThrow.random_parameters
 
-    coach = DiffusionCoach(
+    coach = Coach(
         game=CURLING_GAME,
         config=coach_config
     )

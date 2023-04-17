@@ -16,11 +16,10 @@ class PPOMCTSModel(ReinforceMCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,
-        scaling_spec: Optional[np.ndarray] = None,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
         config: PPOMCTSModelConfig = PPOMCTSModelConfig()
     ):
-        super().__init__(game_spec, scaling_spec, model_factory, config)
+        super().__init__(game_spec, model_factory, config)
         self.target_kl = config.target_kl
 
     def compute_loss(
@@ -38,6 +37,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
             kl_div = 0.
+            clip_fraction = 0.
 
             distribution_properties = {attr: getattr(predicted_distribution, attr) for attr in predicted_distribution.parameter_properties()}
             target_distribution_properties = {attr: getattr(target_distribution, attr) for attr in target_distribution.parameter_properties()}
@@ -53,7 +53,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
                 target_log_probs = tf.reduce_sum(target_distribution.log_prob(actions), axis=-1)
                 
                 ratio = tf.exp(log_probs - target_log_probs)
-                self.stats["clip_fraction"] += tf.reduce_mean(
+                clip_fraction += tf.reduce_mean(
                     tf.cast(
                         tf.greater(tf.abs(ratio - 1), self.clip_range),
                         tf.float32
@@ -73,6 +73,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
 
             policy_loss /= action_groups.shape[0]
             kl_div /= action_groups.shape[0]
+            clip_fraction /= action_groups.shape[0]
         else:
             action_groups = tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim)))
             advantage_groups = tf.transpose(advantage_groups, (1, 0))
@@ -81,7 +82,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
             other_dims = tuple(range(1, predicted_distribution.batch_shape.ndims))
 
             ratio = tf.exp(log_probs - target_log_probs)
-            self.stats["clip_fraction"] += tf.reduce_sum(
+            clip_fraction = tf.reduce_mean(
                 tf.reduce_mean(
                     tf.cast(
                         tf.greater(tf.abs(ratio - 1), self.clip_range),
@@ -119,6 +120,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
         self.stats["entropy_loss"] += entropy_loss.numpy()
         self.stats["value_loss"] += value_loss.numpy()
         self.stats["loss"] += loss.numpy()
+        self.stats["clip_fraction"] += clip_fraction
         self.stats["kl_div"] += tf.reduce_sum(kl_div).numpy()
         self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 

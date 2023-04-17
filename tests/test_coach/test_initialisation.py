@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from src.coach import Coach, CoachConfig, DiffusionCoach, PPOCoach, PPOCoachConfig, SinglePlayerCoach
-from src.mcts import FourierMCTSModel, NNMCTSConfig, PPOMCTSModel
+from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
 from src.game import MujocoGame
@@ -166,7 +166,7 @@ def test_diffusion_coach_initial_model_states():
 def test_ppo_coach_propagates_model():
     coach = PPOCoach(
         game=swingup,
-        ModelClass=FourierMCTSModel,
+        ModelClass=PPOMCTSModel,
         config=PPOCoachConfig(
             **necessary_config,
             player_config=NNMCTSPlayerConfig(
@@ -175,5 +175,5 @@ def test_ppo_coach_propagates_model():
         )
     )
 
-    assert coach.player.ModelClass == FourierMCTSModel
-    assert coach.best_player.ModelClass == FourierMCTSModel
+    assert coach.player.ModelClass == PPOMCTSModel
+    assert coach.best_player.ModelClass == PPOMCTSModel
