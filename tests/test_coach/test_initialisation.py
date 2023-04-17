@@ -141,7 +141,7 @@ def test_single_player_coach_initial_model_states():
 def test_ppo_coach_initial_model_states():
     coach = PPOCoach(
         game=single_player_game,
-        config=CoachConfig(
+        config=PPOCoachConfig(
             **config_dict |
             {"num_iterations":0}
         )
