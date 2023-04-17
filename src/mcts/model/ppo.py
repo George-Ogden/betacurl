@@ -29,11 +29,11 @@ class PPOMCTSModel(ReinforceMCTSModel):
         action_groups: tf.RaggedTensor,
         values: tf.Tensor,
         advantage_groups: tf.RaggedTensor,
-        target_distribution_params: tf.Tensor,
+        *target_distribution_params: tf.Tensor,
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
-        target_distribution = type(predicted_distribution)(*tf.transpose(target_distribution_params, (1, 0, *range(2, target_distribution_params.ndim))))
+        target_distribution = type(predicted_distribution)(*target_distribution_params)
         
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
@@ -136,20 +136,29 @@ class PPOMCTSModel(ReinforceMCTSModel):
         training_config: TrainingConfig = TrainingConfig()
     ) -> data.Dataset:
         dataset = super().preprocess_data(training_data, augmentation_function, training_config)
+        # generate target distributions from current model
         target_distributions = [
             self.generate_distribution(observation, training=False) 
             for observation, *_ in dataset.batch(training_config.batch_size)
         ]
-        target_distribution_parameters = tf.concat([
-            tf.stack([
-                getattr(distribution, attr) 
-                for attr in distribution.parameter_properties()
-            ], axis=1)
-            for distribution in target_distributions
-        ], axis=0)
+
+        # extract parameters for training
+        target_distribution_parameters = [
+            tf.concat(property, axis=0)
+            for property in
+            zip(*[
+                [
+                    getattr(distribution, attr) 
+                    for attr in distribution.parameter_properties()
+                ]
+                for distribution in target_distributions
+            ])
+        ]
+
+        # zip with dataset
         return self.create_dataset(
             [
-                (*[data.numpy() for data in data], parameters.numpy())
-                for data, parameters in zip(dataset, target_distribution_parameters, strict=True)
+                (*(data.numpy() for data in data), *(parameter.numpy() for parameter in parameters))
+                for data, *parameters in zip(dataset, *target_distribution_parameters, strict=True)
             ]
         )

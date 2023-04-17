@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from src.coach import Coach, CoachConfig, DiffusionCoach, PPOCoach, PPOCoachConfig, SinglePlayerCoach
-from src.mcts import NNMCTSConfig, PPOMCTSModel
+from src.mcts import FourierMCTSModel, NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
 from src.game import MujocoGame
@@ -36,7 +36,7 @@ config_dict = dict(
     )
 )
 custom_training_config = copy(config_dict["training_config"])
-custom_training_config.training_epochs = 5
+custom_training_config.training_epochs = 2
 
 stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
@@ -44,6 +44,7 @@ observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
 single_player_game = MujocoGame("point_mass", "easy")
+swingup = MujocoGame("cartpole", "swingup")
 
 boring_coach = Coach(
     game=stub_game,
@@ -92,7 +93,7 @@ def test_coach_uses_training_config():
     model = coach.player.model.model
     modified_model = modified_coach.player.model.model
     assert model.history.params["epochs"] == 10
-    assert modified_model.history.params["epochs"] == 5
+    assert modified_model.history.params["epochs"] == 2
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
 
 @requires_cleanup
@@ -160,3 +161,19 @@ def test_diffusion_coach_initial_model_states():
     )
     coach.learn()
     assert coach.best_player.model is None
+
+@requires_cleanup
+def test_ppo_coach_propagates_model():
+    coach = PPOCoach(
+        game=swingup,
+        ModelClass=FourierMCTSModel,
+        config=PPOCoachConfig(
+            **necessary_config,
+            player_config=NNMCTSPlayerConfig(
+                mcts_config=NNMCTSConfig()
+            )
+        )
+    )
+
+    assert coach.player.ModelClass == FourierMCTSModel
+    assert coach.best_player.ModelClass == FourierMCTSModel

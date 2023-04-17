@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Type
 from copy import copy
 
 from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..mcts import Node, Transition
+from ..mcts import MCTSModel, Node, Transition
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
@@ -19,9 +19,11 @@ class Coach(SaveableObject):
     def __init__(
         self,
         game: Game,
-        config: CoachConfig = CoachConfig()
+        config: CoachConfig=CoachConfig(),
+        ModelClass: Optional[Type[MCTSModel]]=None
     ):
         self.game = game
+        self.ModelClass = ModelClass
         self.player = self.create_player(
             game_spec=game.game_spec,
             config=config.player_config
@@ -58,7 +60,8 @@ class Coach(SaveableObject):
     ) -> NNMCTSPlayer:
         return NNMCTSPlayer(
             game_spec=game_spec,
-            config=config
+            config=config,
+            ModelClass=self.ModelClass
         )
 
     @property

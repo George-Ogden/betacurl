@@ -301,5 +301,5 @@ class DiffusionDistribution(distributions.Distribution):
         self.make_samples(1)
         return tf.math.reduce_std(self.samples, axis=0)
 
-    def prob(self, action: tf.Tensor):
+    def _prob(self, action: tf.Tensor):
         return tf.ones_like(action)

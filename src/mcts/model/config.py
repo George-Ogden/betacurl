@@ -5,7 +5,7 @@ from ...utils import Config
 
 @dataclass
 class MCTSModelConfig(Config):
-    feature_size: int = 32
+    feature_size: int = 128
     vf_coeff: float = .5
     max_grad_norm: float = .5
 
@@ -24,3 +24,7 @@ class DiffusionMCTSModelConfig(MCTSModelConfig):
     diffusion_coef_min: float = 2e-4
     diffusion_coef_max: float = 2e-2
     diffusion_steps: int = 10
+
+@dataclass
+class FourierMCTSModelConfig(PPOMCTSModelConfig):
+    fourier_features: int = 4

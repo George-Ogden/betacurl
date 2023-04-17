@@ -124,8 +124,9 @@ def test_sparse_game_for_coaching():
         config=CoachConfig(
             num_iterations=1,
             num_games_per_episode=2,
-            evaluation_games=10,
+            evaluation_games=4,
             win_threshold=.6,
+            training_config=custom_training_config,
             **necessary_config
         )
     )
@@ -137,8 +138,9 @@ def test_sparse_game_for_coaching():
         config=CoachConfig(
             num_iterations=1,
             num_games_per_episode=2,
-            evaluation_games=10,
+            evaluation_games=4,
             win_threshold=.6,
+            training_config=custom_training_config,
             **necessary_config
         )
     )
