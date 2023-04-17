@@ -215,7 +215,8 @@ class Coach(SaveableObject):
             
             initial_policy = node.action_probs / node.action_probs.sum()
             enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
-            enhanced_policy /= enhanced_policy.sum()
+            # avoid division by zero
+            enhanced_policy /= enhanced_policy.sum() or 1.
             for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
                 # use the policy change to calculate the advantage
                 transition.advantage = enhanced_prob - initial_prob
