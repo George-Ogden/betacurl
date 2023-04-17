@@ -36,7 +36,7 @@ config_dict = dict(
     )
 )
 custom_training_config = copy(config_dict["training_config"])
-custom_training_config.training_epochs = 5
+custom_training_config.training_epochs = 2
 
 stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
@@ -93,7 +93,7 @@ def test_coach_uses_training_config():
     model = coach.player.model.model
     modified_model = modified_coach.player.model.model
     assert model.history.params["epochs"] == 10
-    assert modified_model.history.params["epochs"] == 5
+    assert modified_model.history.params["epochs"] == 2
     assert np.allclose(model.optimizer._learning_rate.numpy(), .1)
 
 @requires_cleanup

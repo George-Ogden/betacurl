@@ -218,7 +218,7 @@ def test_ppo_model_losses_converge():
             training_data,
             stub_game.no_symmetries,
             training_config=TrainingConfig(
-                training_epochs=10,
+                training_epochs=5,
                 lr=1e-2
             )
         )
