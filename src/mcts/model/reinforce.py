@@ -208,20 +208,20 @@ class ReinforceMCTSModel(MCTSModel):
             (
                 augmented_observation,
                 augmented_actions,
-                augmented_reward,
+                augmented_value,
                 advantages
-            ) for player, observation, action, reward, policy in training_data
-                for (augmented_player, augmented_observation, augmented_action, augmented_reward),
+            ) for player, observation, action, value, policy in training_data
+                for (augmented_player, augmented_observation, augmented_action, augmented_value),
                     (augmented_actions, advantages)
             in zip(
-                augmentation_function(player, observation, action, reward),
+                augmentation_function(player, observation, action, value),
                 [
                     zip(*policy)
                     for policy in zip(*[
                         [
                             (augmented_action, advantage)
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
-                            in augmentation_function(player, observation, action, reward)
+                            in augmentation_function(player, observation, action, value)
                         ]
                         for action, advantage in policy
                     ])
