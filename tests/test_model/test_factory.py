@@ -1,6 +1,5 @@
 from tensorflow.keras import layers
 from tensorflow import keras
-import tensorflow as tf
 import numpy as np
 
 from src.model import DenseModelFactory, EmbeddingFactory, ModelConfig, ModelFactory, MLPModelFactory, MultiLayerModelFactory, BEST_MODEL_FACTORY

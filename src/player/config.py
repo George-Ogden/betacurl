@@ -1,7 +1,5 @@
-import numpy as np
-
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Union
 
 from ..mcts import MCTSConfig, NNMCTSConfig
 from ..utils import Config

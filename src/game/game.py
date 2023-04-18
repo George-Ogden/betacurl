@@ -1,13 +1,13 @@
 from copy import deepcopy
 import numpy as np
 
-from src.utils import classproperty
-
 from typing import List, Optional, Tuple, Union
 from dm_env.specs import Array, BoundedArray
 from abc import ABCMeta, abstractmethod
 from dm_env import StepType, TimeStep
 from dataclasses import dataclass
+
+from src.utils import classproperty
 
 @dataclass
 class GameSpec:

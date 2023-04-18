@@ -4,7 +4,7 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec

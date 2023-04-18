@@ -3,7 +3,7 @@ from tensorflow import data
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec

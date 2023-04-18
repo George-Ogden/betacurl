@@ -142,11 +142,13 @@ def test_single_player_coach_initial_model_states():
 
 @requires_cleanup
 def test_ppo_coach_initial_model_states():
+    config = config_dict.copy()
+    del config["win_threshold"]
+    config["num_iterations"] = 0
     coach = PPOCoach(
         game=single_player_game,
         config=PPOCoachConfig(
-            **config_dict |
-            {"num_iterations":0}
+            **config
         )
     )
     coach.learn()
