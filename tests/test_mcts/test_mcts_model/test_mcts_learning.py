@@ -215,12 +215,12 @@ def test_kl_divergence_without_early_stopping():
         training_sample[1]
     )
     model.learn(
-        training_data=[training_sample] * 100,
+        training_data=[training_sample] * 10,
         augmentation_function=stub_game.no_symmetries,
         training_config=TrainingConfig(
-            training_epochs=100,
-            lr=1e-1,
-            batch_size=100
+            training_epochs=1000,
+            lr=1e-3,
+            batch_size=1
         )
     )
     assert tf.reduce_mean(initial_distribution.kl_divergence(
