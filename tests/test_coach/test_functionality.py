@@ -47,6 +47,14 @@ sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
+time_limit = MujocoGame.time_limit
+timestep = MujocoGame.timestep
+MujocoGame.time_limit = 6.
+MujocoGame.timestep = .5
+mujoco_game = MujocoGame(domain_name="point_mass", task_name="easy")
+MujocoGame.timestep = timestep
+MujocoGame.time_limit = time_limit
+
 boring_coach = Coach(
     game=stub_game,
     config=CoachConfig(
@@ -179,7 +187,31 @@ def test_transform():
         advantage_sum = 0.
         for action, advantage in policy:
             advantage_sum += advantage
-        assert np.allclose(advantage_sum, 0.)
+        assert np.allclose(advantage_sum, 0., atol=1e-5)
+
+@requires_cleanup
+def test_ppo_transform():
+    coach = PPOCoach(
+        game=copy(mujoco_game),
+        config=PPOCoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=10,
+            **necessary_config
+        )
+    )
+    game = coach.game
+    game.discount = .9
+    coach.current_best = coach.best_player
+    arena = Arena([coach.current_best.dummy_constructor] * 2, game=game)
+    result, game_history = arena.play_game(0, return_history=True)
+    history = coach.transform_history_for_training(game_history)
+
+    for *_, policy in history[::-1]:
+        advantage_sum = 0.
+        for action, advantage in policy:
+            advantage_sum += advantage
+        assert np.allclose(advantage_sum, 0., atol=1e-5)
 
 @requires_cleanup
 def test_train_examples_not_cleared_after_loss():
@@ -278,13 +310,7 @@ def test_logs_format(capsys):
 @requires_cleanup
 def test_eval_arena_is_constant():
     eval_envs = []
-    time_limit = MujocoGame.time_limit
-    timestep = MujocoGame.timestep
-    MujocoGame.time_limit = 6.
-    MujocoGame.timestep = .5
-    game = MujocoGame(domain_name="point_mass", task_name="easy")
-    MujocoGame.timestep = timestep
-    MujocoGame.time_limit = time_limit
+    game = mujoco_game
 
     coach = EvalEnvSavingCoach(
         game=game,
