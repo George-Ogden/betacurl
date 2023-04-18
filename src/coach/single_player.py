@@ -2,9 +2,9 @@ import numpy as np
 
 from typing import Type
 
+from ..mcts import ReinforceMCTSModel
 from ..player import Arena, Player
 from ..game import Game
-from ..mcts import ReinforceMCTSModel
 
 from .config import CoachConfig
 from .coach import Coach

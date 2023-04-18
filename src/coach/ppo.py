@@ -1,11 +1,11 @@
 import numpy as np
 import wandb
 
-from typing import Optional, Type
+from typing import List, Optional, Tuple, Type
 
 from ..player import Arena, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..mcts import Node, PPOMCTSModel, Transition
 from ..game import Game, GameSpec
-from ..mcts import PPOMCTSModel
 
 from .single_player import SinglePlayerCoach
 from .config import PPOCoachConfig
@@ -20,6 +20,10 @@ class PPOCoach(SinglePlayerCoach):
         super().__init__(game=game, config=config, ModelClass=ModelClass)
         self.eval_environment = game.clone()
         self.best_reward = -float("inf")
+    
+    def set_config(self, config: PPOCoachConfig):
+        super().set_config(config)
+        self.gae_lambda = config.gae_lambda
 
     def update(self) -> float:
         eval_enviroment = self.eval_environment.clone()
@@ -62,3 +66,46 @@ class PPOCoach(SinglePlayerCoach):
     @property
     def best_player(self) -> NNMCTSPlayer:
         return self.player
+
+    def transform_history_for_training(self, training_data: List[Tuple[Node, Transition]]) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
+        self.compute_advantages(training_data)
+
+        # compute td-lambda targets
+        value_predictions = self.player.model.predict_values(
+            np.array([node.game.get_observation() for node, _ in training_data])
+        )
+        next_value_predictions = np.concatenate(
+            (value_predictions[1:], value_predictions[-1:])
+        )
+        lambda_reward = value_predictions[-1]
+        history = [
+            (
+                node.game.player_delta,
+                node.game.get_observation(),
+                transition.action,
+                (
+                    lambda_reward := (
+                        transition.reward or 0.
+                    ) + (
+                        transition.discount or 1.
+                    ) * (
+                        self.gae_lambda * lambda_reward
+                        + next_value_prediction
+                    ) - value_prediction
+                ) + value_prediction,
+                [
+                    (transition.action, transition.advantage)
+                    for transition in node.transitions.values()
+                ]
+            )
+            for (node, transition), (value_prediction, next_value_prediction) in reversed(
+                list(
+                    zip(
+                        training_data,
+                        zip(value_predictions, next_value_predictions, strict=True),
+                        strict=True
+                    )
+                )
+            )
+        ]
+        return history

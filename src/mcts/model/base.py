@@ -7,7 +7,7 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from copy import copy
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Tuple, Union
 from abc import ABCMeta, abstractmethod
 
 from ...model import CustomDecorator, TrainingConfig

@@ -34,3 +34,4 @@ class PPOCoachConfig(CoachConfig):
     evaluation_games: int = 5
     """number of episodes to evalute on"""
     win_threshold: ClassVar[float] = 0.
+    gae_lambda: float = 0.95

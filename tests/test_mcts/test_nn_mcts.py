@@ -1,3 +1,4 @@
+from tensorflow_probability import distributions
 from dm_env import StepType, TimeStep
 import numpy as np
 
@@ -50,6 +51,8 @@ def test_end_reached_with_stepping():
 def test_actions_use_model():
     game.reset()
     mcts = NNMCTS(game, model)
+    ones = np.ones_like(game.game_spec.move_spec.minimum)
+    model.generate_distribution = (lambda *args, **kwargs: distributions.Normal(ones * 2, ones)).__get__(model)
     distribution = model.generate_distribution(game.get_observation())
     actions, probs = zip(*[mcts.generate_action(game.get_observation()) for _ in range(1000)])
     assert np.allclose(distribution.mean(), np.mean(actions, axis=0), atol=.1)

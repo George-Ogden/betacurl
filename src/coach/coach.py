@@ -191,19 +191,7 @@ class Coach(SaveableObject):
             training_data: List[Tuple[Node, Transition]]
         ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
-        mcts = self.current_best.mcts
-        mcts.cleanup()
-        
-        for node, _ in training_data:
-            if not node.transitions:
-                continue
-            
-            initial_policy = node.action_probs / node.action_probs.sum()
-            enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
-            enhanced_policy /= enhanced_policy.sum()
-            for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
-                # use the policy change to calculate the advantage
-                transition.advantage = enhanced_prob - initial_prob
+        self.compute_advantages(training_data)
 
         history = [
             (
@@ -219,3 +207,16 @@ class Coach(SaveableObject):
             for node, transition in reversed(training_data)
         ]
         return history
+
+    def compute_advantages(self, training_data: List[Tuple[Node, Transition]]):
+        for node, _ in training_data:
+            if not node.transitions:
+                continue
+            
+            initial_policy = node.action_probs / node.action_probs.sum()
+            enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
+            # avoid division by zero
+            enhanced_policy /= enhanced_policy.sum() or 1.
+            for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
+                # use the policy change to calculate the advantage
+                transition.advantage = enhanced_prob - initial_prob

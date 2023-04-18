@@ -6,7 +6,7 @@ from pytest import mark
 import pytest
 
 from src.game import Game, SingleEndCurlingGame, CURLING_GAME
-from src.player import Arena, Player, RandomPlayer
+from src.player import Player, RandomPlayer
 
 accurate_constants = SimulationConstants(time_intervals=(.1, .02))
 

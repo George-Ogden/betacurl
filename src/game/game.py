@@ -1,13 +1,13 @@
 from copy import deepcopy
 import numpy as np
 
-from src.utils import classproperty
-
 from typing import List, Optional, Tuple, Union
 from dm_env.specs import Array, BoundedArray
 from abc import ABCMeta, abstractmethod
 from dm_env import StepType, TimeStep
 from dataclasses import dataclass
+
+from src.utils import classproperty
 
 @dataclass
 class GameSpec:
@@ -32,7 +32,7 @@ class Game(metaclass=ABCMeta):
     to_play: int = None
     max_round = 0
     player_deltas: List[int] = [1, -1]
-    discount = 1.
+    discount: Optional[float] = None
 
     @classproperty
     def num_players(cls):
