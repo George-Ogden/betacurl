@@ -262,6 +262,7 @@ def test_learning_patience():
     assert coach.best_player.MCTSClass == GoodMCTS
     assert len(glob(f"{SAVE_DIR}/*")) == 5
 
+@mark.slow
 @requires_cleanup
 def test_eval_simulations_change():
     coach = Coach(
@@ -271,9 +272,9 @@ def test_eval_simulations_change():
             num_games_per_episode=2,
             evaluation_games=4,
             win_threshold=.0,
-            num_eval_simulations=5,
+            num_eval_simulations=4,
             player_config=NNMCTSPlayerConfig(
-                num_simulations=20
+                num_simulations=6
             ),
             **necessary_config
         )
@@ -282,9 +283,9 @@ def test_eval_simulations_change():
     coach.learn()
     coach.update()
 
-    assert coach.current_best.simulations == 5
-    assert coach.best_player.simulations == 20
-    assert coach.player.simulations == 20
+    assert coach.current_best.simulations == 4
+    assert coach.best_player.simulations == 6
+    assert coach.player.simulations == 6
 
 @requires_cleanup
 def test_logs_format(capsys):

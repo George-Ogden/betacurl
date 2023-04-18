@@ -47,6 +47,7 @@ def test_end_reached_with_stepping():
     else:
         assert False, "did not reach game end"
 
+@mark.slow
 @mark.flaky
 def test_actions_use_model():
     game.reset()
