@@ -102,54 +102,44 @@ class PolicyMCTSModel(MCTSModel):
         observations: tf.Tensor,
         action_groups: tf.RaggedTensor,
         values: tf.Tensor,
-        advantage_groups: tf.RaggedTensor
+        visit_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         predicted_values = self.predict_values(observations, training=True)
 
-        if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
+        if isinstance(visit_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
-            clip_fraction = 0.
 
-            for i, (actions, advantages) in enumerate(zip(action_groups, advantage_groups, strict=True)):
+            for i, (actions, visits) in enumerate(zip(action_groups, visit_groups, strict=True)):
                 distribution = predicted_distribution[i]
-                other_dims = tuple(range(1, distribution.batch_shape.ndims))
+                policy = visits / tf.reduce_sum(visits, axis=-1, keepdims=True)
+                other_dims = tuple(range(1, distribution.batch_shape.ndims + 1))
 
                 log_probs = distribution.log_prob(actions.to_tensor())
-                clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
+                log_probs = tf.reduce_sum(log_probs, axis=other_dims)
+                predicted_policies = tf.math.softmax(log_probs, axis=-1)
 
-                policy_loss -= tf.reduce_mean(advantages * tf.reduce_sum(clipped_log_probs, axis=-1))
-
-                clip_fraction += tf.reduce_mean(
-                    tf.cast(
-                        tf.greater(tf.abs(log_probs), self.clip_range),
-                        tf.float32
+                policy_loss += tf.reduce_mean(
+                    losses.kld(
+                        policy,
+                        predicted_policies
                     )
-                ).numpy()
-            policy_loss /= action_groups.shape[0]
-            clip_fraction /= action_groups.shape[0]
-        else:
-            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
-            advantage_groups = tf.transpose(advantage_groups, (1, 0))
-            other_dims = tuple(range(2, predicted_distribution.batch_shape.ndims))
-
-            clipped_log_probs = tf.clip_by_value(log_probs, -self.clip_range, self.clip_range)
-            policy_loss = -tf.reduce_mean(
-                tf.transpose(
-                    tf.reduce_sum(clipped_log_probs, axis=(other_dims)),
-                    (2, 0, 1)
-                ) * advantage_groups
-            )
-
-            clip_fraction = tf.reduce_mean(
-                tf.reduce_mean(
-                    tf.cast(
-                        tf.greater(tf.abs(log_probs), self.clip_range),
-                        tf.float32
-                    ),
-                    axis=0
                 )
-            ).numpy()
+            policy_loss /= action_groups.shape[0]
+        else:
+            visit_groups = tf.transpose(visit_groups, (1, 0))
+            policies = visit_groups / tf.reduce_sum(visit_groups, axis=-1, keepdims=True)
+            other_dims = tuple(range(2, predicted_distribution.batch_shape.ndims + 1))
+
+            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
+            log_probs = tf.reduce_sum(log_probs, axis=other_dims)
+            predicted_policies = tf.math.softmax(log_probs, axis=-1)
+            policy_loss = tf.reduce_mean(
+                losses.kld(
+                    policies,
+                    predicted_policies
+                )
+            )
 
         value_loss = losses.mean_squared_error(values, predicted_values)
         entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
@@ -165,7 +155,6 @@ class PolicyMCTSModel(MCTSModel):
         self.stats["entropy_loss"] += entropy_loss.numpy()
         self.stats["value_loss"] += value_loss.numpy()
         self.stats["loss"] += loss.numpy()
-        self.stats["clip_fraction"] += clip_fraction
         self.stats["entropy"] += tf.reduce_sum(predicted_distribution.entropy()).numpy()
 
         return loss
@@ -211,21 +200,21 @@ class PolicyMCTSModel(MCTSModel):
                 augmented_observation,
                 augmented_actions,
                 augmented_value,
-                advantages
+                visits
             ) for player, observation, action, value, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_value),
-                    (augmented_actions, advantages)
+                    (augmented_actions, visits)
             in zip(
                 augmentation_function(player, observation, action, value),
                 [
                     zip(*policy)
                     for policy in zip(*[
                         [
-                            (augmented_action, advantage)
+                            (augmented_action, visits)
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, value)
                         ]
-                        for action, advantage in policy
+                        for action, advantage, visits in policy
                     ])
                 ],
                 strict=True

@@ -124,7 +124,7 @@ class ReinforceMCTSModel(PolicyMCTSModel):
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, value)
                         ]
-                        for action, advantage in policy
+                        for action, advantage, visits in policy
                     ])
                 ],
                 strict=True

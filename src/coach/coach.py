@@ -200,7 +200,7 @@ class Coach(SaveableObject):
                 transition.action,
                 total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
                 [
-                    (transition.action, transition.advantage)
+                    (transition.action, transition.advantage, transition.num_visits)
                     for transition in node.transitions.values()
                 ]
             )
