@@ -8,9 +8,9 @@ from typing import Dict, Optional, Tuple
 from ..utils.io import SaveableObject
 from ..game import Game
 
+from .model import ReinforceMCTSModel
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
-from .model.reinforce import ReinforceMCTSModel
 
 class NNMCTS(WideningMCTS, SaveableObject):
     CONFIG_CLASS = NNMCTSConfig
@@ -43,7 +43,7 @@ class NNMCTS(WideningMCTS, SaveableObject):
             else:
                 returns += self.model.predict_values(game.get_observation())
         return returns
-    
+
     def generate_action(self, observation: np.ndarray) -> Tuple[np.ndarray, float]:
         if self.model is None:
             return (self.game.get_random_move(), 1.)
@@ -56,7 +56,8 @@ class NNMCTS(WideningMCTS, SaveableObject):
         prob = tf.reduce_prod(distribution.prob(action))
         return (
             tf.clip_by_value(
-                action,self.action_spec.minimum,
+                action,
+                self.action_spec.minimum,
                 self.action_spec.maximum
             ).numpy(),
             prob.numpy()
