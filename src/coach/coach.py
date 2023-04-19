@@ -212,7 +212,7 @@ class Coach(SaveableObject):
         for node, _ in training_data:
             if not node.transitions:
                 continue
-            
+
             initial_policy = node.action_probs / node.action_probs.sum()
             enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
             # avoid division by zero
