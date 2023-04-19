@@ -109,16 +109,16 @@ def test_training_transform():
     move = np.ones(move_spec.shape)
     training_data = [(
         1, game.get_observation(), 7 * move, 1., [
-            (move * 3, 3),
-            (move * 5, 5),
-            (move * 7, 7)
+            (move * 3, 3, .2),
+            (move * 5, 5, .3),
+            (move * 7, 7, .5)
         ],
     )]
     game.step(move * 7)
     training_data.append((
         0, game.get_observation(), 6 * move, 1., [
-            (move * 4, 4),
-            (move * 6, 6)
+            (move * 4, 4, .4),
+            (move * 6, 6, .6)
         ],
     ))
 

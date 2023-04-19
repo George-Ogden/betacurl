@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -18,10 +18,31 @@ game_spec = stub_game.game_spec
 move = np.ones(game_spec.move_spec.shape)
 
 result = 3.
-training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)] * 2) for i in range(6)]
-mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)]) for i in range(6)]
+training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 1 if i % 2 else 4)] * 2) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 2 if i % 2 else 8)]) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
+
+def test_policy_model_stats(monkeypatch):
+    logs = []
+    def log(data, *args, **kwargs):
+        if len(data) > 1:
+            logs.append(data)
+
+    monkeypatch.setattr(wandb, "log", log)
+    model = PolicyMCTSModel(
+        game_spec
+    )
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+
+    expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
+
+    assert len(logs) > 0
+    for data in logs:
+        for key in expected_keys:
+            assert key in data
+            assert "val_" + key in data
 
 def test_reinforce_model_stats(monkeypatch):
     logs = []
@@ -113,7 +134,27 @@ def test_entropy_increases():
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).entropy() > entropy)
 
 @mark.flaky
-def test_model_losses_converge():
+def test_policy_model_losses_converge():
+    model = PolicyMCTSModel(
+        game_spec,
+        config=PolicyMCTSModelConfig(
+            vf_coeff=.5,
+            ent_coeff=0.,
+        )
+    )
+
+    model.learn(
+        training_data,
+        stub_game.no_symmetries,
+    )
+
+    distribution = model.generate_distribution(training_data[0][1])
+    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
+    ratio = tf.reduce_prod(distribution.prob(move * 1.25)) / tf.reduce_prod(distribution.prob(move * .25))
+    assert np.allclose(ratio, 5, atol=1.)
+
+@mark.flaky
+def test_reinforce_model_losses_converge():
     model = ReinforceMCTSModel(
         game_spec,
         config=ReinforceMCTSModelConfig(
