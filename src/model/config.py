@@ -13,7 +13,7 @@ class ModelConfig(Config):
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 64
+    hidden_size: int = 128
     dropout: float = .1
 
 @dataclass
@@ -30,7 +30,7 @@ class TrainingConfig(Config):
     """training batch size"""
     training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""
-    lr: float = 1e-2
+    lr: float = 1e-4
     """model learning rate"""
     validation_split: float = 0.1
     """proportion of data to validate on"""

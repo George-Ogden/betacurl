@@ -5,8 +5,8 @@ from ...utils import Config
 
 @dataclass
 class MCTSModelConfig(Config):
-    feature_size: int = 128
-    vf_coeff: float = .5
+    feature_size: int = 32
+    vf_coeff: float = 1.
     max_grad_norm: float = .5
 
 @dataclass
