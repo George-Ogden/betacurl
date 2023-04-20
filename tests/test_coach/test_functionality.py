@@ -8,9 +8,9 @@ from pytest import mark
 
 from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
+from src.mcts import MCTSConfig, PolicyMCTSModel
 from src.game import Game, MujocoGame
 from src.model import TrainingConfig
-from src.mcts import MCTSConfig
 
 from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -146,6 +146,24 @@ def test_sparse_game_for_coaching_bad_player():
     )
     coach.learn()
     assert coach.best_player.MCTSClass != BadMCTS
+
+@requires_cleanup
+def test_coach_with_policy_model():
+    coach = Coach(
+        game=sparse_stub_game,
+        ModelClass=PolicyMCTSModel,
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.6,
+            training_config=custom_training_config,
+            **necessary_config
+        )
+    )
+    assert coach.best_player.model is None
+    coach.learn()
+    assert isinstance(coach.player.model, PolicyMCTSModel)
 
 @requires_cleanup
 def test_transform():
