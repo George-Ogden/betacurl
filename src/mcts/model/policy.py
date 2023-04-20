@@ -6,10 +6,10 @@ import numpy as np
 
 from typing import Callable, List, Tuple, Union
 
-from ...model import DenseModelFactory, ModelFactory, MLPModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
-from .config import ReinforceMCTSModelConfig
+from .config import PolicyMCTSModelConfig
 from .fourier import FourierDistribution
 from .base import MCTSModel
 
@@ -23,7 +23,7 @@ class PolicyMCTSModel(MCTSModel):
         self,
         game_spec: GameSpec,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: ReinforceMCTSModelConfig = ReinforceMCTSModelConfig()
+        config: PolicyMCTSModelConfig = PolicyMCTSModelConfig()
     ):
         super().__init__(
             game_spec=game_spec,
@@ -57,10 +57,10 @@ class PolicyMCTSModel(MCTSModel):
             )
         )
 
-        self.value_head = MLPModelFactory.create_model(
+        self.value_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
             output_shape=(),
-            config=MLPModelFactory.CONFIG_CLASS(
+            config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
         )
