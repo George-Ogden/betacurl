@@ -32,7 +32,7 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
             config=self.config.mcts_config
         )
 
-    def create_model(self) -> ReinforceMCTSModel:
+    def create_model(self) -> MCTSModel:
         return self.ModelClass(
             game_spec=self.game_spec
         )
