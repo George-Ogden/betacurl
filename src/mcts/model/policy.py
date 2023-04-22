@@ -31,13 +31,17 @@ class PolicyMCTSModel(MCTSModel):
         )
         self.ent_coeff = config.ent_coeff
 
-        self.feature_extractor = model_factory.create_model(
-            input_shape=self.observation_shape,
-            output_shape=self.feature_size,
-            config=model_factory.CONFIG_CLASS(
-                output_activation="linear"
+        self.feature_extractor = keras.Sequential([
+            layers.BatchNormalization(),
+            model_factory.create_model(
+                input_shape=self.observation_shape,
+                output_shape=self.feature_size,
+                config=model_factory.CONFIG_CLASS(
+                    output_activation="linear"
+                )
             )
-        )
+        ])
+
         if self.observation_range is not None:
             self.feature_extractor = keras.Sequential(
                 [

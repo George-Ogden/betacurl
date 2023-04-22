@@ -26,7 +26,8 @@ class MultiLayerModelFactory(ModelFactory):
     def create_intermediate_layer(cls, config: FCNNConfig) -> keras.Sequential:
         return keras.Sequential(
             layers = [
-                layers.Dense(config.hidden_size, activation="relu", kernel_regularizer="l2"),
+                layers.Dense(config.hidden_size, activation="relu", kernel_regularizer="l2", use_bias=False),
+                layers.BatchNormalization(),
                 layers.Dropout(config.dropout)
             ]
         )
