@@ -5,6 +5,7 @@ from ..utils.config import Config
 @dataclass
 class MCTSConfig(Config):
     cpuct: float = 1. # "theoretically equal to √2; in practice usually chosen empirically"
+    scale_reward: bool = False
 
 @dataclass
 class FixedMCTSConfig(MCTSConfig):

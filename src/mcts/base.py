@@ -47,6 +47,7 @@ class MCTS(metaclass=ABCMeta):
         
         self.config = copy(config)
         self.cpuct = config.cpuct
+        self.scale_reward = config.scale_reward
 
     @staticmethod
     def encode(state: np.ndarray) -> bytes:
@@ -165,7 +166,8 @@ class MCTS(metaclass=ABCMeta):
             )
             for action in actions
         ])
-        if q_values.max() != q_values.min():
+
+        if self.scale_reward and q_values.max() != q_values.min():
             q_values /= q_values.max() - q_values.min()
 
         u_values = (
