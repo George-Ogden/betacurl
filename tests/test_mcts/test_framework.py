@@ -375,3 +375,37 @@ def test_discount_during_mcts():
         previous_reward = np.abs(node.expected_return)
         time_step = game.step(game.get_random_move())
         assert time_step.discount == .01
+
+@mark.flaky
+def test_scaling():
+    max_move = MDPStubGame.max_move
+    MDPStubGame.max_move = .1
+    game = MDPStubGame(rounds=3)
+    MDPStubGame.max_move = max_move
+    game.reset(0)
+
+    action_generator = lambda *args, **kwargs: (np.random.choice([.5, .9]) * game.game_spec.move_spec.maximum, 1.)
+
+    scaling_mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            scale_reward=True,
+            num_actions=2,
+            cpuct=1.
+        ),
+        action_generator=action_generator
+    )
+    non_scaling_mcts = FixedMCTS(
+        game,
+        config=FixedMCTSConfig(
+            scale_reward=False,
+            num_actions=2,
+            cpuct=1.
+        ),
+        action_generator=action_generator
+    )
+
+    for i in range(100):
+        scaling_mcts.search()
+        non_scaling_mcts.search()
+    assert scaling_mcts.get_node(game.get_observation()).expected_return > non_scaling_mcts.get_node(game.get_observation()).expected_return
