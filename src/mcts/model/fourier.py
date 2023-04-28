@@ -9,6 +9,7 @@ from typing import Dict, Tuple
 
 class FourierDistribution(distributions.Distribution):
     granularity: int = 1000
+    min_prob: float = 1e-2
     def __init__(
         self,
         coefficients: tf.Tensor,
@@ -57,7 +58,7 @@ class FourierDistribution(distributions.Distribution):
                 ) * tf.expand_dims(self._coefficients, 1),
                 axis=(-1, -2)
             ),
-            1e-10 # avoid numerical instability
+            1e-3 # avoid numerical instability and almost zero probabilities
         )
         self.pdf /= tf.reduce_sum(self.pdf, axis=-1, keepdims=True)
         self.cdf = tf.concat((tf.cumsum(self.pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self.pdf, axis=-1, keepdims=True))), axis=-1)

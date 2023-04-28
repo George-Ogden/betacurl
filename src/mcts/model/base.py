@@ -66,6 +66,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
             augmentation_function,
             training_config
         )
+        assert len(dataset) > 0, "Dataset is empty"
 
         return self.fit(dataset, training_config)
 

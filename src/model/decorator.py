@@ -166,6 +166,7 @@ class CustomDecorator(ModelDecorator):
                     "val_" + k: v for k, v in val_stats.items()
                 }
             )
+            dist = self.generate_distribution(np.array([0.]))
             if self.model.stop_training:
                 break
         callback.on_train_end()
