@@ -1,5 +1,4 @@
 from curling import Curling, SimulationConstants, Stone, StoneColor
-from dm_env import StepType
 import numpy as np
 
 from pytest import mark
@@ -48,10 +47,10 @@ def test_game_is_game():
 
 @mark.slow
 def test_correct_number_of_rounds_played():
-    assert single_end_game.reset().step_type == StepType.FIRST
+    assert single_end_game.reset().step_type.first()
     for i in range(15):
-        assert single_end_game.step(good_player.move(single_end_game)).step_type == StepType.MID
-    assert single_end_game.step(good_player.move(single_end_game)).step_type == StepType.LAST
+        assert single_end_game.step(good_player.move(single_end_game)).step_type.mid()
+    assert single_end_game.step(good_player.move(single_end_game)).step_type.last()
 
 @mark.slow
 def test_to_play_oscillates():
@@ -256,7 +255,7 @@ def test_drawn_game_where_player_1_starts():
     starter = single_end_game.stone_to_play
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
-    assert time_step.step_type == StepType.LAST
+    assert time_step.step_type.last()
     assert np.sign(time_step.reward) == 0
 
 def test_drawn_game_where_player_2_starts():
@@ -264,7 +263,7 @@ def test_drawn_game_where_player_2_starts():
     starter = single_end_game.stone_to_play
     for i in range(Curling.num_stones_per_end):
         time_step = single_end_game.step(out_of_bounds_player.move(single_end_game))
-    assert time_step.step_type == StepType.LAST
+    assert time_step.step_type.last()
     assert np.sign(time_step.reward) == 0
 
 def test_clone():

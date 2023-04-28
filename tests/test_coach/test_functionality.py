@@ -1,5 +1,4 @@
 from copy import copy, deepcopy
-from dm_env import StepType
 from glob import glob
 import numpy as np
 import os
@@ -333,5 +332,5 @@ def test_eval_arena_is_constant():
                 assert timestep.reward == timesteps[i].reward
                 assert (timestep.observation == timesteps[i].observation).all()
                 assert timestep.step_type == timesteps[i].step_type
-            if timestep.step_type == StepType.LAST:
+            if timestep.step_type.last():
                 env.reset()

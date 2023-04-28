@@ -1,4 +1,3 @@
-from dm_env import StepType
 from copy import deepcopy
 import numpy as np
 
@@ -340,7 +339,7 @@ def test_discount_during_mcts():
     )
 
     previous_reward = None
-    while time_step.step_type != StepType.LAST:
+    while not time_step.step_type.last():
         for i in range(1):
             mcts.search(game)
         node = mcts.get_node(game.get_observation())
@@ -362,7 +361,7 @@ def test_discount_during_mcts():
     )
 
     previous_reward = None
-    while time_step.step_type != StepType.LAST:
+    while not time_step.step_type.last():
         for i in range(1000):
             mcts.search(game)
         node = mcts.get_node(game.get_observation())

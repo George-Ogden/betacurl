@@ -1,7 +1,6 @@
 import numpy as np
 
 from typing import Iterable, List, Optional, Tuple, Type, Union
-from dm_env import StepType
 from tqdm import trange
 
 from ..mcts import Node, Transition
@@ -35,7 +34,7 @@ class Arena():
         total_reward = 0
         history = []
         players = self.players
-        while time_step.step_type != StepType.LAST:
+        while not time_step.step_type.last():
             player_index = self.game.to_play
             player = players[player_index]
             action = player.move(self.game)

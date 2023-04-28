@@ -2,12 +2,13 @@ from tqdm import trange
 import numpy as np
 import wandb
 import os
+from copy import deepcopy
 
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
-from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..mcts import MCTSModel, Node, Transition
+from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, Transition
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
@@ -166,7 +167,16 @@ class Coach(SaveableObject):
         if os.path.exists(self.best_checkpoint_path):
             return self.player.load(self.best_checkpoint_path)
         else:
-            return self.create_player(self.game.game_spec, self.player_config)
+            player_config = deepcopy(self.player_config)
+            player_config.mcts_config = FixedMCTSConfig(**{
+                k: getattr(self.player_config.mcts_config, k)
+                for k in FixedMCTSConfig().keys()
+            })
+            return MCTSPlayer(
+                game_spec=self.game.game_spec,
+                MCTSClass=FixedMCTS,
+                config=player_config
+            )
 
     def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):

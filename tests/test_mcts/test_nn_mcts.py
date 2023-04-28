@@ -1,5 +1,5 @@
 from tensorflow_probability import distributions
-from dm_env import StepType, TimeStep
+from dm_env import TimeStep
 import numpy as np
 
 from pytest import mark
@@ -15,7 +15,7 @@ class BlowUp(Exception):
 class BlowUpGame(MDPSparseStubGame):
     def step(self, action: np.ndarray, display: bool = False) -> TimeStep:
         step = super().step(action, display)
-        if step.step_type == StepType.LAST:
+        if step.step_type.last():
             raise BlowUp
         return step
 
@@ -33,7 +33,7 @@ def test_end_reached_with_stepping():
     timestep = None
     blowup_game.reset()
     mcts = NNMCTS(blowup_game)
-    while timestep is None or timestep.step_type != StepType.LAST:
+    while timestep is None or not timestep.step_type.last():
         for i in range(10):
             try:
                 mcts.search()
