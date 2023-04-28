@@ -13,7 +13,7 @@ class ModelConfig(Config):
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 1024
+    hidden_size: int = 256
     dropout: float = .1
 
 @dataclass
@@ -24,7 +24,7 @@ class FCNNConfig(MLPModelConfig):
 
 @dataclass
 class TrainingConfig(Config):
-    training_epochs: int = 20
+    training_epochs: int = 10
     """number of epochs to train each model for"""
     batch_size: int = 256
     """training batch size"""

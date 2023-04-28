@@ -5,14 +5,14 @@ from ...utils import Config
 
 @dataclass
 class MCTSModelConfig(Config):
-    feature_size: int = 32
-    vf_coeff: float = 1.
+    feature_size: int = 128
+    vf_coeff: float = .5
     max_grad_norm: float = .5
 
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.
-    fourier_features: int = 8
+    fourier_features: int = 16
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
