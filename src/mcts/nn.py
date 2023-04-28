@@ -8,9 +8,9 @@ from typing import Dict, Optional, Tuple
 from ..utils.io import SaveableObject
 from ..game import Game
 
-from .model import ReinforceMCTSModel
 from .widening import WideningMCTS
 from .config import NNMCTSConfig
+from .model import MCTSModel
 
 class NNMCTS(WideningMCTS, SaveableObject):
     CONFIG_CLASS = NNMCTSConfig
@@ -19,7 +19,7 @@ class NNMCTS(WideningMCTS, SaveableObject):
     def __init__(
         self,
         game: Game,
-        model: Optional[ReinforceMCTSModel] = None,
+        model: Optional[MCTSModel] = None,
         config: NNMCTSConfig = NNMCTSConfig()
     ):
         super().__init__(game, config=config, action_generator=self.generate_action)
@@ -35,7 +35,7 @@ class NNMCTS(WideningMCTS, SaveableObject):
             action = game.get_random_move()
             timestep = game.step(action)
             returns += timestep.reward or 0.
-            if timestep.step_type == StepType.LAST:
+            if timestep.step_type.last():
                 break
         else:
             if self.model is None:
