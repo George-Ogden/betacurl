@@ -1,7 +1,7 @@
 from typing import Callable, List, Optional, Tuple, Type
 import numpy as np
 
-from ..mcts import MCTSModel, NNMCTS, ReinforceMCTSModel
+from ..mcts import MCTSModel, WideningNNMCTS, ReinforceMCTSModel
 from ..model import Learnable, TrainingConfig
 from ..game import Game, GameSpec
 
@@ -18,14 +18,14 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
     ):
         super().__init__(
             game_spec,
-            NNMCTS,
+            WideningNNMCTS,
             config=config
         )
 
         self.ModelClass = ModelClass or ReinforceMCTSModel
         self.model: Optional[MCTSModel] = None
 
-    def create_mcts(self, game: Game) -> NNMCTS:
+    def create_mcts(self, game: Game) -> WideningNNMCTS:
         return self.MCTSClass(
             game=game,
             model=self.model,

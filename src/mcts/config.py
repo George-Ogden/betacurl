@@ -20,6 +20,11 @@ class WideningMCTSConfig(MCTSConfig):
         assert 0 < self.kappa and self.kappa <= 1
 
 @dataclass
-class NNMCTSConfig(WideningMCTSConfig):
+class WideningNNMCTSConfig(WideningMCTSConfig):
+    max_rollout_depth: int = 4
+    """maximum depth to run rollout"""
+
+@dataclass
+class FixedNNMCTSConfig(FixedMCTSConfig):
     max_rollout_depth: int = 4
     """maximum depth to run rollout"""

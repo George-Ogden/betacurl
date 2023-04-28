@@ -4,7 +4,7 @@ import numpy as np
 from curling import Curling
 from pytest import mark
 
-from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, ReinforceMCTSModel, NNMCTS, NNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
+from src.mcts import FixedMCTS, FixedMCTSConfig, MCTS, ReinforceMCTSModel, WideningNNMCTS, WideningNNMCTSConfig, PPOMCTSModel, WideningMCTS, WideningMCTSConfig
 from src.player import Arena, MCTSPlayer, MCTSPlayerConfig, NNMCTSPlayer, NNMCTSPlayerConfig, RandomPlayer
 from src.game import Game, MujocoGame, SingleEndCurlingGame
 
@@ -132,7 +132,7 @@ def test_mcts_config_is_used():
         stub_game.game_spec,
         config=NNMCTSPlayerConfig(
             num_simulations=5,
-            mcts_config=NNMCTSConfig(
+            mcts_config=WideningNNMCTSConfig(
                 max_rollout_depth=4,
                 cpuct=3.4
             )
@@ -148,7 +148,7 @@ def test_mcts_config_is_used():
     assert player.simulations == 5
     assert player.mcts.cpuct == 3.4
     assert player.mcts.max_depth == 4
-    assert isinstance(player.mcts, NNMCTS)
+    assert isinstance(player.mcts, WideningNNMCTS)
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
 
