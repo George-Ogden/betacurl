@@ -7,8 +7,8 @@ from copy import deepcopy
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
+from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, PolicyMCTSModel, Transition
 from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, Transition
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
@@ -21,7 +21,7 @@ class Coach(SaveableObject):
         self,
         game: Game,
         config: CoachConfig=CoachConfig(),
-        ModelClass: Optional[Type[MCTSModel]]=None
+        ModelClass: Optional[Type[MCTSModel]]=PolicyMCTSModel
     ):
         self.game = game
         self.ModelClass = ModelClass
@@ -29,15 +29,11 @@ class Coach(SaveableObject):
             game_spec=game.game_spec,
             config=config.player_config
         )
-
-        self.train_example_history = []
         self.set_config(config)
 
         self.save_directory = config.save_directory
-        self.best_model_file = config.best_checkpoint_path
+        self.last_model_filename = config.last_checkpoint_path
         self.model_filename = config.model_filenames
-        self.current_best = None
-        self.stats = {}
 
     def set_config(self, config: CoachConfig):
         self.config = copy(config)
@@ -46,31 +42,28 @@ class Coach(SaveableObject):
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
-        self.num_eval_games = config.evaluation_games
-        self.win_threshold = config.win_threshold
         self.resume_from_checkpoint = config.resume_from_checkpoint
-        self.eval_simulations = config.num_eval_simulations
-        self.learning_patience = config.successive_win_requirement
-        # start training with full patience
-        self.patience = self.learning_patience
+        self.warm_start_games = config.warm_start_games
 
     def create_player(
         self,
         game_spec: GameSpec,
         config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     ) -> NNMCTSPlayer:
-        return NNMCTSPlayer(
+        player = NNMCTSPlayer(
             game_spec=game_spec,
             config=config,
             ModelClass=self.ModelClass
         )
-
-    @property
-    def best_checkpoint_path(self) -> str:
-        return os.path.join(self.save_directory, self.best_model_file)
+        if player.model is None:
+            player.model = player.create_model()
+        return player
 
     def get_checkpoint_path(self, iteration: int) -> str:
         return os.path.join(self.save_directory, self.model_filename.format(iteration))
+
+    def get_last_checkpoint_path(self) -> str:
+        return os.path.join(self.save_directory, self.last_model_filename)
 
     def load_checkpoint(self) -> Optional[int]:
         last_iteration = None
@@ -85,116 +78,69 @@ class Coach(SaveableObject):
             for k, v in vars(coach).items():
                 setattr(self, k, v)
             self.set_config(config)
-            self.update_patience(True)
 
             print(f"Successfully loaded model from `{self.get_checkpoint_path(last_iteration)}`")
             return last_iteration
+    
+    def warm_start(self):
+        if self.warm_start_games == 0:
+            return
+        player_config = deepcopy(self.player_config)
+        player_config.mcts_config = FixedMCTSConfig(**{
+            k: getattr(self.player_config.mcts_config, k)
+            for k in FixedMCTSConfig().keys()
+        })
+        player = MCTSPlayer(
+            game_spec=self.game.game_spec,
+            MCTSClass=FixedMCTS,
+            config=player_config
+        )
+        num_games = self.num_games_per_episode
+        self.num_games_per_episode = self.warm_start_games
+        self.run_iteration(iteration=0, player=player)
+        self.num_games_per_episode = num_games
 
     def learn(self):
-        start_iteration = 0
+        start_iteration = None
         if self.resume_from_checkpoint:
-            start_iteration = self.load_checkpoint() or 0
+            start_iteration = self.load_checkpoint()
+        
+        if start_iteration is None:
+            self.warm_start()
+            start_iteration = 0
 
         print("Starting the learning process")
         self.save_model(current_iteration=start_iteration)
 
         for iteration in range(start_iteration, self.num_iterations):
-            print(f"Starting iteration {iteration}")
-            self.current_best = self.best_player
-            train_arena = Arena([self.current_best.dummy_constructor] * self.game.num_players, game=self.game)
-            train_examples = np.empty(self.num_games_per_episode, dtype=object)
-            for i in trange(self.num_games_per_episode, desc="Playing episode"):
-                result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
-                training_samples = self.transform_history_for_training(game_history)
-                train_examples[i] = training_samples
-            self.train_example_history.append(train_examples)
+            self.run_iteration(iteration + 1)
 
-            train_examples = [move for histories in self.train_example_history for history in histories for move in history]
+    def run_iteration(self, iteration: int, player: Optional[Player]=None):
+        if player is None:
+            player = self.player
+        print(f"Starting iteration {iteration}")
+        if isinstance(player, NNMCTSPlayer):
+            player.fix()
+        train_arena = Arena([player.dummy_constructor] * self.game.num_players, game=self.game)
+        train_examples = np.empty(self.num_games_per_episode, dtype=object)
+        for i in trange(self.num_games_per_episode, desc="Playing episode"):
+            result, game_history = train_arena.play_game(starting_player=i % self.game.num_players, return_history=True, training=True)
+            training_samples = self.transform_history_for_training(game_history)
+            train_examples[i] = training_samples
 
-            self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
+        train_examples = [move for game in train_examples for move in game]
 
-            self.save_model(current_iteration=iteration + 1)
-            if self.update():
-                break
+        self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
-    def update(self):
-        champion = self.best_player
-        champion.simulations = self.eval_simulations
-        self.current_best = champion
+        self.save_model(current_iteration=iteration)
 
-        result = self.compare(champion.dummy_constructor)
-        if result:
-            self.save_best_model()
-        self.stats["updated"] = float(result)
-
-        wandb.log(self.stats)
-        self.stats = {}
-        return self.update_patience(result)
-        
-
-    def update_patience(self, change: bool) -> bool:
-        if change:
-            self.patience = self.learning_patience
-
-        self.patience -= 1
-        self.stats["patience"] = self.patience
-        return self.patience <= 0
-
-    def compare(self, Opponent: Type[Player]) -> bool:
-        """
-        Returns:
-            bool: True if the current player is better else False
-        """
-        self.player.simulations = self.eval_simulations
-
-        eval_arena = Arena([self.player.dummy_constructor, Opponent], game=self.game)
-        results = np.array(eval_arena.play_games(self.num_eval_games, display=False, training=False))
-
-        self.player.simulations = self.player_config.num_simulations
-        # return True if the current player won more than the win threshold
-        self.stats |= {
-            "win_rate": (results > 0).sum() / len(results),
-            "loss_rate": (results < 0).sum() / len(results),
-            "draw_rate": (results == 0).sum() / len(results),
-            "best_result": results.max(),
-            "worst_result": results.min(),
-            "avg_result": results.mean(),
-        }
-        return results.mean() >= self.win_threshold * 2 - 1
-
-    @property
-    def best_player(self) -> NNMCTSPlayer:
-        if os.path.exists(self.best_checkpoint_path):
-            return self.player.load(self.best_checkpoint_path)
-        else:
-            player_config = deepcopy(self.player_config)
-            player_config.mcts_config = FixedMCTSConfig(**{
-                k: getattr(self.player_config.mcts_config, k)
-                for k in FixedMCTSConfig().keys()
-            })
-            return MCTSPlayer(
-                game_spec=self.game.game_spec,
-                MCTSClass=FixedMCTS,
-                config=player_config
-            )
-
-    def save_model(self, current_iteration):
+    def save_model(self, current_iteration: int):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
         print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
         self.save(self.get_checkpoint_path(current_iteration))
-
-    def save_best_model(self):
-        print("Saving new best model")
-        self.save(self.best_checkpoint_path)
-        del self.train_example_history[:]
-
-    def save(self, directory: str):
-        current_best = self.current_best
-        del self.current_best
-        super().save(directory)
-        self.current_best = current_best
+        self.save(self.get_last_checkpoint_path())
 
     def transform_history_for_training(
             self,
