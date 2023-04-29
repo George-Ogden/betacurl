@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Union
 
-from ..mcts import MCTSConfig, WideningNNMCTSConfig
+from ..mcts import MCTSConfig, NNMCTSConfig
 from ..utils import Config
 
 @dataclass
@@ -16,4 +16,4 @@ class MCTSPlayerConfig(Config):
 
 @dataclass
 class NNMCTSPlayerConfig(MCTSPlayerConfig):
-    mcts_config: WideningNNMCTSConfig = WideningNNMCTSConfig()
+    mcts_config: NNMCTSConfig = NNMCTSConfig()

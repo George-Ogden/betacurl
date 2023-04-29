@@ -1,8 +1,8 @@
 from .model import MCTSModel, PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
-from .config import FixedMCTSConfig, MCTSConfig, WideningNNMCTSConfig, WideningMCTSConfig
+from .config import FixedMCTSConfig, MCTSConfig, NNMCTSConfig, WideningMCTSConfig
 from .base import MCTS, Node, Transition
+from .nn import NNMCTS, NNMCTSMode
 from .widening import WideningMCTS
 from .fixed import FixedMCTS
-from .nn import WideningNNMCTS
 
-BEST_MCTS = WideningMCTS
+BEST_MCTS = NNMCTS
