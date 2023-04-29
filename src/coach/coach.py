@@ -1,6 +1,5 @@
 from tqdm import trange
 import numpy as np
-import wandb
 import os
 from copy import deepcopy
 
@@ -9,6 +8,7 @@ from copy import copy
 
 from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, PolicyMCTSModel, Transition
 from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..schedule import GeometricSchedule, LinearSchedule
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
@@ -44,6 +44,14 @@ class Coach(SaveableObject):
         self.num_games_per_episode = config.num_games_per_episode
         self.resume_from_checkpoint = config.resume_from_checkpoint
         self.warm_start_games = config.warm_start_games
+        self.temperature_schedule = LinearSchedule(
+            values=(config.initial_temperature, config.final_temperature),
+            range=(0, config.num_iterations)
+        )
+        self.lr_schedule = GeometricSchedule(
+            values=(config.initial_lr, config.final_lr),
+            range=(0, config.num_iterations)
+        )
 
     def create_player(
         self,
@@ -121,6 +129,7 @@ class Coach(SaveableObject):
         print(f"Starting iteration {iteration}")
         if isinstance(player, NNMCTSPlayer):
             player.fix()
+        self.player.default_temperature = self.temperature_schedule[iteration]
         train_arena = Arena([player.dummy_constructor] * self.game.num_players, game=self.game)
         train_examples = np.empty(self.num_games_per_episode, dtype=object)
         for i in trange(self.num_games_per_episode, desc="Playing episode"):
@@ -130,6 +139,7 @@ class Coach(SaveableObject):
 
         train_examples = [move for game in train_examples for move in game]
 
+        self.training_config.lr = self.lr_schedule[iteration]
         self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
         self.save_model(current_iteration=iteration)

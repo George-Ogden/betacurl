@@ -20,7 +20,7 @@ class MCTSPlayer(Player):
     ):
         self.config = deepcopy(config)
         self.simulations = config.num_simulations
-        self.temperature = 1.
+        self.default_temperature = config.temperature
         
         self.MCTSClass = MCTSClass
         self.mcts: Optional[MCTS] = None
@@ -29,7 +29,7 @@ class MCTSPlayer(Player):
 
     def train(self) -> "Self":
         self.mcts = None
-        self.temperature = 1.
+        self.temperature = self.default_temperature
         return super().train()
 
     def eval(self) -> "Self":

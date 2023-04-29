@@ -20,6 +20,11 @@ class CoachConfig(Config):
     last_checkpoint_path: str = "model-last"
     """path to save last model"""
     model_filenames: str = "model-{:06}"
+    # values from muzero and alphazero papers
+    initial_lr: float = 2e-2
+    final_lr: float = 2e-4
+    initial_temperature: float = 1.0
+    final_temperature: float = 0.25
     player_config: NNMCTSPlayerConfig = NNMCTSPlayerConfig()
     training_config: TrainingConfig = TrainingConfig()
 
