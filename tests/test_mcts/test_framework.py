@@ -379,7 +379,7 @@ def test_discount_during_mcts():
 def test_scaling():
     max_move = MDPStubGame.max_move
     MDPStubGame.max_move = .1
-    game = MDPStubGame(rounds=3)
+    game = MDPStubGame(rounds=2)
     MDPStubGame.max_move = max_move
     game.reset(0)
 
@@ -390,7 +390,7 @@ def test_scaling():
         config=FixedMCTSConfig(
             scale_reward=True,
             num_actions=2,
-            cpuct=1.
+            cpuct=100
         ),
         action_generator=action_generator
     )
@@ -399,12 +399,12 @@ def test_scaling():
         config=FixedMCTSConfig(
             scale_reward=False,
             num_actions=2,
-            cpuct=1.
+            cpuct=100
         ),
         action_generator=action_generator
     )
 
-    for i in range(100):
+    for i in range(1000):
         scaling_mcts.search()
         non_scaling_mcts.search()
     assert scaling_mcts.get_node(game.get_observation()).expected_return > non_scaling_mcts.get_node(game.get_observation()).expected_return
