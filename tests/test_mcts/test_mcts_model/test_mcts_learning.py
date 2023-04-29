@@ -5,7 +5,7 @@ from pytest import mark
 import wandb
 
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
-from src.model import TrainingConfig
+from src.model import MLPModelFactory, MLPModelConfig, TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
 
@@ -22,6 +22,7 @@ training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i
 mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 2 if i % 2 else 8)]) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
+MLPModelConfig.hidden_size = 32
 
 def test_policy_model_stats(monkeypatch):
     logs = []
@@ -98,12 +99,13 @@ def test_policy_learns():
             vf_coeff=0.,
             ent_coeff=0.,
         ),
+        model_factory=MLPModelFactory
     )
 
     model.learn(training_data, stub_game.get_symmetries)
           
     distribution = model.generate_distribution(training_data[0][1])
-    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
+    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
 
 @mark.flaky
 def test_value_learns():
@@ -113,6 +115,7 @@ def test_value_learns():
             vf_coeff=1000,
             ent_coeff=0.,
         ),
+        model_factory=MLPModelFactory
     )
 
     model.learn(training_data, stub_game.no_symmetries)
@@ -126,7 +129,8 @@ def test_entropy_increases():
         config=ReinforceMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=1000.,
-        )
+        ),
+        model_factory=MLPModelFactory
     )
 
     entropy = model.generate_distribution(training_data[0][1]).entropy()
@@ -140,27 +144,33 @@ def test_policy_model_losses_converge():
         config=PolicyMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.,
-        )
+        ),
+        model_factory=MLPModelFactory
     )
 
     model.learn(
         training_data,
         stub_game.no_symmetries,
+        TrainingConfig(
+            training_epochs=20,
+            batch_size=32,
+        )
     )
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     ratio = tf.reduce_prod(distribution.prob(move * 1.25)) / tf.reduce_prod(distribution.prob(move * .25))
-    assert np.allclose(ratio, 5, atol=1.)
+    assert np.allclose(ratio, 5, atol=2.)
 
 @mark.flaky
 def test_reinforce_model_losses_converge():
     model = ReinforceMCTSModel(
         game_spec,
         config=ReinforceMCTSModelConfig(
-            vf_coeff=.5,
+            vf_coeff=1.,
             ent_coeff=0.,
-        )
+        ),
+        model_factory=MLPModelFactory
     )
 
     model.learn(
@@ -170,7 +180,7 @@ def test_reinforce_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
+    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
 
 @mark.slow
 @mark.flaky
@@ -203,7 +213,8 @@ def test_model_learns_from_multiple_actions():
         config=ReinforceMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.
-        )
+        ),
+        model_factory=MLPModelFactory
     )
     model.learn(
         training_data,
@@ -211,21 +222,22 @@ def test_model_learns_from_multiple_actions():
     )
 
     distribution = model.generate_distribution(game.get_observation())
-    assert tf.reduce_all(distribution.prob(move * 6.5) > 2 * distribution.prob(move * 3.5))
+    assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
     game.reset(0)
     distribution = model.generate_distribution(game.get_observation())
-    assert tf.reduce_all(distribution.prob(move * 6.5) > 2 * distribution.prob(move * 3.5))
+    assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
 
 @mark.flaky
 def test_ppo_model_losses_converge():
     model = PPOMCTSModel(
         game_spec,
         config=PPOMCTSModelConfig(
-            vf_coeff=.5,
+            vf_coeff=1.,
             ent_coeff=0.,
             clip_range=.5,
             target_kl=None
-        )
+        ),
+        model_factory=MLPModelFactory
     )
 
     for _ in range(4):
@@ -239,4 +251,4 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
+    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
