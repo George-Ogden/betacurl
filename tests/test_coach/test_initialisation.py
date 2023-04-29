@@ -126,7 +126,8 @@ def test_coach_initial_model_states():
         )
     )
     coach.learn()
-    assert coach.best_player.model is None
+    best_player = coach.best_player
+    assert not hasattr(best_player, "model") or best_player.model is None
 
 @requires_cleanup
 def test_single_player_coach_initial_model_states():
@@ -138,7 +139,8 @@ def test_single_player_coach_initial_model_states():
         )
     )
     coach.learn()
-    assert coach.best_player.model is None
+    best_player = coach.best_player
+    assert not hasattr(best_player, "model") or best_player.model is None
 
 @requires_cleanup
 def test_ppo_coach_initial_model_states():

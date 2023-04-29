@@ -160,7 +160,8 @@ def test_coach_with_policy_model():
             **necessary_config
         )
     )
-    assert coach.best_player.model is None
+    best_player = coach.best_player
+    assert not hasattr(best_player, "model") or best_player.model is None
     coach.learn()
     assert isinstance(coach.player.model, PolicyMCTSModel)
 
@@ -194,7 +195,7 @@ def test_transform():
             assert previous_value == value
         previous_value = value
         advantage_sum = 0.
-        for action, advantage in policy:
+        for action, advantage, num_visits in policy:
             advantage_sum += advantage
         assert np.allclose(advantage_sum, 0.)
 

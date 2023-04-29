@@ -184,16 +184,16 @@ def test_model_learns_from_multiple_actions():
     move = np.ones(game_spec.move_spec.shape) / 10
     training_data = [(
         1, game.get_observation(), 7 * move, 1., [
-            (move * 3, -1.),
-            (move * 5, 0.),
-            (move * 7, 2.)
+            (move * 3, -1., 1),
+            (move * 5, 0., 2),
+            (move * 7, 2., 3)
         ],
     )]
     game.step(move * 7)
     training_data.append((
         0, game.get_observation(), 6 * move, 1., [
-            (move * 4, -1.),
-            (move * 6, 2.)
+            (move * 4, -1., 2),
+            (move * 6, 2., 4)
         ],
     ))
     training_data *= 100

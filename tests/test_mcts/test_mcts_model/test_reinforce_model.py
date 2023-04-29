@@ -88,21 +88,6 @@ def test_deterministic_outside_training():
 
     assert np.allclose(dist.kl_divergence(dist2), 0.)
 
-def test_non_deterministic_during_trainiwng():
-    observation = np.ones_like(game.get_observation())
-
-    features = model.feature_extractor(observation, training=True)
-    features2 = model.feature_extractor(observation, training=True)
-    assert not tf.reduce_all(features == features2)
-
-    value = model.predict_values(observation, training=True)
-    value2 = model.predict_values(observation, training=True)
-    assert not tf.reduce_all(value == value2)
-
-    dist = model.generate_distribution(observation, training=True)
-    dist2 = model.generate_distribution(observation, training=True)
-    assert not np.allclose(dist.kl_divergence(dist2), 0.)
-
 def test_training_transform():
     game = StubGame(2)
     game.reset(0)

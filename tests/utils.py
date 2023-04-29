@@ -136,7 +136,7 @@ class BadPlayer(Player):
         return game.game_spec.move_spec.minimum
 
 class FixedValueMCTS(NNMCTS):
-    CONFIG_CLASS = NNMCTS
+    CONFIG_CLASS = NNMCTSConfig
     def __init__(self, game: Game, config: NNMCTSConfig = NNMCTSConfig(), move = None):
         super().__init__(game, config=config)
         self.move = move
