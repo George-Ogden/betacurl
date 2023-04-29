@@ -52,7 +52,8 @@ class NNMCTSPlayer(MCTSPlayer, Learnable):
     
     def set_mode(self, mode: NNMCTSMode):
         self.mode = mode
-        self.mcts.set_mode(mode)
+        if self.mcts is not None:
+            self.mcts.set_mode(mode)
     
     def fix(self):
         self.set_mode(NNMCTSMode.FIXED)
