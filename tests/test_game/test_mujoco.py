@@ -1,4 +1,3 @@
-from dm_env import StepType
 import numpy as np
 
 from pytest import mark
@@ -17,10 +16,10 @@ def test_game_is_game():
     assert isinstance(game, Game)
 
 def test_game_terminates():
-    assert game.reset().step_type == StepType.FIRST
+    assert game.reset().step_type.first()
     for _ in range(game.max_round - 1):
-        assert game.step(player.move(game)).step_type == StepType.MID
-    assert game.step(player.move(game)).step_type == StepType.LAST
+        assert game.step(player.move(game)).step_type.mid()
+    assert game.step(player.move(game)).step_type.last()
 
 def test_single_player():
     game.reset()

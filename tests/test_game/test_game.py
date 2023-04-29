@@ -26,10 +26,10 @@ def test_stub_game_game_spec_is_correct():
     )
 
 def test_correct_number_of_rounds_played():
-    assert stub_game.reset().step_type == StepType.FIRST
+    assert stub_game.reset().step_type.first()
     for i in range(5):
-        assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
-    assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
+        assert stub_game.step(random_player.move(stub_game)).step_type.mid()
+    assert stub_game.step(random_player.move(stub_game)).step_type.last()
 
 def test_game_to_play_oscillates():
     stub_game.reset(starting_player=1)
@@ -45,15 +45,15 @@ def test_game_to_play_oscillates():
         assert stub_game.to_play == 1 - (i % 2)
 
 def test_correct_number_of_rounds_played_with_reset():
-    assert stub_game.reset().step_type == StepType.FIRST
+    assert stub_game.reset().step_type.first()
     for i in range(5):
-        assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
-    assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
+        assert stub_game.step(random_player.move(stub_game)).step_type.mid()
+    assert stub_game.step(random_player.move(stub_game)).step_type.last()
 
-    assert stub_game.reset().step_type == StepType.FIRST
+    assert stub_game.reset().step_type.first()
     for i in range(5):
-        assert stub_game.step(random_player.move(stub_game)).step_type == StepType.MID
-    assert stub_game.step(random_player.move(stub_game)).step_type == StepType.LAST
+        assert stub_game.step(random_player.move(stub_game)).step_type.mid()
+    assert stub_game.step(random_player.move(stub_game)).step_type.last()
 
 def test_clone():
     stub_game.reset(0)

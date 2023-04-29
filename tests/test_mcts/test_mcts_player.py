@@ -152,6 +152,42 @@ def test_mcts_config_is_used():
 
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
 
+def test_nn_mcts_player_fixed_mode():
+    game = stub_game
+    player = NNMCTSPlayer(
+        game.game_spec,
+        config=NNMCTSPlayerConfig(
+            num_simulations=10,
+            mcts_config=NNMCTSConfig(
+                cpw=1.,
+                kappa=1.,
+                num_actions=2
+            )
+        )
+    )
+    game.reset()
+    player.fix()
+    player.move(game)
+    assert len(player.mcts.get_node(game.get_observation()).transitions) == 2
+
+def test_nn_mcts_player_widening_mode():
+    game = stub_game
+    player = NNMCTSPlayer(
+        game.game_spec,
+        config=NNMCTSPlayerConfig(
+            num_simulations=10,
+            mcts_config=NNMCTSConfig(
+                cpw=1.,
+                kappa=1.,
+                num_actions=2
+            )
+        )
+    )
+    game.reset()
+    player.widen()
+    player.move(game)
+    assert len(player.mcts.get_node(game.get_observation()).transitions) >= 9
+
 def test_nn_mcts_player_uses_model():
     player = NNMCTSPlayer(
         single_stone_game.game_spec,

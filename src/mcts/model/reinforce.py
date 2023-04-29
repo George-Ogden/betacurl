@@ -1,24 +1,17 @@
-from tensorflow_probability import distributions
-from tensorflow.keras import layers, losses
+from tensorflow.keras import losses
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple
 
-from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import ReinforceMCTSModelConfig
-from .fourier import FourierDistribution
-from .base import MCTSModel
+from .policy import PolicyMCTSModel
 
-class ReinforceMCTSModel(MCTSModel):
-    MODELS = {
-        "feature_extractor": "feature_extractor.h5",
-        "policy_head": "policy.h5",
-        "value_head": "value.h5"
-    }
+class ReinforceMCTSModel(PolicyMCTSModel):
     def __init__(
         self,
         game_spec: GameSpec,
@@ -27,76 +20,10 @@ class ReinforceMCTSModel(MCTSModel):
     ):
         super().__init__(
             game_spec=game_spec,
+            model_factory=model_factory,
             config=config
         )
-        self.ent_coeff = config.ent_coeff
         self.clip_range = config.clip_range
-
-        self.feature_extractor = model_factory.create_model(
-            input_shape=self.observation_shape,
-            output_shape=self.feature_size,
-            config=model_factory.CONFIG_CLASS(
-                output_activation="linear"
-            )
-        )
-        if self.observation_range is not None:
-            self.feature_extractor = keras.Sequential(
-                [
-                    layers.Rescaling(
-                        scale=2./np.diff(self.observation_range, axis=0).squeeze(0),
-                        offset=-self.observation_range.mean(axis=0),
-                    ),
-                    self.feature_extractor
-                ]
-            )
-
-        self.policy_head = DenseModelFactory.create_model(
-            input_shape=self.feature_size,
-            output_shape=self.action_shape + (config.fourier_features, 2),
-            config=DenseModelFactory.CONFIG_CLASS(
-                output_activation="linear"
-            )
-        )
-
-        self.value_head = DenseModelFactory.create_model(
-            input_shape=self.feature_size,
-            output_shape=(),
-            config=DenseModelFactory.CONFIG_CLASS(
-                output_activation="linear"
-            )
-        )
-
-        self.setup_model()
-
-    def setup_model(self):
-        input = keras.Input(self.observation_shape)
-        features = self.feature_extractor(input)
-        self.model = keras.Model(
-            inputs=input,
-            outputs=[
-                self.policy_head(features),
-                self.value_head(features),
-            ]
-        )
-        self.model(np.random.randn(1, *self.observation_shape))
-
-    def predict_values(
-        self,
-        observation: Union[tf.Tensor, np.ndarray],
-        training: bool=False
-    ) -> Union[tf.Tensor, np.ndarray]:
-        batch_throughput = True
-        if observation.ndim == len(self.observation_shape):
-            batch_throughput = False
-            observation = np.expand_dims(observation, 0)
-
-        features = self.feature_extractor(observation, training=training)
-        values = self.value_head(features, training=training)
-
-        if not batch_throughput:
-            values = tf.squeeze(values, 0).numpy()
-
-        return values
 
     def compute_loss(
         self,
@@ -171,36 +98,6 @@ class ReinforceMCTSModel(MCTSModel):
 
         return loss
 
-    def generate_distribution(
-        self,
-        observation: Union[tf.Tensor, np.ndarray],
-        training: bool = False
-    ) -> distributions.Distribution:
-        batch_throughput = True
-        if observation.ndim == len(self.observation_shape):
-            batch_throughput = False
-            observation = np.expand_dims(observation, 0)
-
-        features = self.feature_extractor(observation, training=training)
-        raw_actions = self.policy_head(features, training=training)
-
-        if not batch_throughput:
-            raw_actions = tf.squeeze(raw_actions, 0)
-
-        return self._generate_distribution(raw_actions)
-
-    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        range_dim = self.action_range.ndim
-        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
-        bounds = np.tile(
-            action_range,
-            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
-        )
-        return FourierDistribution(
-            raw_actions,
-            bounds=bounds
-        )
-
     def preprocess_data(
         self,
         training_data: List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]],
@@ -226,7 +123,7 @@ class ReinforceMCTSModel(MCTSModel):
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, value)
                         ]
-                        for action, advantage in policy
+                        for action, advantage, visits in policy
                     ])
                 ],
                 strict=True

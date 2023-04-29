@@ -1,4 +1,3 @@
-from dm_env import StepType
 from copy import copy
 import numpy as np
 
@@ -47,6 +46,7 @@ class MCTS(metaclass=ABCMeta):
         
         self.config = copy(config)
         self.cpuct = config.cpuct
+        self.scale_reward = config.scale_reward
 
     @staticmethod
     def encode(state: np.ndarray) -> bytes:
@@ -99,7 +99,7 @@ class MCTS(metaclass=ABCMeta):
             action = game.get_random_move()
             timestep = game.step(action)
             reward += (timestep.reward or 0.) * multiplier
-            if timestep.step_type == StepType.LAST:
+            if timestep.step_type.last():
                 break
             multiplier *= timestep.discount or 1.
         return reward
@@ -136,7 +136,7 @@ class MCTS(metaclass=ABCMeta):
                 action=action,
                 next_state=self.encode(timestep.observation),
                 reward=timestep.reward or 0.,
-                termination=timestep.step_type == StepType.LAST,
+                termination=timestep.step_type.last(),
                 discount=timestep.discount or 1.,
                 num_visits=0
             )
@@ -165,7 +165,8 @@ class MCTS(metaclass=ABCMeta):
             )
             for action in actions
         ])
-        if q_values.max() != q_values.min():
+
+        if self.scale_reward and q_values.max() != q_values.min():
             q_values /= q_values.max() - q_values.min()
 
         u_values = (

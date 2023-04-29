@@ -1,5 +1,4 @@
 from copy import copy, deepcopy
-from dm_env import StepType
 from glob import glob
 import numpy as np
 import os
@@ -8,9 +7,9 @@ from pytest import mark
 
 from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
 from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
+from src.mcts import MCTSConfig, PolicyMCTSModel
 from src.game import Game, MujocoGame
 from src.model import TrainingConfig
-from src.mcts import MCTSConfig
 
 from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
@@ -156,6 +155,25 @@ def test_sparse_game_for_coaching_bad_player():
     assert coach.best_player.MCTSClass != BadMCTS
 
 @requires_cleanup
+def test_coach_with_policy_model():
+    coach = Coach(
+        game=sparse_stub_game,
+        ModelClass=PolicyMCTSModel,
+        config=CoachConfig(
+            num_iterations=1,
+            num_games_per_episode=2,
+            evaluation_games=4,
+            win_threshold=.6,
+            training_config=custom_training_config,
+            **necessary_config
+        )
+    )
+    best_player = coach.best_player
+    assert not hasattr(best_player, "model") or best_player.model is None
+    coach.learn()
+    assert isinstance(coach.player.model, PolicyMCTSModel)
+
+@requires_cleanup
 def test_transform():
     coach = Coach(
         game=copy(sparse_stub_game),
@@ -185,7 +203,7 @@ def test_transform():
             assert previous_value == value
         previous_value = value
         advantage_sum = 0.
-        for action, advantage in policy:
+        for action, advantage, num_visits in policy:
             advantage_sum += advantage
         assert np.allclose(advantage_sum, 0., atol=1e-5)
 
@@ -342,5 +360,5 @@ def test_eval_arena_is_constant():
                 assert timestep.reward == timesteps[i].reward
                 assert (timestep.observation == timesteps[i].observation).all()
                 assert timestep.step_type == timesteps[i].step_type
-            if timestep.step_type == StepType.LAST:
+            if timestep.step_type.last():
                 env.reset()

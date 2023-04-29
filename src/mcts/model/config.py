@@ -10,10 +10,13 @@ class MCTSModelConfig(Config):
     max_grad_norm: float = .5
 
 @dataclass
-class ReinforceMCTSModelConfig(MCTSModelConfig):
+class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.
+    fourier_features: int = 16
+
+@dataclass
+class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
     clip_range: float = 2.
-    fourier_features: int = 8
 
 @dataclass
 class PPOMCTSModelConfig(ReinforceMCTSModelConfig):

@@ -2,12 +2,13 @@ from tqdm import trange
 import numpy as np
 import wandb
 import os
+from copy import deepcopy
 
 from typing import List, Optional, Tuple, Type
 from copy import copy
 
-from ..player import Arena, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..mcts import MCTSModel, Node, Transition
+from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
+from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, Transition
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
@@ -166,7 +167,16 @@ class Coach(SaveableObject):
         if os.path.exists(self.best_checkpoint_path):
             return self.player.load(self.best_checkpoint_path)
         else:
-            return self.create_player(self.game.game_spec, self.player_config)
+            player_config = deepcopy(self.player_config)
+            player_config.mcts_config = FixedMCTSConfig(**{
+                k: getattr(self.player_config.mcts_config, k)
+                for k in FixedMCTSConfig().keys()
+            })
+            return MCTSPlayer(
+                game_spec=self.game.game_spec,
+                MCTSClass=FixedMCTS,
+                config=player_config
+            )
 
     def save_model(self, current_iteration):
         if not os.path.exists(self.save_directory):
@@ -200,7 +210,7 @@ class Coach(SaveableObject):
                 transition.action,
                 total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
                 [
-                    (transition.action, transition.advantage)
+                    (transition.action, transition.advantage, transition.num_visits)
                     for transition in node.transitions.values()
                 ]
             )
@@ -213,9 +223,10 @@ class Coach(SaveableObject):
             if not node.transitions:
                 continue
 
-            visits = [transition.num_visits for transition in node.transitions.values()]
-            mean = np.mean(visits)
-            scale = max(np.std(visits), 1.)
-            for transition in node.transitions.values():
-                # rescale visits to perform REINFORCE with baseline
-                transition.advantage = (transition.num_visits - mean) / scale
+            initial_policy = node.action_probs / node.action_probs.sum()
+            enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
+            # avoid division by zero
+            enhanced_policy /= enhanced_policy.sum() or 1.
+            for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
+                # use the policy change to calculate the advantage
+                transition.advantage = enhanced_prob - initial_prob

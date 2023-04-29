@@ -1,41 +1,64 @@
 from tensorflow_probability import distributions
-from dm_env import StepType
 import tensorflow as tf
+from copy import copy
 import numpy as np
 
 from typing import Dict, Optional, Tuple
+from enum import IntEnum, auto
 
-from ..utils.io import SaveableObject
+from ..utils import SaveableObject
 from ..game import Game
 
-from .widening import WideningMCTS
 from .config import NNMCTSConfig
-from .model.reinforce import ReinforceMCTSModel
+from .widening import WideningMCTS
+from .fixed import FixedMCTS
+from .model import MCTSModel
+from .base import MCTS
 
-class NNMCTS(WideningMCTS, SaveableObject):
+class NNMCTSMode(IntEnum):
+    FIXED: int = auto()
+    WIDENING: int = auto()
+
+class NNMCTS(MCTS, SaveableObject):
     CONFIG_CLASS = NNMCTSConfig
     DEFAULT_FILENAME = "nn_mcts.pickle"
     SEPARATE_ATTRIBUTES = ["model"]
     def __init__(
         self,
         game: Game,
-        model: Optional[ReinforceMCTSModel] = None,
-        config: NNMCTSConfig = NNMCTSConfig()
+        model: Optional[MCTSModel] = None,
+        config: NNMCTSConfig = NNMCTSConfig(),
+        initial_mode: NNMCTSMode = NNMCTSMode.WIDENING
     ):
-        super().__init__(game, config=config, action_generator=self.generate_action)
-
+        super().__init__(game, config=config)
         self.model = model
+        # save config
+        self.config = copy(config)
         self.max_depth = config.max_rollout_depth
+        self.num_actions = config.num_actions
+        self.cpw = config.cpw
+        self.kappa = config.kappa
 
         self.planned_actions: Dict[bytes, distributions.Distribution] = {}
+        self.set_mode(initial_mode)
+    
+    def set_mode(self, mode: NNMCTSMode):
+        self.mode = mode
+    
+    def fix(self):
+        self.set_mode(NNMCTSMode.FIXED)
+    
+    def widen(self):
+        self.set_mode(NNMCTSMode.WIDENING)
 
+    # define separate methods as Python mro is broken
     def rollout(self, game: Game) -> float:
         returns = 0.
         for _ in range(self.max_depth):
             action = game.get_random_move()
             timestep = game.step(action)
             returns += timestep.reward or 0.
-            if timestep.step_type == StepType.LAST:
+            if timestep.step_type.last():
                 break
         else:
             if self.model is None:
@@ -43,7 +66,7 @@ class NNMCTS(WideningMCTS, SaveableObject):
             else:
                 returns += self.model.predict_values(game.get_observation())
         return returns
-    
+
     def generate_action(self, observation: np.ndarray) -> Tuple[np.ndarray, float]:
         if self.model is None:
             return (self.game.get_random_move(), 1.)
@@ -56,7 +79,8 @@ class NNMCTS(WideningMCTS, SaveableObject):
         prob = tf.reduce_prod(distribution.prob(action))
         return (
             tf.clip_by_value(
-                action,self.action_spec.minimum,
+                action,
+                self.action_spec.minimum,
                 self.action_spec.maximum
             ).numpy(),
             prob.numpy()
@@ -66,5 +90,15 @@ class NNMCTS(WideningMCTS, SaveableObject):
         # don't save planned actions
         planned_actions = self.planned_actions
         self.planned_actions = {}
+        # parents do not define custom saving
         super().save(directory)
         self.planned_actions = planned_actions
+    
+    def select_action(self, observation: np.ndarray) -> np.ndarray:
+        match self.mode:
+            case NNMCTSMode.FIXED:
+                return FixedMCTS.select_action(self, observation)
+            case NNMCTSMode.WIDENING:
+                return WideningMCTS.select_action(self, observation)
+            case _:
+                raise ValueError(f"Unknown mode: {self.mode}")

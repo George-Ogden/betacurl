@@ -13,24 +13,24 @@ class ModelConfig(Config):
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 64
+    hidden_size: int = 256
     dropout: float = .1
 
 @dataclass
 class FCNNConfig(MLPModelConfig):
-    hidden_layers: int = 2
+    hidden_layers: int = 3
     def __post_init__(self):
         assert self.hidden_layers >= 1
 
 @dataclass
 class TrainingConfig(Config):
-    training_epochs: int = 20
+    training_epochs: int = 10
     """number of epochs to train each model for"""
-    batch_size: int = 64
+    batch_size: int = 256
     """training batch size"""
     training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""
-    lr: float = 1e-2
+    lr: float = 1e-3
     """model learning rate"""
     validation_split: float = 0.1
     """proportion of data to validate on"""

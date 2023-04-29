@@ -107,7 +107,7 @@ class PPOCoach(SinglePlayerCoach):
                     ) - value_prediction
                 ) + value_prediction,
                 [
-                    (transition.action, transition.advantage)
+                    (transition.action, transition.advantage, transition.num_visits)
                     for transition in node.transitions.values()
                 ]
             )

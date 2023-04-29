@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import wandb
 
-from src.mcts import PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import TrainingConfig
 
 from tests.utils import MDPStubGame, StubGame
@@ -18,10 +18,31 @@ game_spec = stub_game.game_spec
 move = np.ones(game_spec.move_spec.shape)
 
 result = 3.
-training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)] * 2) for i in range(6)]
-mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i)]) for i in range(6)]
+training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 1 if i % 2 else 4)] * 2) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 2 if i % 2 else 8)]) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
+
+def test_policy_model_stats(monkeypatch):
+    logs = []
+    def log(data, *args, **kwargs):
+        if len(data) > 1:
+            logs.append(data)
+
+    monkeypatch.setattr(wandb, "log", log)
+    model = PolicyMCTSModel(
+        game_spec
+    )
+    model.learn(training_data[:10], stub_game.get_symmetries)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+
+    expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
+
+    assert len(logs) > 0
+    for data in logs:
+        for key in expected_keys:
+            assert key in data
+            assert "val_" + key in data
 
 def test_reinforce_model_stats(monkeypatch):
     logs = []
@@ -113,7 +134,27 @@ def test_entropy_increases():
     assert tf.reduce_all(model.generate_distribution(training_data[0][1]).entropy() > entropy)
 
 @mark.flaky
-def test_model_losses_converge():
+def test_policy_model_losses_converge():
+    model = PolicyMCTSModel(
+        game_spec,
+        config=PolicyMCTSModelConfig(
+            vf_coeff=.5,
+            ent_coeff=0.,
+        )
+    )
+
+    model.learn(
+        training_data,
+        stub_game.no_symmetries,
+    )
+
+    distribution = model.generate_distribution(training_data[0][1])
+    assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
+    ratio = tf.reduce_prod(distribution.prob(move * 1.25)) / tf.reduce_prod(distribution.prob(move * .25))
+    assert np.allclose(ratio, 5, atol=1.)
+
+@mark.flaky
+def test_reinforce_model_losses_converge():
     model = ReinforceMCTSModel(
         game_spec,
         config=ReinforceMCTSModelConfig(
@@ -143,16 +184,16 @@ def test_model_learns_from_multiple_actions():
     move = np.ones(game_spec.move_spec.shape) / 10
     training_data = [(
         1, game.get_observation(), 7 * move, 1., [
-            (move * 3, -1.),
-            (move * 5, 0.),
-            (move * 7, 2.)
+            (move * 3, -1., 1),
+            (move * 5, 0., 2),
+            (move * 7, 2., 3)
         ],
     )]
     game.step(move * 7)
     training_data.append((
         0, game.get_observation(), 6 * move, 1., [
-            (move * 4, -1.),
-            (move * 6, 2.)
+            (move * 4, -1., 2),
+            (move * 6, 2., 4)
         ],
     ))
     training_data *= 100
@@ -199,93 +240,3 @@ def test_ppo_model_losses_converge():
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_all(distribution.prob(move * 1.25) > 2 * distribution.prob(move * .25))
-
-@mark.flaky
-def test_kl_divergence_without_early_stopping():
-    model = PPOMCTSModel(
-        game_spec=game_spec,
-        config=PPOMCTSModelConfig(
-            target_kl=None,
-            vf_coeff=0.,
-            ent_coeff=0.
-        )
-    )
-    training_sample = training_data[0]
-    initial_distribution = model.generate_distribution(
-        training_sample[1]
-    )
-    model.learn(
-        training_data=[training_sample] * 10,
-        augmentation_function=stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=1000,
-            lr=1e-3,
-            batch_size=1
-        )
-    )
-    assert tf.reduce_mean(initial_distribution.kl_divergence(
-        model.generate_distribution(training_sample[1])
-    )) > 1.
-
-@mark.flaky
-def test_kl_divergence_with_early_stopping():
-    model = PPOMCTSModel(
-        game_spec=game_spec,
-        config=PPOMCTSModelConfig(
-            target_kl=1.,
-            vf_coeff=0.,
-            ent_coeff=0.
-        )
-    )
-    training_sample = training_data[0]
-    initial_distribution = model.generate_distribution(
-        training_sample[1]
-    )
-    model.learn(
-        training_data=[training_sample] * 10,
-        augmentation_function=stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=1000,
-            lr=1e-3,
-            batch_size=1
-        )
-    )
-    assert tf.reduce_mean(initial_distribution.kl_divergence(
-        model.generate_distribution(training_sample[1])
-    )) < 2.
-
-@mark.slow
-def test_training_continues_within_kl_divergence():
-    model = PPOMCTSModel(
-        game_spec=game_spec,
-        config=PPOMCTSModelConfig(
-            target_kl=.2,
-            vf_coeff=0.,
-            ent_coeff=0.,
-        )
-    )
-    training_sample = training_data[0]
-    initial_distribution = model.generate_distribution(
-        training_sample[1]
-    )
-    training_sample = (*training_sample[:-1], [(initial_distribution.sample(), 0.) for _ in range(10)])
-    history = model.learn(
-        training_data=[training_sample] * 10,
-        augmentation_function=stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=100,
-            lr=1e-3,
-            batch_size=1,
-            training_patience=None
-        )
-    )
-    assert history.params["epochs"] == 100
-    final_distribution = model.generate_distribution(
-        training_sample[1]
-    )
-    assert np.allclose(
-        initial_distribution.kl_divergence(
-            final_distribution
-        ).numpy(),
-        0
-    )

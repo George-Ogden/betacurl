@@ -1,6 +1,7 @@
 import wandb
 
 from src.coach import Coach, CoachConfig
+from src.mcts import PolicyMCTSModel
 from src.utils import ParserBuilder
 from src.game import CURLING_GAME
 
@@ -12,6 +13,7 @@ def main(args):
 
     coach = Coach(
         game=CURLING_GAME,
+        ModelClass=PolicyMCTSModel,
         config=coach_config
     )
     coach.learn()
