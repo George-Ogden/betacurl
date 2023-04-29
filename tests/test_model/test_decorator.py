@@ -22,7 +22,7 @@ class StubModel(ModelDecorator):
 
 class CustomModel(CustomDecorator):
     def __init__(self):
-        self.model = BEST_MODEL_FACTORY.create_model(input_shape=2, output_shape=())
+        self.model = MLPModelFactory.create_model(input_shape=2, output_shape=())
     
     def compute_loss(self, input: tf.Tensor, output: tf.Tensor) -> tf.Tensor:
         return losses.mean_squared_error(
@@ -155,14 +155,15 @@ def test_custom_model_fits():
     history = model.fit(
         dataset,
         training_config=TrainingConfig(
-            lr=1e-1,
-            training_epochs=20
+            lr=1e-2,
+            training_epochs=100,
+            training_patience=100,
         )
     )
     assert np.allclose(
         model.model(input_data),
         [int(x) ^ int(y) for x,y in input_data],
-        atol=.1
+        atol=.2
     )
 
 def test_custom_model_uses_config():

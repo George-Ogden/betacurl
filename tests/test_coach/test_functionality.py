@@ -227,7 +227,7 @@ def test_ppo_transform():
 
     for *_, policy in history[::-1]:
         advantage_sum = 0.
-        for action, advantage in policy:
+        for action, advantage, num_visits in policy:
             advantage_sum += advantage
         assert np.allclose(advantage_sum, 0., atol=1e-5)
 
