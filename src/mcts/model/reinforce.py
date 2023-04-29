@@ -1,16 +1,14 @@
-from tensorflow_probability import distributions
-from tensorflow.keras import layers, losses
+from tensorflow.keras import losses
 from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple
 
-from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import ReinforceMCTSModelConfig
-from .fourier import FourierDistribution
 from .policy import PolicyMCTSModel
 
 class ReinforceMCTSModel(PolicyMCTSModel):
@@ -22,6 +20,7 @@ class ReinforceMCTSModel(PolicyMCTSModel):
     ):
         super().__init__(
             game_spec=game_spec,
+            model_factory=model_factory,
             config=config
         )
         self.clip_range = config.clip_range
