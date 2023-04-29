@@ -5,7 +5,7 @@ from pytest import mark
 import os
 
 from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig, SinglePlayerCoach
-from src.mcts import WideningNNMCTSConfig, PPOMCTSModel
+from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
 from src.game import MujocoGame
@@ -108,7 +108,7 @@ def test_ppo_coach_uses_ppo_model():
         config=PPOCoachConfig(
             **copy_config,
             player_config=NNMCTSPlayerConfig(
-                mcts_config=WideningNNMCTSConfig()
+                mcts_config=NNMCTSConfig()
             )
         )
     )
@@ -163,7 +163,7 @@ def test_ppo_coach_propagates_model():
         config=PPOCoachConfig(
             **necessary_config,
             player_config=NNMCTSPlayerConfig(
-                mcts_config=WideningNNMCTSConfig()
+                mcts_config=NNMCTSConfig()
             )
         )
     )

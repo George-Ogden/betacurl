@@ -25,14 +25,14 @@ model = ReinforceMCTSModel(game.game_spec)
 
 def test_end_never_reached():
     blowup_game.reset()
-    mcts = WideningNNMCTS(blowup_game)
+    mcts = NNMCTS(blowup_game)
     for i in range(100):
         mcts.search()
 
 def test_end_reached_with_stepping():
     timestep = None
     blowup_game.reset()
-    mcts = WideningNNMCTS(blowup_game)
+    mcts = NNMCTS(blowup_game)
     while timestep is None or not timestep.step_type.last():
         for i in range(10):
             try:
@@ -50,7 +50,7 @@ def test_end_reached_with_stepping():
 @mark.flaky
 def test_actions_use_model():
     game.reset()
-    mcts = WideningNNMCTS(game, model)
+    mcts = NNMCTS(game, model)
     ones = np.ones_like(game.game_spec.move_spec.minimum)
     model.generate_distribution = (lambda *args, **kwargs: distributions.Normal(ones * 2, ones)).__get__(model)
     distribution = model.generate_distribution(game.get_observation())
@@ -60,9 +60,9 @@ def test_actions_use_model():
 
 def test_config_is_used():
     blowup_game.reset()
-    mcts = WideningNNMCTS(
+    mcts = NNMCTS(
         blowup_game,
-        config=WideningNNMCTSConfig(
+        config=NNMCTSConfig(
             cpuct=2.5,
             max_rollout_depth=49
         )
@@ -70,9 +70,9 @@ def test_config_is_used():
     assert mcts.cpuct == 2.5
     mcts.search()
 
-    mcts = WideningNNMCTS(
+    mcts = NNMCTS(
         blowup_game,
-        config=WideningNNMCTSConfig(
+        config=NNMCTSConfig(
             max_rollout_depth=50
         )
     )

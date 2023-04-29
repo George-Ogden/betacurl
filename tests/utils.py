@@ -7,7 +7,7 @@ import os
 from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
-from src.mcts import WideningNNMCTS, WideningNNMCTSConfig
+from src.mcts import NNMCTS, NNMCTSConfig
 from src.utils import SaveableObject
 from src.game import Game, GameSpec
 from src.player import Player
@@ -135,9 +135,9 @@ class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.minimum
 
-class FixedValueMCTS(WideningNNMCTS):
-    CONFIG_CLASS = WideningNNMCTSConfig
-    def __init__(self, game: Game, config: WideningNNMCTSConfig = WideningNNMCTSConfig(), move = None):
+class FixedValueMCTS(NNMCTS):
+    CONFIG_CLASS = NNMCTS
+    def __init__(self, game: Game, config: NNMCTSConfig = NNMCTSConfig(), move = None):
         super().__init__(game, config=config)
         self.move = move
 
