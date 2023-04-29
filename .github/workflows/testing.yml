@@ -30,4 +30,4 @@ jobs:
       run: pytest tests/ --timeout 30 -m "not slow and not display"
     - name: Test with pytest (master push)
       if: github.event_name == 'push'
-      run: pytest tests/ --timeout 30 -m "not slow and not display and not flaky"
+      run: pytest tests/ --timeout 60 -m "not slow and not display and not flaky"

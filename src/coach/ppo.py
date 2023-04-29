@@ -67,6 +67,19 @@ class PPOCoach(SinglePlayerCoach):
     def best_player(self) -> NNMCTSPlayer:
         return self.player
 
+    def compute_advantages(self, training_data: List[Tuple[Node, Transition]]):
+        for node, _ in training_data:
+            if not node.transitions:
+                continue
+            
+            initial_policy = node.action_probs / node.action_probs.sum()
+            enhanced_policy = np.array([transition.num_visits for transition in node.transitions.values()], dtype=float)
+            # avoid division by zero
+            enhanced_policy /= enhanced_policy.sum() or 1.
+            for transition, initial_prob, enhanced_prob in zip(node.transitions.values(), initial_policy, enhanced_policy):
+                # use the policy change to calculate the advantage
+                transition.advantage = enhanced_prob - initial_prob
+
     def transform_history_for_training(self, training_data: List[Tuple[Node, Transition]]) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         self.compute_advantages(training_data)
 
