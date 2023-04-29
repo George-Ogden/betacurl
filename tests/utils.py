@@ -7,7 +7,6 @@ import os
 from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
 
-from src.mcts import NNMCTS, NNMCTSConfig
 from src.utils import SaveableObject
 from src.game import Game, GameSpec
 from src.player import Player

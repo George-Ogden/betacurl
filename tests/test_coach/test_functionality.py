@@ -6,8 +6,8 @@ from src.player import Arena, NNMCTSPlayerConfig
 from src.game import Game, MujocoGame
 from src.model import TrainingConfig
 
-from tests.utils import MDPStubGame, MDPSparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
+from tests.utils import MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
     eval_games=4,
@@ -24,10 +24,13 @@ config_dict = dict(
     num_iterations=2,
     warm_start_games=1,
     **necessary_config,
+    initial_lr=1e-1,
+    final_lr=1e-3,
+    initial_temperature=1.,
+    final_temperature=0.25,
     training_config=TrainingConfig(
         training_epochs=10,
         batch_size=64,
-        lr=1e-1,
         training_patience=20
     ),
     player_config=NNMCTSPlayerConfig(
@@ -48,6 +51,13 @@ MujocoGame.timestep = .5
 mujoco_game = MujocoGame(domain_name="point_mass", task_name="easy")
 MujocoGame.timestep = timestep
 MujocoGame.time_limit = time_limit
+
+boring_coach = Coach(
+    game=stub_game,
+    config=CoachConfig(
+        **config_dict
+    )
+)
 
 class EvalEnvSavingCoach(PPOCoach):
     def __init__(self, game: Game, config: SinglePlayerCoachConfig = SinglePlayerCoachConfig()):
@@ -153,3 +163,28 @@ def test_eval_arena_is_constant():
                 assert timestep.step_type == timesteps[i].step_type
             if timestep.step_type.last():
                 env.reset()
+
+def test_temperature_decreases():
+    boring_coach.learn()
+    temp = boring_coach.player.temperature
+    assert np.abs(
+        temp - config_dict["initial_temperature"]
+    ) > np.abs(
+        temp - config_dict["final_temperature"]
+    )
+    boring_coach.player.train()
+    temp = boring_coach.player.temperature
+    assert np.abs(
+        temp - config_dict["initial_temperature"]
+    ) > np.abs(
+        temp - config_dict["final_temperature"]
+    )
+
+def test_lr_decreases():
+    boring_coach.learn()
+    lr = boring_coach.player.model.model.optimizer._learning_rate.numpy()
+    assert np.abs(
+        lr - config_dict["initial_lr"]
+    ) > np.abs(
+        lr - config_dict["final_lr"]
+    )
