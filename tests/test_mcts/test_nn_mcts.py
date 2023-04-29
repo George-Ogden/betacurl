@@ -5,7 +5,7 @@ import numpy as np
 from pytest import mark
 import pytest
 
-from src.mcts import ReinforceMCTSModel, WideningNNMCTS, WideningNNMCTSConfig
+from src.mcts import NNMCTS, NNMCTSConfig, NNMCTSMode, ReinforceMCTSModel
 
 from tests.utils import MDPStubGame, MDPSparseStubGame
 
@@ -78,3 +78,69 @@ def test_config_is_used():
     )
     with pytest.raises(BlowUp) as e:
         mcts.search()
+
+def test_fixed_initialisation():
+    game.reset()
+    mcts = NNMCTS(
+        game,
+        config=NNMCTSConfig(
+            num_actions=2,
+            cpw=1.,
+            kappa=1.
+        ),
+        initial_mode=NNMCTSMode.FIXED
+    )
+    for _ in range(10):
+        mcts.search(game)
+    assert mcts.mode == NNMCTSMode.FIXED
+    assert len(mcts.get_node(game.get_observation()).transitions) == 2
+
+def test_wide_initialisation():
+    game.reset()
+    mcts = NNMCTS(
+        game,
+        config=NNMCTSConfig(
+            num_actions=2,
+            cpw=1.,
+            kappa=1.
+        ),
+        initial_mode=NNMCTSMode.WIDENING
+    )
+    for _ in range(10):
+        mcts.search(game)
+    assert mcts.mode == NNMCTSMode.WIDENING
+    assert len(mcts.get_node(game.get_observation()).transitions) >= 9
+
+def test_fixed_to_widening_conversion():
+    game.reset()
+    mcts = NNMCTS(
+        game,
+        config=NNMCTSConfig(
+            num_actions=2,
+            cpw=1.,
+            kappa=1.
+        ),
+        initial_mode=NNMCTSMode.FIXED
+    )
+    mcts.set_mode(NNMCTSMode.WIDENING)
+    for _ in range(10):
+        mcts.search(game)
+    assert mcts.mode == NNMCTSMode.WIDENING
+    assert len(mcts.get_node(game.get_observation()).transitions) >= 9
+
+def test_widening_to_fixed_conversion():
+    game.reset()
+    mcts = NNMCTS(
+        game,
+        config=NNMCTSConfig(
+            num_actions=2,
+            cpw=1.,
+            kappa=1.
+        ),
+        initial_mode=NNMCTSMode.WIDENING
+    )
+    mcts.set_mode(NNMCTSMode.FIXED)
+    for _ in range(10):
+        mcts.search(game)
+    assert mcts.mode == NNMCTSMode.FIXED
+    assert len(mcts.get_node(game.get_observation()).transitions) == 2
