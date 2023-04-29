@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import os
 
-from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig, SinglePlayerCoach
+from src.coach import Coach, CoachConfig, PPOCoach, SinglePlayerCoach, SinglePlayerCoachConfig
 from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
@@ -14,10 +14,8 @@ from tests.config import cleanup, requires_cleanup, SAVE_DIR
 from tests.utils import MDPStubGame, MDPSparseStubGame
 
 special_cases = dict(
-    evaluation_games=4,
-    win_threshold=.5,
-    successive_win_requirement=4,
-    num_eval_simulations=5,
+    eval_games=4,
+    eval_simulations=5,
 )
 
 necessary_config = {
@@ -28,15 +26,20 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
+    warm_start_games=1,
     **necessary_config,
-    **special_cases,
     training_config=TrainingConfig(
         training_epochs=10,
         batch_size=64,
         lr=1e-1,
         training_patience=20
+    ),
+    player_config=NNMCTSPlayerConfig(
+        num_simulations=2,
     )
 )
+single_config_dict = config_dict | special_cases
+del single_config_dict["warm_start_games"]
 custom_training_config = copy(config_dict["training_config"])
 custom_training_config.training_epochs = 2
 
@@ -45,8 +48,11 @@ sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
+time_limit = MujocoGame
+MujocoGame.time_limit = 1
 single_player_game = MujocoGame("point_mass", "easy")
 swingup = MujocoGame("cartpole", "swingup")
+MujocoGame.time_limit = time_limit
 
 boring_coach = Coach(
     game=stub_game,
@@ -58,15 +64,7 @@ boring_coach = Coach(
 def test_coach_saves_config():
     assert not os.path.exists(SAVE_DIR)
     for k, v in config_dict.items():
-        if k in special_cases:
-            continue
         assert getattr(boring_coach, k) == v
-
-    # special cases
-    assert boring_coach.win_threshold == .5
-    assert boring_coach.num_eval_games == 4
-    assert boring_coach.learning_patience == 4
-    assert boring_coach.eval_simulations == 5
 
     assert type(boring_coach.game) == MDPStubGame
 
@@ -101,20 +99,20 @@ def test_coach_uses_training_config():
 
 @requires_cleanup
 def test_ppo_coach_uses_ppo_model():
-    copy_config = config_dict.copy()
-    del copy_config["win_threshold"]
     coach = PPOCoach(
         game=single_player_game,
-        config=PPOCoachConfig(
-            **copy_config,
-            player_config=NNMCTSPlayerConfig(
-                mcts_config=NNMCTSConfig()
+        config=SinglePlayerCoachConfig(
+            **(
+                single_config_dict | dict(
+                    player_config=NNMCTSPlayerConfig(
+                        mcts_config=NNMCTSConfig()
+                    )
+                )
             )
         )
     )
 
     assert coach.player.ModelClass == PPOMCTSModel
-    assert coach.best_player.ModelClass == PPOMCTSModel
 
 @requires_cleanup
 def test_coach_initial_model_states():
@@ -126,49 +124,44 @@ def test_coach_initial_model_states():
         )
     )
     coach.learn()
-    best_player = coach.best_player
-    assert not hasattr(best_player, "model") or best_player.model is None
+    assert coach.player.model is not None
 
 @requires_cleanup
 def test_single_player_coach_initial_model_states():
     coach = SinglePlayerCoach(
         game=single_player_game,
-        config=CoachConfig(
-            **config_dict |
+        config=SinglePlayerCoachConfig(
+            **single_config_dict |
             {"num_iterations":0}
         )
     )
     coach.learn()
-    best_player = coach.best_player
-    assert not hasattr(best_player, "model") or best_player.model is None
+    assert coach.player.model is not None
 
 @requires_cleanup
 def test_ppo_coach_initial_model_states():
     config = config_dict.copy()
-    del config["win_threshold"]
     config["num_iterations"] = 0
     coach = PPOCoach(
         game=single_player_game,
-        config=PPOCoachConfig(
-            **config
+        config=SinglePlayerCoachConfig(
+            **single_config_dict
         )
     )
     coach.learn()
-    assert coach.best_player.model is not None
-    assert isinstance(coach.best_player.model, PPOMCTSModel)
+    assert coach.player.model is not None
+    assert isinstance(coach.player.model, PPOMCTSModel)
 
 @requires_cleanup
-def test_ppo_coach_propagates_model():
-    coach = PPOCoach(
+def test_coach_propagates_model():
+    coach = SinglePlayerCoach(
         game=swingup,
         ModelClass=PPOMCTSModel,
-        config=PPOCoachConfig(
+        config=SinglePlayerCoachConfig(
             **necessary_config,
             player_config=NNMCTSPlayerConfig(
                 mcts_config=NNMCTSConfig()
             )
         )
     )
-
     assert coach.player.ModelClass == PPOMCTSModel
-    assert coach.best_player.ModelClass == PPOMCTSModel

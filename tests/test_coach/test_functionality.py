@@ -1,24 +1,17 @@
 from copy import copy, deepcopy
-from glob import glob
 import numpy as np
-import os
 
-from pytest import mark
-
-from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig
-from src.player import Arena, MCTSPlayer, NNMCTSPlayerConfig
-from src.mcts import MCTSConfig, PolicyMCTSModel
+from src.coach import Coach, CoachConfig, PPOCoach, SinglePlayerCoachConfig
+from src.player import Arena, NNMCTSPlayerConfig
 from src.game import Game, MujocoGame
 from src.model import TrainingConfig
 
-from tests.utils import MDPStubGame, MDPSparseStubGame, FixedValueMCTS
+from tests.utils import MDPStubGame, MDPSparseStubGame
 from tests.config import cleanup, requires_cleanup, SAVE_DIR
 
 special_cases = dict(
-    evaluation_games=4,
-    win_threshold=.5,
-    successive_win_requirement=4,
-    num_eval_simulations=5,
+    eval_games=4,
+    eval_simulations=5,
 )
 
 necessary_config = {
@@ -29,21 +22,23 @@ config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
+    warm_start_games=1,
     **necessary_config,
-    **special_cases,
     training_config=TrainingConfig(
         training_epochs=10,
         batch_size=64,
         lr=1e-1,
         training_patience=20
+    ),
+    player_config=NNMCTSPlayerConfig(
+        num_simulations=2,
     )
 )
-custom_training_config = copy(config_dict["training_config"])
-custom_training_config.training_epochs = 5
+single_config_dict = config_dict | special_cases
+del single_config_dict["warm_start_games"]
 
 stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
-observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
 time_limit = MujocoGame.time_limit
@@ -54,124 +49,13 @@ mujoco_game = MujocoGame(domain_name="point_mass", task_name="easy")
 MujocoGame.timestep = timestep
 MujocoGame.time_limit = time_limit
 
-boring_coach = Coach(
-    game=stub_game,
-    config=CoachConfig(
-        **config_dict
-    )
-)
-
-class GoodMCTS(FixedValueMCTS):
-    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
-        super().__init__(game, config=config, move=game.game_spec.move_spec.maximum)
-
-class BadMCTS(FixedValueMCTS):
-    def __init__(self, game: Game, config: MCTSConfig = MCTSConfig()):
-        super().__init__(game, config=config, move=game.game_spec.move_spec.minimum)
-
-class BadPlayerCoach(Coach):
-    @property
-    def best_player(self):
-        if os.path.exists(self.best_checkpoint_path):
-            best_player = self.player.load(self.best_checkpoint_path)
-        else:
-            config = copy(self.config.player_config)
-            best_player = MCTSPlayer(
-                self.game.game_spec,
-                MCTSClass=BadMCTS,
-                config=config
-            )
-
-        self.current_best = best_player
-        return best_player
-
-class GoodPlayerCoach(Coach):
-    @property
-    def best_player(self):
-        if os.path.exists(self.best_checkpoint_path):
-            best_player = self.player.load(self.best_checkpoint_path)
-        else:
-            config = copy(self.config.player_config)
-            best_player = MCTSPlayer(
-                self.game.game_spec,
-                MCTSClass=GoodMCTS,
-                config=config
-            )
-
-        self.current_best = best_player
-        return best_player
-
 class EvalEnvSavingCoach(PPOCoach):
-    def __init__(self, game: Game, config: PPOCoachConfig = PPOCoachConfig()):
+    def __init__(self, game: Game, config: SinglePlayerCoachConfig = SinglePlayerCoachConfig()):
         super().__init__(game, config)
         self.eval_envs = []
     def compare(self, Opponent) -> bool:
         self.eval_envs.append(deepcopy(self.eval_environment))
         return super().compare(Opponent)
-
-@requires_cleanup
-def test_no_default_best():
-    coach = Coach(
-        game=stub_game,
-        config=CoachConfig(
-            num_iterations=0,
-            num_games_per_episode=2,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    assert not os.path.exists(coach.best_checkpoint_path)
-
-@requires_cleanup
-def test_sparse_game_for_coaching_good_player():
-    coach = GoodPlayerCoach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=4,
-            win_threshold=.6,
-            training_config=custom_training_config,
-            **necessary_config,
-        )
-    )
-    coach.learn()
-    assert coach.best_player.MCTSClass == GoodMCTS
-
-@requires_cleanup
-def test_sparse_game_for_coaching_bad_player():
-    coach = BadPlayerCoach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=4,
-            win_threshold=.6,
-            training_config=custom_training_config,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    assert coach.best_player.MCTSClass != BadMCTS
-
-@requires_cleanup
-def test_coach_with_policy_model():
-    coach = Coach(
-        game=sparse_stub_game,
-        ModelClass=PolicyMCTSModel,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=4,
-            win_threshold=.6,
-            training_config=custom_training_config,
-            **necessary_config
-        )
-    )
-    best_player = coach.best_player
-    assert not hasattr(best_player, "model") or best_player.model is None
-    coach.learn()
-    assert isinstance(coach.player.model, PolicyMCTSModel)
 
 @requires_cleanup
 def test_transform():
@@ -180,15 +64,12 @@ def test_transform():
         config=CoachConfig(
             num_iterations=1,
             num_games_per_episode=2,
-            evaluation_games=10,
-            win_threshold=.6,
             **necessary_config
         )
     )
     game = coach.game
     game.discount = .9
-    coach.current_best = coach.best_player
-    arena = Arena([coach.current_best.dummy_constructor] * 2, game=game)
+    arena = Arena([coach.player.dummy_constructor] * 2, game=game)
     result, game_history = arena.play_game(0, return_history=True)
     game.reset(0)
     history = coach.transform_history_for_training(game_history)
@@ -211,17 +92,13 @@ def test_transform():
 def test_ppo_transform():
     coach = PPOCoach(
         game=copy(mujoco_game),
-        config=PPOCoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=10,
-            **necessary_config
+        config=SinglePlayerCoachConfig(
+            **single_config_dict
         )
     )
     game = coach.game
     game.discount = .9
-    coach.current_best = coach.best_player
-    arena = Arena([coach.current_best.dummy_constructor] * 2, game=game)
+    arena = Arena([coach.player.dummy_constructor] * 2, game=game)
     result, game_history = arena.play_game(0, return_history=True)
     history = coach.transform_history_for_training(game_history)
 
@@ -232,90 +109,11 @@ def test_ppo_transform():
         assert np.allclose(advantage_sum, 0., atol=1e-5)
 
 @requires_cleanup
-def test_train_examples_not_cleared_after_loss():
-    coach = GoodPlayerCoach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=10,
-            win_threshold=.6,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    assert coach.best_player.MCTSClass == GoodMCTS
-    assert len(coach.train_example_history) > 0
-
-@requires_cleanup
-def test_train_examples_cleared_after_win():
-    coach = BadPlayerCoach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=10,
-            win_threshold=.6,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    assert len(coach.train_example_history) == 0
-
-@mark.slow
-@requires_cleanup
-def test_learning_patience():
-    coach = GoodPlayerCoach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=10,
-            successive_win_requirement=4,
-            num_games_per_episode=2,
-            evaluation_games=10,
-            win_threshold=.6,
-            **necessary_config
-        )
-    )
-    coach.learn()
-    assert coach.best_player.MCTSClass == GoodMCTS
-    assert len(glob(f"{SAVE_DIR}/*")) == 5
-
-@mark.slow
-@requires_cleanup
-def test_eval_simulations_change():
-    coach = Coach(
-        game=sparse_stub_game,
-        config=CoachConfig(
-            num_iterations=1,
-            num_games_per_episode=2,
-            evaluation_games=4,
-            win_threshold=.0,
-            num_eval_simulations=4,
-            player_config=NNMCTSPlayerConfig(
-                num_simulations=6
-            ),
-            **necessary_config
-        )
-    )
-
-    coach.learn()
-    coach.update()
-
-    assert coach.current_best.simulations == 4
-    assert coach.best_player.simulations == 6
-    assert coach.player.simulations == 6
-
-@requires_cleanup
 def test_logs_format(capsys):
     coach = Coach(
         game=stub_game,
         config=CoachConfig(
-            num_iterations=2,
-            num_games_per_episode=2,
-            evaluation_games=2,
-            win_threshold=.6,
-            **necessary_config,
-            training_config=custom_training_config
+            **config_dict
         )
     )
     coach.learn()
@@ -333,15 +131,8 @@ def test_eval_arena_is_constant():
 
     coach = EvalEnvSavingCoach(
         game=game,
-        config=PPOCoachConfig(
-            num_iterations=3,
-            num_games_per_episode=1,
-            evaluation_games=1,
-            num_eval_simulations=2,
-            player_config=NNMCTSPlayerConfig(
-                num_simulations=2
-            ),
-            **necessary_config
+        config=SinglePlayerCoachConfig(
+            **single_config_dict
         )
     )
 

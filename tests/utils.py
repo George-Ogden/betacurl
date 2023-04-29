@@ -135,19 +135,6 @@ class BadPlayer(Player):
     def move(self, game: Game)-> np.ndarray:
         return game.game_spec.move_spec.minimum
 
-class FixedValueMCTS(NNMCTS):
-    CONFIG_CLASS = NNMCTSConfig
-    def __init__(self, game: Game, config: NNMCTSConfig = NNMCTSConfig(), move = None):
-        super().__init__(game, config=config)
-        self.move = move
-
-    def select_action(self, observation: np.ndarray) -> np.ndarray:
-        super().select_action(observation)
-        return self.move.copy()
-
-    def _get_action_probs(self, game: Game, temperature: float):
-        return np.array([self.select_action(game.get_observation())]), np.array([1.])
-
 def generic_save_test(object: SaveableObject):
     object.save(SAVE_DIR)
 
