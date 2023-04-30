@@ -159,6 +159,7 @@ class Coach(SaveableObject):
         ) -> List[Tuple[int, np.ndarray, np.ndarray, float, List[Tuple[np.ndarray, float]]]]:
         total_reward = 0.
         self.compute_advantages(training_data)
+        temperature = self.player.default_temperature
 
         history = [
             (
@@ -167,7 +168,7 @@ class Coach(SaveableObject):
                 transition.action,
                 total_reward := (transition.discount or 1.) * total_reward + (transition.reward or 0),
                 [
-                    (transition.action, transition.advantage, transition.num_visits)
+                    (transition.action, transition.advantage, transition.num_visits ** (1 / temperature))
                     for transition in node.transitions.values()
                 ]
             )
