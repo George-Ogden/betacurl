@@ -164,6 +164,7 @@ def test_eval_arena_is_constant():
             if timestep.step_type.last():
                 env.reset()
 
+@requires_cleanup
 def test_temperature_decreases():
     boring_coach.learn()
     temp = boring_coach.player.temperature
@@ -180,6 +181,7 @@ def test_temperature_decreases():
         temp - config_dict["final_temperature"]
     )
 
+@requires_cleanup
 def test_lr_decreases():
     boring_coach.learn()
     lr = boring_coach.player.model.model.optimizer._learning_rate.numpy()
