@@ -39,6 +39,7 @@ class Coach(SaveableObject):
         self.config = copy(config)
         self.player_config = self.config.player_config
         self.training_config = self.config.training_config
+        self.save_directory = self.config.save_directory
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode

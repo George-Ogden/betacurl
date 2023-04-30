@@ -12,9 +12,7 @@ class Schedule(ABC):
         ...
 
     def __getitem__(self, iteration: Union[int, float]) -> float:
-        print(f"iteranio0: {iteration}")
         if isinstance(iteration, int):
             iteration = (iteration - self.start_iteration) / ((self.end_iteration - self.start_iteration) or 1.)
         assert 0 <= iteration and iteration <= 1, f"iteration out of range"
-        print(f"iteration: {iteration}")
         return self.interpolate(iteration)
