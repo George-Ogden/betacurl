@@ -123,3 +123,20 @@ def test_reloading_coach(capsys):
     captured = capsys.readouterr()
     assert "starting iteration 3" in captured.out.lower()
     assert not "starting iteration 2" in captured.out.lower()
+
+@requires_cleanup
+def test_save_frequency():
+    coach = Coach(
+        stub_game,
+        config=CoachConfig(
+            **(
+                config_dict | dict(
+                    save_frequency=2,
+                )
+            )
+        )
+    )
+    coach.learn()
+    assert len(glob(f"{SAVE_DIR}/model-0*")) == 2
+    assert os.path.exists(f"{SAVE_DIR}/model-000000")
+    assert os.path.exists(f"{SAVE_DIR}/model-000002")
