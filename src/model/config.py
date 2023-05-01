@@ -31,7 +31,6 @@ class TrainingConfig(Config):
     training_patience: Optional[int] = 7
     """number of epochs without improvement during training (0 to ignore)"""
     lr: float = 1e-3
-    """model learning rate"""
     validation_split: float = 0.1
     """proportion of data to validate on"""
     loss: str = "mse"

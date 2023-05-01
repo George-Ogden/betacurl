@@ -226,3 +226,25 @@ def test_ppo_nn_mcts_players_play_with_model():
     arena = Arena([player.dummy_constructor], single_player_game)
     score = arena.play_game()
     assert score > 0
+
+def test_temperature_entropy_tradeoff():
+    game = stub_game
+    player = NNMCTSPlayer(
+        game.game_spec,
+        config=NNMCTSPlayerConfig(
+            num_simulations=10,
+            mcts_config=NNMCTSConfig(
+                cpw=1.,
+                kappa=1.,
+                num_actions=2
+            )
+        )
+    )
+    game.reset()
+    player.move(game)
+
+    _, warm_probs = player.mcts.get_action_probs(game.get_observation(), temperature=2.)
+    _, cold_probs = player.mcts.get_action_probs(game.get_observation(), temperature=.5)
+
+    # entropy should be higher for warm_probs
+    assert -(warm_probs * np.log(warm_probs)).sum() >= -(cold_probs * np.log(cold_probs)).sum()

@@ -1,4 +1,4 @@
-from .config import CoachConfig, PPOCoachConfig
+from .config import CoachConfig, SinglePlayerCoachConfig
 from .single_player import SinglePlayerCoach
 from .ppo import PPOCoach
 from .coach import Coach

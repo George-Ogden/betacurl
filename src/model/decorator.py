@@ -149,14 +149,17 @@ class CustomDecorator(ModelDecorator):
             }
             
             self.stats = defaultdict(float)
-            val_loss = 0
-            for step, batch in enumerate(val_dataset.batch(batch_size)):
-                val_loss += self.compute_loss(*batch)
-            val_stats = {
-                "loss": val_loss / len(val_dataset)
-            } | {
-                k: v / len(val_dataset) for k, v in self.stats.items()
-            }
+            if len(val_dataset) > 0:
+                val_loss = 0
+                for step, batch in enumerate(val_dataset.batch(batch_size)):
+                    val_loss += self.compute_loss(*batch)
+                val_stats = {
+                    "loss": val_loss / len(val_dataset)
+                } | {
+                    k: v / len(val_dataset) for k, v in self.stats.items()
+                }
+            else:
+                val_stats = {}
 
             callback.on_epoch_end(
                 epoch,
