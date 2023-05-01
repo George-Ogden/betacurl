@@ -5,9 +5,10 @@ import os
 
 from pytest import mark
 
+from src.coach import Coach, CoachConfig, SinglePlayerCoach, SinglePlayerCoachConfig
 from src.player import NNMCTSPlayerConfig
-from src.coach import Coach, CoachConfig
 from src.model import TrainingConfig
+from src.game import MujocoGame
 
 from tests.config import cleanup, cleanup_dir, requires_cleanup, SAVE_DIR
 from tests.utils import MDPStubGame, MDPSparseStubGame
@@ -35,10 +36,21 @@ config_dict = dict(
 custom_training_config = copy(config_dict["training_config"])
 custom_training_config.training_epochs = 5
 
+single_config_dict = config_dict | dict(
+    eval_games=2,
+    eval_simulations=2,
+)
+del single_config_dict["warm_start_games"]
+
 stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
+
+time_limit = MujocoGame.time_limit
+MujocoGame.time_limit = 1
+single_player_game = MujocoGame("cartpole", "swingup")
+MujocoGame.time_limit = time_limit
 
 boring_coach = Coach(
     game=stub_game,
@@ -140,3 +152,20 @@ def test_save_frequency():
     assert len(glob(f"{SAVE_DIR}/model-0*")) == 2
     assert os.path.exists(f"{SAVE_DIR}/model-000000")
     assert os.path.exists(f"{SAVE_DIR}/model-000002")
+
+@mark.slow
+@requires_cleanup
+def test_single_player_best_checkpoint():
+    coach = SinglePlayerCoach(
+        single_player_game,
+        config=SinglePlayerCoachConfig(
+            **(
+                single_config_dict | dict(
+                    best_checkpoint_path="best"
+                )
+            )
+        )
+    )
+    coach.learn()
+
+    assert os.path.exists(f"{SAVE_DIR}/best")
