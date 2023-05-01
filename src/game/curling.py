@@ -120,6 +120,8 @@ class SingleEndCurlingGame(Game):
         symmetries = [(player, observation, action, reward), (player, *self.flip_x(observation.copy(), action.copy()), reward)]
         # change who played
         symmetries.extend([self.flip_order(int(player), observation.copy(), action.copy(), float(reward)) for player, observation, action, reward in symmetries])
+        # randomly permute stones (7 times)
+        symmetries.extend([self.random_permutation(int(player), observation.copy(), action.copy(), float(reward)) for _ in range(7) for player, observation, action, reward in symmetries])
         return symmetries
 
     def flip_x(self, observation: np.ndarray, action: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -152,6 +154,17 @@ class SingleEndCurlingGame(Game):
         mask[self.num_stones_per_end // 2:] = red_mask
 
         return -player, observation, action, -reward
+
+    def random_permutation(self, player: int, observation: np.ndarray, action: np.ndarray, reward: float) -> Tuple[int, np.ndarray, np.ndarray, float]:
+        positions = self.get_positions(observation)
+        mask = self.get_mask(observation)
+        yellow_permutation = np.random.permutation(self.num_stones_per_end // 2)
+        red_permutation = np.random.permutation(self.num_stones_per_end // 2)
+        mask[:self.num_stones_per_end // 2] = mask[:self.num_stones_per_end // 2][yellow_permutation]
+        mask[self.num_stones_per_end // 2:] = mask[self.num_stones_per_end // 2:][red_permutation]
+        positions[:self.num_stones_per_end] = positions[:self.num_stones_per_end][np.repeat(yellow_permutation, 2) * 2 + np.tile([0, 1], self.num_stones_per_end // 2)]
+        positions[self.num_stones_per_end:] = positions[self.num_stones_per_end:][np.repeat(red_permutation, 2) * 2 + np.tile([0, 1], self.num_stones_per_end // 2)]
+        return player, observation, action, reward
 
     def get_random_move(self):
         return np.clip(
