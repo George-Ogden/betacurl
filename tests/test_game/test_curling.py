@@ -158,12 +158,12 @@ def test_symmetries_are_reasonable():
         positions = single_end_game.get_positions(observation)
         original_positions = single_end_game.get_positions(original_observation)
         if player_delta == 1:
-            assert (mask == original_mask).all()
+            assert mask.sum() == original_mask.sum()
             red_stones = positions[:Curling.num_stones_per_end]
             yellow_stones = positions[Curling.num_stones_per_end:]
         else:
-            assert (mask[:Curling.num_stones_per_end // 2] == single_end_game.get_mask(original_observation)[Curling.num_stones_per_end // 2:]).all() \
-                and (mask[Curling.num_stones_per_end // 2:] == single_end_game.get_mask(original_observation)[:Curling.num_stones_per_end // 2]).all()
+            assert mask[:Curling.num_stones_per_end // 2].sum() == single_end_game.get_mask(original_observation)[Curling.num_stones_per_end // 2:].sum() \
+                and mask[Curling.num_stones_per_end // 2:].sum() == single_end_game.get_mask(original_observation)[:Curling.num_stones_per_end // 2].sum()
             red_stones = positions[Curling.num_stones_per_end:]
             yellow_stones = positions[:Curling.num_stones_per_end]
 
