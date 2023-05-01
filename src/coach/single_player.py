@@ -1,4 +1,6 @@
 import numpy as np
+import wandb
+import os
 
 from typing import List, Tuple, Type
 
@@ -26,14 +28,18 @@ class SinglePlayerCoach(Coach):
         self.gae_lambda = config.gae_lambda
         self.num_eval_games = config.eval_games
         self.eval_simulations = config.eval_simulations
-        self.best_checkpoint_path = config.best_checkpoint_path
+        self.best_checkpoint_filename = config.best_checkpoint_path
+    
+    def get_best_checkpoint_path(self) -> str:
+        return os.path.join(self.save_directory, self.best_checkpoint_filename)
     
     def save_model(self, current_iteration: int):
         super().save_model(current_iteration)
         reward = self.evaluate()
+        wandb.log({"eval_reward": reward})
         if reward > self.best_reward:
             self.best_reward = reward
-            self.save(self.best_checkpoint_path)
+            self.save(self.get_best_checkpoint_path())
     
     def evaluate(self) -> float:
         arena = Arena([self.player.dummy_constructor], game=self.eval_environment.clone())
