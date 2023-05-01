@@ -20,6 +20,8 @@ class CoachConfig(Config):
     last_checkpoint_path: str = "model-last"
     """path to save last model"""
     model_filenames: str = "model-{:06}"
+    save_frequency: int = 1
+    """number of iterations between saving model checkpoints"""
     # values from muzero and alphazero papers
     initial_lr: float = 2e-2
     final_lr: float = 2e-4

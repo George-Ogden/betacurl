@@ -40,6 +40,7 @@ class Coach(SaveableObject):
         self.player_config = self.config.player_config
         self.training_config = self.config.training_config
         self.save_directory = self.config.save_directory
+        self.save_frequency = self.config.save_frequency
 
         self.num_iterations = config.num_iterations
         self.num_games_per_episode = config.num_games_per_episode
@@ -149,8 +150,9 @@ class Coach(SaveableObject):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
-        print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
-        self.save(self.get_checkpoint_path(current_iteration))
+        if current_iteration % self.save_frequency == 0:
+            print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
+            self.save(self.get_checkpoint_path(current_iteration))
         self.save(self.get_last_checkpoint_path())
 
     def transform_history_for_training(
