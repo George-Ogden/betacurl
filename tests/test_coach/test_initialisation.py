@@ -48,7 +48,7 @@ sparse_stub_game = MDPSparseStubGame(6)
 observation_spec = stub_game.game_spec.observation_spec
 move_spec = stub_game.game_spec.move_spec
 
-time_limit = MujocoGame
+time_limit = MujocoGame.time_limit
 MujocoGame.time_limit = 1
 single_player_game = MujocoGame("point_mass", "easy")
 swingup = MujocoGame("cartpole", "swingup")

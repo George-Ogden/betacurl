@@ -3,11 +3,9 @@ import numpy as np
 from pytest import mark
 import pytest
 
-from src.player import Arena, Player, RandomPlayer
-from src.game import Game, GameSpec, MujocoGame
+from src.game import Game, MujocoGame
+from src.player import RandomPlayer
 
-easy_game = MujocoGame("point_mass", "easy")
-hard_game = MujocoGame("cartpole", "swingup_sparse")
 game = MujocoGame("pendulum", "swingup")
 
 player = RandomPlayer(game.game_spec)
