@@ -1,7 +1,7 @@
 from dm_control import viewer
 
 from src.player import Arena, NNMCTSPlayer
-from src.coach import CoachConfig
+from src.coach import SinglePlayerCoachConfig
 from src.game import MujocoGame
 
 import argparse
@@ -16,7 +16,7 @@ def main(args):
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--model_directory", default=os.path.join(CoachConfig.save_directory, CoachConfig.best_checkpoint_path))
+    parser.add_argument("--model_directory", default=os.path.join(SinglePlayerCoachConfig.save_directory, SinglePlayerCoachConfig.best_checkpoint_path))
     parser.add_argument("--domain_name", default="cartpole")
     parser.add_argument("--task_name", default="swingup")
     return parser
