@@ -4,13 +4,13 @@ from ..mcts import PPOMCTSModel
 from ..game import Game
 
 from .single_player import SinglePlayerCoach
-from .config import SinglePlayerCoachConfig
+from .config import PPOCoachConfig
 
 class PPOCoach(SinglePlayerCoach):
     def __init__(
         self,
         game: Game,
-        config: SinglePlayerCoachConfig = SinglePlayerCoachConfig(),
+        config: PPOCoachConfig = PPOCoachConfig(),
         ModelClass: Type[PPOMCTSModel] = PPOMCTSModel,
     ):
         super().__init__(game=game, config=config, ModelClass=ModelClass)

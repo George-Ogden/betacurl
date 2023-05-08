@@ -32,7 +32,6 @@ class CoachConfig(Config):
 
 @dataclass
 class SinglePlayerCoachConfig(CoachConfig):
-    warm_start_games: ClassVar[int] = 0
     eval_games: int = 5
     """number of games to run for evaluation"""
     gae_lambda: float = 0.95
@@ -40,3 +39,7 @@ class SinglePlayerCoachConfig(CoachConfig):
     """number of simulations to run for evaluation"""
     best_checkpoint_path: str = "model-best"
     """path to save best model"""
+
+@dataclass
+class PPOCoachConfig(CoachConfig):
+    warm_start_games: ClassVar[int] = 0
