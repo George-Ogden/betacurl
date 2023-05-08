@@ -8,7 +8,8 @@ import os
 
 def main(args):
     player = NNMCTSPlayer.load(args.model_directory)
-    player.eval_simulations = 50
+    player.widen()
+    player.simulations = 50
     arena = Arena(players=[player.dummy_constructor, NNMCTSPlayer], game=CURLING_GAME)
     arena.players[1].eval_simulations = 50
     for i in range(10):
@@ -16,7 +17,7 @@ def main(args):
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--model_directory", default=os.path.join(CoachConfig.save_directory, CoachConfig.best_checkpoint_path))
+    parser.add_argument("--model_directory", default=os.path.join(CoachConfig.save_directory, CoachConfig.last_checkpoint_path))
     return parser
 
 if __name__ == "__main__":
