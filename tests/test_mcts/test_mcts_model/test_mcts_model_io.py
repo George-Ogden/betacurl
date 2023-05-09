@@ -1,7 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
-from src.mcts import ReinforceMCTSModel
+from typing import Type
+from pytest import mark
+
+from src.mcts import MCTSModel, PolicyMCTSModel, PPOMCTSModel
 from src.player import NNMCTSPlayer
 
 from tests.utils import MDPStubGame, generic_save_test, save_load
@@ -11,9 +14,10 @@ game = MDPStubGame(6)
 game.reset()
 
 @requires_cleanup
-def test_mcts_model_io():
+@mark.parametrize("Model", [PolicyMCTSModel, PPOMCTSModel])
+def test_mcts_model_io(Model: Type[MCTSModel]):
     game.reset()
-    model = ReinforceMCTSModel(game.game_spec)
+    model = Model(game.game_spec)
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
 

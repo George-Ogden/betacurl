@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 import os
 
-from src.coach import Coach, CoachConfig, PPOCoach, SinglePlayerCoach, SinglePlayerCoachConfig
+from src.coach import Coach, CoachConfig, PPOCoach, PPOCoachConfig, SinglePlayerCoach, SinglePlayerCoachConfig
 from src.mcts import NNMCTSConfig, PPOMCTSModel
 from src.player import NNMCTSPlayerConfig
 from src.model import TrainingConfig
@@ -39,7 +39,6 @@ config_dict = dict(
     )
 )
 single_config_dict = config_dict | special_cases
-del single_config_dict["warm_start_games"]
 custom_training_config = copy(config_dict["training_config"])
 custom_training_config.training_epochs = 2
 
@@ -127,30 +126,20 @@ def test_coach_initial_model_states():
     assert coach.player.model is not None
 
 @requires_cleanup
-def test_single_player_coach_initial_model_states():
-    coach = SinglePlayerCoach(
-        game=single_player_game,
-        config=SinglePlayerCoachConfig(
-            **single_config_dict |
-            {"num_iterations":0}
-        )
-    )
-    coach.learn()
-    assert coach.player.model is not None
-
-@requires_cleanup
 def test_ppo_coach_initial_model_states():
-    config = config_dict.copy()
+    config = single_config_dict.copy()
     config["num_iterations"] = 0
+    del config["warm_start_games"]
     coach = PPOCoach(
         game=single_player_game,
-        config=SinglePlayerCoachConfig(
-            **single_config_dict
+        config=PPOCoachConfig(
+            **config
         )
     )
     coach.learn()
     assert coach.player.model is not None
     assert isinstance(coach.player.model, PPOMCTSModel)
+    assert coach.player.model.model is not None
 
 @requires_cleanup
 def test_coach_propagates_model():

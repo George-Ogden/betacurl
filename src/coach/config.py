@@ -41,5 +41,5 @@ class SinglePlayerCoachConfig(CoachConfig):
     """path to save best model"""
 
 @dataclass
-class PPOCoachConfig(CoachConfig):
+class PPOCoachConfig(SinglePlayerCoachConfig):
     warm_start_games: ClassVar[int] = 0

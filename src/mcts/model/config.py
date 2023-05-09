@@ -1,5 +1,5 @@
+from typing import ClassVar, Optional
 from dataclasses import dataclass
-from typing import Optional
 
 from ...utils import Config
 
@@ -20,5 +20,6 @@ class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
 
 @dataclass
 class PPOMCTSModelConfig(ReinforceMCTSModelConfig):
+    fourier_features: ClassVar[int] = 0
     clip_range: float = .1
     target_kl: Optional[float] = 1.5

@@ -1,11 +1,12 @@
-from tensorflow.keras import losses
-from tensorflow import data
+from tensorflow_probability import distributions
+from tensorflow.keras import backend, initializers, losses
+from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
 from typing import Callable, List, Tuple
 
-from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import PPOMCTSModelConfig
@@ -21,6 +22,35 @@ class PPOMCTSModel(ReinforceMCTSModel):
     ):
         super().__init__(game_spec, model_factory, config)
         self.target_kl = config.target_kl
+
+        self.policy_head = DenseModelFactory.create_model(
+            input_shape=self.feature_size,
+            output_shape=self.action_shape,
+            config=DenseModelFactory.CONFIG_CLASS(
+                output_activation="linear"
+            )
+        )
+
+        self.log_stds = tf.Variable(initial_value=tf.zeros((self.action_shape[0],)), trainable=True)
+
+    def _generate_distribution(self, means: tf.Tensor) -> distributions.Distribution:
+        action_dims = len(self.action_shape)
+        stds = tf.tile(
+            tf.exp(self.log_stds)[(np.newaxis,) * (means.ndim - action_dims)],
+            means.shape[:-action_dims] + (1, ) * action_dims
+        )
+        return distributions.Normal(means, stds)
+
+    def setup_model(self):
+        super().setup_model()
+        log_stds = self.model.add_weight(
+            name="log_stds",
+            shape=self.log_stds.shape,
+            initializer=initializers.Zeros(),
+            trainable=True
+        )
+        backend.set_value(log_stds, self.log_stds)
+        self.log_stds = log_stds
 
     def compute_loss(
         self,
