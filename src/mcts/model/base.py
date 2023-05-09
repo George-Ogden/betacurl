@@ -38,6 +38,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         self.feature_size = config.feature_size
         self.max_grad_norm = config.max_grad_norm
         self.vf_coeff = config.vf_coeff
+        self.model = None
 
     def __init_subclass__(cls, **kwargs):
         # allow post_init method: https://stackoverflow.com/a/72593763/12103577
@@ -55,6 +56,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
     
     def setup_model(self):
         ...
+    
+    def save(self, path: str):
+        model = self.model
+        self.model = None
+        super().save(path)
+        self.model = model
 
     @abstractmethod
     def predict_values(
