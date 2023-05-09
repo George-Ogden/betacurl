@@ -10,9 +10,10 @@ import os
 def main(args):
     game = MujocoGame(domain_name=args.domain_name, task_name=args.task_name)
     player = NNMCTSPlayer.load(args.model_directory)
-    player.simulations = 50
+    player.simulations = 15
     player.eval()
-    viewer.launch(game.env, policy=lambda observation: player.move(game))
+    viewer.launch(game.env, policy=lambda timestep: player.model.generate_distribution(timestep.observation["observations"]).mode().numpy())
+    # viewer.launch(game.env, policy=lambda timestep: player.move(game))
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
