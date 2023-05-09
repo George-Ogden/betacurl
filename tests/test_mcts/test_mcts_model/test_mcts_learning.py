@@ -251,7 +251,7 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
+    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 * tf.reduce_prod(distribution.prob(move * .25))
 
 def test_ppo_std_changes():
     model = PPOMCTSModel(

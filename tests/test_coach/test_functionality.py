@@ -38,7 +38,6 @@ config_dict = dict(
     )
 )
 single_config_dict = config_dict | special_cases
-del single_config_dict["warm_start_games"]
 
 stub_game = MDPStubGame(6)
 sparse_stub_game = MDPSparseStubGame(6)
