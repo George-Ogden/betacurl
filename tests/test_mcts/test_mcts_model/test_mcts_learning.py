@@ -252,3 +252,29 @@ def test_ppo_model_losses_converge():
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
+
+def test_ppo_std_changes():
+    model = PPOMCTSModel(
+        game_spec,
+        config=PPOMCTSModelConfig(
+            vf_coeff=1.,
+            ent_coeff=0.,
+            clip_range=.5,
+            target_kl=None
+        ),
+        model_factory=MLPModelFactory
+    )
+
+    initial_stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
+    assert np.allclose(initial_stddev, 1.)
+
+    model.learn(
+        training_data,
+        stub_game.no_symmetries,
+        training_config=TrainingConfig(
+            training_epochs=4,
+        )
+    )
+    
+    stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
+    assert not np.allclose(stddev, initial_stddev)
