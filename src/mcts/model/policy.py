@@ -69,8 +69,6 @@ class PolicyMCTSModel(MCTSModel):
             )
         )
 
-        self.setup_model()
-
     def setup_model(self):
         input = keras.Input(self.observation_shape)
         features = self.feature_extractor(input)
