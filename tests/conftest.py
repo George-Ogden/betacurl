@@ -3,7 +3,7 @@ import numpy as np
 import wandb
 
 def pytest_configure(config):
-    # disabel wandb logging
+    # disable wandb logging
     wandb.init("test run", mode="disabled")
 
     # run tests without GPU
