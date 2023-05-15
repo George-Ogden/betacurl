@@ -34,7 +34,11 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         )
         self.observation_shape = observation_spec.shape
 
-        self.value_coefficients = np.array([-1, 0, 1], dtype=np.float32) if game_spec.max_value is None else np.arange(np.ceil(game_spec.max_value) + 1, dtype=np.float32)
+        self.value_coefficients = tf.constant(
+            np.array([-1, 0, 1], dtype=np.float32)
+            if game_spec.max_value is None
+            else np.arange(np.floor(self.scale_values(game_spec.max_value)) + 2, dtype=np.float32)
+        )
 
         self.config = copy(config)
         self.feature_size = config.feature_size
@@ -123,3 +127,47 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
                 tf.abs(values) + 1
             ) - 1
         ) + 0.001 * values
+
+    def logits_to_values(self, logits: tf.Tensor) -> tf.Tensor:
+        """convert logits to values
+
+        Args:
+            logits (tf.Tensor): support logits
+
+        Returns:
+            tf.Tensor: scaled values
+        """
+        return tf.matmul(logits, self.value_coefficients)
+
+    def values_to_logits(self, values: tf.Tensor) -> tf.Tensor:
+        """convert values to logits
+
+        Args:
+            values (tf.Tensor): scaled values
+
+        Returns:
+            tf.Tensor: distribution of support coefficients
+        """
+        upper_bounds = tf.searchsorted(
+            self.value_coefficients,
+            values,
+            side="left"
+        )
+        lower_bounds = upper_bounds - 1
+        # linear interpolate between lower and upper bound values
+        interpolation = (
+            values - self.value_coefficients[lower_bounds]
+        ) / (
+            self.value_coefficients[upper_bounds] - self.value_coefficients[lower_bounds]
+        )
+        print(interpolation)
+        logits = tf.one_hot(
+            lower_bounds,
+            depth=len(self.value_coefficients),
+            dtype=tf.float32
+        ) * (1 - interpolation) + tf.one_hot(
+            upper_bounds,
+            depth=len(self.value_coefficients),
+            dtype=tf.float32
+        ) * interpolation
+        return logits
