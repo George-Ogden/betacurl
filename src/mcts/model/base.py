@@ -34,6 +34,8 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         )
         self.observation_shape = observation_spec.shape
 
+        self.value_coefficients = np.array([-1, 0, 1], dtype=np.float32) if game_spec.max_value is None else np.arange(np.ceil(game_spec.max_value) + 1, dtype=np.float32)
+
         self.config = copy(config)
         self.feature_size = config.feature_size
         self.max_grad_norm = config.max_grad_norm
@@ -101,3 +103,23 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         training_config: TrainingConfig = TrainingConfig()
     ) -> data.Dataset:
         return self.create_dataset(training_data)
+    
+    @staticmethod
+    def inverse_scale_values(values: tf.Tensor) -> tf.Tensor:
+        return tf.sign(values) * (
+            (
+                (
+                    tf.sqrt(
+                        1 + 4 * 0.001 * (tf.abs(values) + 1 + 0.001)
+                    ) - 1
+                ) / (2 * 0.001)
+            ) ** 2 - 1
+        )
+    
+    @staticmethod
+    def scale_values(values: tf.Tensor) -> tf.Tensor:
+        return tf.sign(values) * (
+            tf.sqrt(
+                tf.abs(values) + 1
+            ) - 1
+        ) + 0.001 * values
