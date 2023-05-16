@@ -76,3 +76,21 @@ def test_logits_to_values(value: float, expected: List[float]):
         value,
         atol=1e-5
     )
+
+def test_batch_values_to_logits():
+    values, logits  = zip(*support_test_data)
+    assert np.allclose(
+        model.values_to_logits(tf.constant(values, dtype=tf.float32)).numpy(),
+        np.array(logits),
+        atol=1e-5
+    )
+
+def test_batch_logits_to_values():
+    values, logits  = zip(*support_test_data)
+    assert np.allclose(
+        model.logits_to_values(
+            model.values_to_logits(tf.constant(values, dtype=tf.float32))
+        ).numpy(),
+        values,
+        atol=1e-5
+    )
