@@ -137,7 +137,10 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         Returns:
             tf.Tensor: scaled values
         """
-        return tf.matmul(logits, self.value_coefficients)
+        return tf.reduce_sum(
+            logits * self.value_coefficients,
+            axis=-1
+        )
 
     def values_to_logits(self, values: tf.Tensor) -> tf.Tensor:
         """convert values to logits
@@ -160,7 +163,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         ) / (
             self.value_coefficients[upper_bounds] - self.value_coefficients[lower_bounds]
         )
-        print(interpolation)
+        interpolation = interpolation[:, tf.newaxis]
         logits = tf.one_hot(
             lower_bounds,
             depth=len(self.value_coefficients),
