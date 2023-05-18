@@ -33,7 +33,6 @@ class ReinforceMCTSModel(PolicyMCTSModel):
         advantage_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
-        predicted_values = self.predict_values(observations, training=True)
 
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
@@ -79,7 +78,7 @@ class ReinforceMCTSModel(PolicyMCTSModel):
                 )
             ).numpy()
 
-        value_loss = losses.mean_squared_error(values, predicted_values)
+        value_loss = self.compute_value_loss(observations, values)
         entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
 
         loss = policy_loss + self.vf_coeff * value_loss

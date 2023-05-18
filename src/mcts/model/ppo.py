@@ -61,7 +61,6 @@ class PPOMCTSModel(ReinforceMCTSModel):
         *target_distribution_params: tf.Tensor,
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
-        predicted_values = self.predict_values(observations, training=True)
         target_distribution = type(predicted_distribution)(*target_distribution_params)
         
         if isinstance(advantage_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
@@ -128,7 +127,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
                 other_dims
             )
 
-        value_loss = losses.mean_squared_error(values, predicted_values)
+        value_loss = self.compute_value_loss(observations, values)
         entropy_loss = -tf.reduce_mean(
             tf.reduce_sum(
                 predicted_distribution.entropy(),

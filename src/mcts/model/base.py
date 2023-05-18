@@ -1,3 +1,4 @@
+from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
 from tensorflow import data
@@ -36,8 +37,12 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
 
         self.value_coefficients = tf.constant(
             np.array([-1, 0, 1], dtype=np.float32)
-            if game_spec.max_value is None
-            else np.arange(np.floor(self.scale_values(game_spec.max_value)) + 2, dtype=np.float32)
+            if game_spec.value_spec is None
+            else np.arange(
+                np.floor(self.scale_values(game_spec.value_spec.minimum)),
+                np.ceil(self.scale_values(game_spec.value_spec.maximum)) + 1,
+                dtype=np.result_type(game_spec.value_spec.dtype, np.float32)
+            )
         )
 
         self.config = copy(config)
@@ -159,9 +164,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         lower_bounds = upper_bounds - 1
         # linear interpolate between lower and upper bound values
         interpolation = (
-            values - self.value_coefficients[lower_bounds]
+            values - tf.gather(self.value_coefficients, lower_bounds)
         ) / (
-            self.value_coefficients[upper_bounds] - self.value_coefficients[lower_bounds]
+            tf.gather(self.value_coefficients, upper_bounds) - tf.gather(self.value_coefficients, lower_bounds)
         )
         interpolation = interpolation[:, tf.newaxis]
         logits = tf.one_hot(
