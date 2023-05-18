@@ -1,4 +1,5 @@
 from dm_control.rl.control import Environment, flatten_observation, FLAT_OBSERVATION_KEY
+from dm_env.specs import BoundedArray
 from dm_control import suite
 from copy import copy
 import numpy as np
@@ -27,7 +28,13 @@ class MujocoGame(Game):
         )
         self.game_spec = GameSpec(
             move_spec=self.env.action_spec(),
-            observation_spec=self.env.observation_spec()[FLAT_OBSERVATION_KEY]
+            observation_spec=self.env.observation_spec()[FLAT_OBSERVATION_KEY],
+            value_spec=BoundedArray(
+                minimum=(0,),
+                maximum=(1 / (1 - self.discount),),
+                shape=(),
+                dtype=np.float32
+            )
         )
         self.max_round = int(self.env._step_limit)
         self.reset()
@@ -44,8 +51,7 @@ class MujocoGame(Game):
         timestep = self.env.step(action)
         if display:
             print(timestep)
-        # scale so that return is between 0 and 1
-        return (timestep.reward or 0) * (1 - self.discount)
+        return timestep.reward or 0
 
     def clone(self) -> "Self":
         # reduce memory by only copying the parts that change

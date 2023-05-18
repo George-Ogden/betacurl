@@ -13,6 +13,11 @@ from src.utils import classproperty
 class GameSpec:
     move_spec: BoundedArray
     observation_spec: Union[Array, BoundedArray]
+    value_spec: Optional[BoundedArray] = None
+    def __post_init__(self):
+        if self.value_spec is not None:
+            assert self.value_spec.shape == ()
+
     def validate_action(self, action: np.ndarray) -> np.ndarray:
         assert action.shape == self.move_spec.shape
         if isinstance(self.move_spec, BoundedArray):
