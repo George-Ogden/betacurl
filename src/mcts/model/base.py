@@ -127,6 +127,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
     
     @staticmethod
     def scale_values(values: tf.Tensor) -> tf.Tensor:
+        values = tf.cast(values, dtype=tf.float32)
         return tf.sign(values) * (
             tf.sqrt(
                 tf.abs(values) + 1

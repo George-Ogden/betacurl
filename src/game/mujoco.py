@@ -30,8 +30,8 @@ class MujocoGame(Game):
             move_spec=self.env.action_spec(),
             observation_spec=self.env.observation_spec()[FLAT_OBSERVATION_KEY],
             value_spec=BoundedArray(
-                minimum=(0,),
-                maximum=(1 / (1 - self.discount),),
+                minimum=0,
+                maximum=1 / (1 - self.discount),
                 shape=(),
                 dtype=np.float32
             )

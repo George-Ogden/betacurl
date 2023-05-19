@@ -116,10 +116,8 @@ class PolicyMCTSModel(MCTSModel):
         return probabilities
 
     def compute_value_loss(self, observations: tf.Tensor, values: tf.Tensor) -> tf.Tensor:
-        print(observations.shape, values.shape)
         observations = tf.reshape(observations, (-1, *self.observation_shape))
         values = tf.reshape(values, (-1))
-        print(observations.shape, values.shape)
         value_logits = self.values_to_logits(self.scale_values(values))
         predicted_value_logits = self.predict_values(observations, training=True, predict_logits=True)
         return tf.reduce_mean(losses.categorical_crossentropy(value_logits, predicted_value_logits))

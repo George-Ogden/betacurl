@@ -47,7 +47,7 @@ time_limit = MujocoGame.time_limit
 timestep = MujocoGame.timestep
 MujocoGame.time_limit = 6.
 MujocoGame.timestep = .5
-mujoco_game = MujocoGame(domain_name="point_mass", task_name="easy")
+mujoco_game = MujocoGame(domain_name="cartpole", task_name="swingup")
 MujocoGame.timestep = timestep
 MujocoGame.time_limit = time_limit
 
