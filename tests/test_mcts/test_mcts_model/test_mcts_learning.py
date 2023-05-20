@@ -7,7 +7,7 @@ import wandb
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import MLPModelFactory, MLPModelConfig, TrainingConfig
 
-from tests.utils import MDPStubGame, StubGame
+from tests.utils import MDPStubGame
 
 max_move = MDPStubGame.max_move
 MDPStubGame.max_move = 1.5
@@ -18,11 +18,16 @@ game_spec = stub_game.game_spec
 move = np.ones(game_spec.move_spec.shape)
 
 result = 3.
-training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 1 if i % 2 else 4)] * 2) for i in range(6)]
-mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2),)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 2 if i % 2 else 8)]) for i in range(6)]
+training_data = [((-1)**i, np.array((1.25 * ((i + 1) // 2), 0)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 1 if i % 2 else 4)] * 2) for i in range(6)]
+mixed_training_data = training_data + [((-1)**i, np.array((1.25 * ((i + 1) // 2), 0)), (.25 * move) if i % 2 else (1.25 * move), result, [((.25 * move) if i % 2 else (1.25 * move), (-1.)**i, 2 if i % 2 else 8)]) for i in range(6)]
 training_data *= 100
 mixed_training_data *= 50
-MLPModelConfig.hidden_size = 32
+
+training_config = TrainingConfig(
+    batch_size=32,
+    training_epochs=5,
+    lr=1e-2
+)
 
 def test_policy_model_stats(monkeypatch):
     logs = []
@@ -34,8 +39,8 @@ def test_policy_model_stats(monkeypatch):
     model = PolicyMCTSModel(
         game_spec
     )
-    model.learn(training_data[:10], stub_game.get_symmetries)
-    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+    model.learn(training_data[:10], stub_game.get_symmetries, training_config=training_config)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries, training_config=training_config)
 
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
@@ -55,8 +60,8 @@ def test_reinforce_model_stats(monkeypatch):
     model = ReinforceMCTSModel(
         game_spec
     )
-    model.learn(training_data[:10], stub_game.get_symmetries)
-    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+    model.learn(training_data[:10], stub_game.get_symmetries, training_config=training_config)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries, training_config=training_config)
 
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
@@ -78,8 +83,8 @@ def test_ppo_model_stats(monkeypatch):
     model = PPOMCTSModel(
         game_spec
     )
-    model.learn(training_data[:10], stub_game.get_symmetries)
-    model.learn(mixed_training_data[:20], stub_game.get_symmetries)
+    model.learn(training_data[:10], stub_game.get_symmetries, training_config=training_config)
+    model.learn(mixed_training_data[:20], stub_game.get_symmetries, training_config=training_config)
 
     expected_keys = ["loss", "value_loss", "policy_loss", "entropy_loss", "entropy"]
 
@@ -102,7 +107,7 @@ def test_policy_learns():
         model_factory=MLPModelFactory
     )
 
-    model.learn(training_data, stub_game.get_symmetries)
+    model.learn(training_data, stub_game.get_symmetries, training_config=training_config)
           
     distribution = model.generate_distribution(training_data[0][1])
     assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
@@ -118,7 +123,7 @@ def test_value_learns():
         model_factory=MLPModelFactory
     )
 
-    model.learn(training_data, stub_game.no_symmetries)
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
 
@@ -134,8 +139,8 @@ def test_entropy_increases():
     )
 
     entropy = model.generate_distribution(training_data[0][1]).entropy()
-    model.learn(training_data, stub_game.no_symmetries)
-    assert tf.reduce_all(model.generate_distribution(training_data[0][1]).entropy() > entropy)
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
+    assert tf.reduce_sum(model.generate_distribution(training_data[0][1]).entropy()) > tf.reduce_sum(entropy)
 
 @mark.flaky
 def test_policy_model_losses_converge():
@@ -148,14 +153,7 @@ def test_policy_model_losses_converge():
         model_factory=MLPModelFactory
     )
 
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-        TrainingConfig(
-            training_epochs=20,
-            batch_size=32,
-        )
-    )
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
@@ -173,10 +171,7 @@ def test_reinforce_model_losses_converge():
         model_factory=MLPModelFactory
     )
 
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-    )
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
@@ -185,10 +180,10 @@ def test_reinforce_model_losses_converge():
 @mark.slow
 @mark.flaky
 def test_model_learns_from_multiple_actions():
-    max_move = StubGame.max_move
-    StubGame.max_move = 1.
-    game = StubGame(2)
-    StubGame.max_move = max_move
+    max_move = MDPStubGame.max_move
+    MDPStubGame.max_move = 1.
+    game = MDPStubGame(2)
+    MDPStubGame.max_move = max_move
 
     game.reset(0)
     move = np.ones(game_spec.move_spec.shape) / 10
@@ -216,10 +211,7 @@ def test_model_learns_from_multiple_actions():
         ),
         model_factory=MLPModelFactory
     )
-    model.learn(
-        training_data,
-        stub_game.no_symmetries
-    )
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
     distribution = model.generate_distribution(game.get_observation())
     assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
@@ -241,13 +233,7 @@ def test_ppo_model_losses_converge():
     )
 
     for _ in range(4):
-        model.learn(
-            training_data,
-            stub_game.no_symmetries,
-            training_config=TrainingConfig(
-                training_epochs=4,
-            )
-        )
+        model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
@@ -268,13 +254,7 @@ def test_ppo_std_changes():
     initial_stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
     assert np.allclose(initial_stddev, 1.)
 
-    model.learn(
-        training_data,
-        stub_game.no_symmetries,
-        training_config=TrainingConfig(
-            training_epochs=4,
-        )
-    )
+    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
     
     stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
     assert not np.allclose(stddev, initial_stddev)

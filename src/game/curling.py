@@ -26,6 +26,12 @@ class SingleEndCurlingGame(Game):
                 maximum=(max(StoneColor.RED, StoneColor.YELLOW),) + (1,) * self.num_stones_per_end + (self.curling.pitch_width / 2, 0) * self.num_stones_per_end + (1,) * self.num_stones_per_end,
                 dtype=np.float32,
                 shape = (1 + self.num_stones_per_end + self.num_stones_per_end * 2 + self.num_stones_per_end, )
+            ),
+            value_spec=BoundedArray(
+                minimum=-self.num_stones_per_end // 2,
+                maximum=self.num_stones_per_end // 2,
+                dtype=np.int32,
+                shape=()
             )
         )
         self.simulation_constants = simulation_constants

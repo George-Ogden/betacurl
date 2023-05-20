@@ -1,3 +1,4 @@
+from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
 from tensorflow import data
@@ -33,6 +34,16 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
             else None
         )
         self.observation_shape = observation_spec.shape
+
+        self.value_coefficients = tf.constant(
+            np.array([-1, 0, 1], dtype=np.float32)
+            if game_spec.value_spec is None
+            else np.arange(
+                np.floor(self.scale_values(game_spec.value_spec.minimum)),
+                np.ceil(self.scale_values(game_spec.value_spec.maximum)) + 1,
+                dtype=np.result_type(game_spec.value_spec.dtype, np.float32)
+            )
+        )
 
         self.config = copy(config)
         self.feature_size = config.feature_size
@@ -101,3 +112,71 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         training_config: TrainingConfig = TrainingConfig()
     ) -> data.Dataset:
         return self.create_dataset(training_data)
+    
+    @staticmethod
+    def inverse_scale_values(values: tf.Tensor) -> tf.Tensor:
+        return tf.sign(values) * (
+            (
+                (
+                    tf.sqrt(
+                        1 + 4 * 0.001 * (tf.abs(values) + 1 + 0.001)
+                    ) - 1
+                ) / (2 * 0.001)
+            ) ** 2 - 1
+        )
+    
+    @staticmethod
+    def scale_values(values: tf.Tensor) -> tf.Tensor:
+        values = tf.cast(values, dtype=tf.float32)
+        return tf.sign(values) * (
+            tf.sqrt(
+                tf.abs(values) + 1
+            ) - 1
+        ) + 0.001 * values
+
+    def logits_to_values(self, logits: tf.Tensor) -> tf.Tensor:
+        """convert logits to values
+
+        Args:
+            logits (tf.Tensor): support logits
+
+        Returns:
+            tf.Tensor: scaled values
+        """
+        return tf.reduce_sum(
+            logits * self.value_coefficients,
+            axis=-1
+        )
+
+    def values_to_logits(self, values: tf.Tensor) -> tf.Tensor:
+        """convert values to logits
+
+        Args:
+            values (tf.Tensor): scaled values
+
+        Returns:
+            tf.Tensor: distribution of support coefficients
+        """
+        upper_bounds = tf.searchsorted(
+            self.value_coefficients,
+            values,
+            side="left"
+        )
+        lower_bounds = upper_bounds - 1
+        # linear interpolate between lower and upper bound values
+        interpolation = (
+            values - tf.gather(self.value_coefficients, lower_bounds)
+        ) / (
+            tf.gather(self.value_coefficients, upper_bounds) - tf.gather(self.value_coefficients, lower_bounds)
+        )
+        interpolation = interpolation[:, tf.newaxis]
+        logits = tf.one_hot(
+            lower_bounds,
+            depth=len(self.value_coefficients),
+            dtype=tf.float32
+        ) * (1 - interpolation) + tf.one_hot(
+            upper_bounds,
+            depth=len(self.value_coefficients),
+            dtype=tf.float32
+        ) * interpolation
+        return logits

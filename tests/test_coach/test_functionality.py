@@ -1,4 +1,5 @@
 from copy import copy, deepcopy
+from pytest import mark
 import numpy as np
 
 from src.coach import Coach, CoachConfig, PPOCoach, SinglePlayerCoachConfig
@@ -47,7 +48,7 @@ time_limit = MujocoGame.time_limit
 timestep = MujocoGame.timestep
 MujocoGame.time_limit = 6.
 MujocoGame.timestep = .5
-mujoco_game = MujocoGame(domain_name="point_mass", task_name="easy")
+mujoco_game = MujocoGame(domain_name="cartpole", task_name="swingup")
 MujocoGame.timestep = timestep
 MujocoGame.time_limit = time_limit
 
@@ -133,6 +134,7 @@ def test_logs_format(capsys):
     assert not "}" in captured.out
     assert not "}" in captured.err
 
+@mark.slow
 @requires_cleanup
 def test_eval_arena_is_constant():
     eval_envs = []

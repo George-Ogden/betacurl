@@ -87,6 +87,12 @@ class MDPStubGame(StubGame):
                 shape=(2,),
                 dtype=np.float32,
             ),
+            value_spec=BoundedArray(
+                minimum=-self.max_round // 2 * self.max_move,
+                maximum=(self.max_round + 1) // 2 * self.max_move,
+                shape=(),
+                dtype=np.float32,
+            )
         )
         self.reset()
 

@@ -63,7 +63,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.value_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=(),
+            output_shape=len(self.value_coefficients),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -84,20 +84,43 @@ class PolicyMCTSModel(MCTSModel):
     def predict_values(
         self,
         observation: Union[tf.Tensor, np.ndarray],
-        training: bool=False
+        training: bool=False,
+        predict_logits: bool=False
     ) -> Union[tf.Tensor, np.ndarray]:
         batch_throughput = True
         if observation.ndim == len(self.observation_shape):
             batch_throughput = False
             observation = np.expand_dims(observation, 0)
 
-        features = self.feature_extractor(observation, training=training)
-        values = self.value_head(features, training=training)
+        if predict_logits:
+            values = self._predict_value_logits(observation, training)
+        else:
+            values = self._predict_values(observation, training)
 
         if not batch_throughput:
             values = tf.squeeze(values, 0).numpy()
 
         return values
+
+    def _predict_values(self, observation: tf.Tensor, training: bool=False) -> tf.Tensor:
+        probabilities = self._predict_value_logits(observation, training)
+        values = tf.reduce_sum(probabilities * self.value_coefficients, axis=-1)
+        # invert scaling (https://arxiv.org/abs/1805.11593)
+        values = self.inverse_scale_values(values)
+        return values
+
+    def _predict_value_logits(self, observation: tf.Tensor, training: bool=False) -> tf.Tensor:
+        features = self.feature_extractor(observation, training=training)
+        value_logits = self.value_head(features, training=training)
+        probabilities = tf.nn.softmax(value_logits, axis=-1)
+        return probabilities
+
+    def compute_value_loss(self, observations: tf.Tensor, values: tf.Tensor) -> tf.Tensor:
+        observations = tf.reshape(observations, (-1, *self.observation_shape))
+        values = tf.reshape(values, (-1))
+        value_logits = self.values_to_logits(self.scale_values(values))
+        predicted_value_logits = self.predict_values(observations, training=True, predict_logits=True)
+        return tf.reduce_mean(losses.categorical_crossentropy(value_logits, predicted_value_logits))
 
     def compute_loss(
         self,
@@ -107,7 +130,6 @@ class PolicyMCTSModel(MCTSModel):
         visit_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
-        predicted_values = self.predict_values(observations, training=True)
 
         if isinstance(visit_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
             policy_loss = 0.
@@ -143,7 +165,7 @@ class PolicyMCTSModel(MCTSModel):
                 )
             )
 
-        value_loss = losses.mean_squared_error(values, predicted_values)
+        value_loss = self.compute_value_loss(observations, values)
         entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
 
         loss = policy_loss + self.vf_coeff * value_loss
