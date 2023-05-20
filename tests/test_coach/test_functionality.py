@@ -133,6 +133,7 @@ def test_logs_format(capsys):
     assert not "}" in captured.out
     assert not "}" in captured.err
 
+@mark.slow
 @requires_cleanup
 def test_eval_arena_is_constant():
     eval_envs = []
