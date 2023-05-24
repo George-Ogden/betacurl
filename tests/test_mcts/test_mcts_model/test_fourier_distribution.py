@@ -38,14 +38,14 @@ mixed_training_data *= 50
 
 def test_distribution_pdf_cdf():
     assert tf.reduce_all(test_distribution.pdf >= 0)
-    assert tf.reduce_all(0 <= test_distribution.cdf) and tf.reduce_all(test_distribution.cdf <= 1+1e-2)
-    assert np.allclose(test_distribution.cdf[:, 0], 0., atol=1e-2)
-    assert np.allclose(test_distribution.cdf[:,-1], 1., atol=1e-2)
+    assert tf.reduce_all(0 <= test_distribution._cdf) and tf.reduce_all(test_distribution._cdf <= 1+1e-2)
+    assert np.allclose(test_distribution._cdf[:, 0], 0., atol=1e-2)
+    assert np.allclose(test_distribution._cdf[:,-1], 1., atol=1e-2)
 
     assert tf.reduce_all(test_multi_distribution.pdf >= 0)
-    assert tf.reduce_all(0 <= test_multi_distribution.cdf) and tf.reduce_all(test_multi_distribution.cdf <= 1+1e-2)
-    assert np.allclose(test_multi_distribution.cdf[:, 0], 0., atol=1e-2)
-    assert np.allclose(test_multi_distribution.cdf[:,-1], 1., atol=1e-2)
+    assert tf.reduce_all(0 <= test_multi_distribution._cdf) and tf.reduce_all(test_multi_distribution._cdf <= 1+1e-2)
+    assert np.allclose(test_multi_distribution._cdf[:, 0], 0., atol=1e-2)
+    assert np.allclose(test_multi_distribution._cdf[:,-1], 1., atol=1e-2)
 
 def test_distribution_stats():
     mean = test_distribution.mean()
