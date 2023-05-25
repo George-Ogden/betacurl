@@ -21,6 +21,7 @@ class CombDistribution(distributions.Distribution):
         assert bounds.shape[:-1] == self.batch_size, "the bounds must have the same batch size as the pdf"
 
         dtype = dtype_util.common_dtype([pdf, bounds], dtype_hint=tf.float32)
+        self.granularity = pdf.shape[-1]
         super().__init__(
             dtype=dtype,
             reparameterization_type=distributions.FULLY_REPARAMETERIZED,
