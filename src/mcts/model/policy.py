@@ -10,7 +10,7 @@ from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL
 from ...game import GameSpec
 
 from .config import PolicyMCTSModelConfig
-from .fourier import FourierDistribution
+from .comb import CombDistribution
 from .base import MCTSModel
 
 class PolicyMCTSModel(MCTSModel):
@@ -55,7 +55,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.action_shape + (config.fourier_features, 2),
+            output_shape=self.action_shape + (config.distribution_granularity,),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -202,13 +202,16 @@ class PolicyMCTSModel(MCTSModel):
         return self._generate_distribution(raw_actions)
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
+        # make sure PDF sums to 1
+        raw_actions = tf.nn.softmax(raw_actions, axis=-1)
+
         range_dim = self.action_range.ndim
         action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
         bounds = np.tile(
             action_range,
-            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
+            raw_actions.shape[:-range_dim] + (1, ) * range_dim
         )
-        return FourierDistribution(
+        return CombDistribution(
             raw_actions,
             bounds=bounds
         )

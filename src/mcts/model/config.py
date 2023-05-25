@@ -12,7 +12,7 @@ class MCTSModelConfig(Config):
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.
-    fourier_features: int = 3
+    distribution_granularity: int = 63
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
@@ -20,6 +20,6 @@ class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
 
 @dataclass
 class PPOMCTSModelConfig(ReinforceMCTSModelConfig):
-    fourier_features: ClassVar[int] = 0
+    distribution_granularity: ClassVar[int] = 0
     clip_range: float = .1
     target_kl: Optional[float] = 1.5
