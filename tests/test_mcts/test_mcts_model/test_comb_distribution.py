@@ -3,16 +3,17 @@ import numpy as np
 
 from pytest import mark
 
-from src.mcts.model.fourier import FourierDistribution
+from src.mcts.model.comb import CombDistribution
 
 from tests.utils import MDPStubGame
 
-test_distribution = FourierDistribution(
-    coefficients = tf.reshape(tf.range(24, dtype=tf.float32), (4, 3, 2)),
+pdf = np.linspace(0, 2, 100, dtype=np.float32) / 100
+test_distribution = CombDistribution(
+    pdf = tf.constant(np.tile(pdf, (4, 1))),
     bounds = tf.constant([[2., 4.] for _ in range(4)]),
 )
-test_multi_distribution = FourierDistribution(
-    coefficients = tf.reshape(tf.range(120, dtype=tf.float32), (5, 4, 3, 2)),
+test_multi_distribution = CombDistribution(
+    pdf = tf.constant(np.tile(pdf, (5, 4, 1))),
     bounds = tf.constant([[[2., 4.] for _ in range(4)] for _ in range(5)]),
 )
 
@@ -38,9 +39,9 @@ def test_distribution_stats():
     assert std.shape == (4,)
     assert variance.shape == (4,)
 
-    assert tf.reduce_all(2 <= mean) and tf.reduce_all(mean <= 4)
-    assert tf.reduce_all(2 <= mode) and tf.reduce_all(mode <= 4)
-    assert tf.reduce_all(0 < variance) and tf.reduce_all(variance < 1)
+    assert np.allclose(mean, 3.33, atol=5e-2)
+    assert np.allclose(mode, 4.00, atol=5e-2)
+    assert tf.reduce_all(0 < variance)
     assert np.allclose(std, tf.sqrt(variance))
 
 def test_multi_distribution_stats():
@@ -54,9 +55,9 @@ def test_multi_distribution_stats():
     assert std.shape == (5,4)
     assert variance.shape == (5,4)
 
-    assert tf.reduce_all(2 <= mean) and tf.reduce_all(mean <= 4)
-    assert tf.reduce_all(2 <= mode) and tf.reduce_all(mode <= 4)
-    assert tf.reduce_all(0 < variance) and tf.reduce_all(variance < 1)
+    assert np.allclose(mean, 3.33, atol=5e-2)
+    assert np.allclose(mode, 4.00, atol=5e-2)
+    assert tf.reduce_all(0 < variance)
     assert np.allclose(std, tf.sqrt(variance))
 
 def test_distribution_sample():
