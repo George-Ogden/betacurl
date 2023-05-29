@@ -11,6 +11,7 @@ from copy import copy
 from typing import Callable, List, Tuple, Union
 from abc import ABCMeta, abstractmethod
 
+from ...utils import support_to_value, value_to_support
 from ...model import CustomDecorator, TrainingConfig
 from ...utils import SaveableMultiModel
 from ...game import GameSpec
@@ -135,48 +136,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         ) + 0.001 * values
 
     def logits_to_values(self, logits: tf.Tensor) -> tf.Tensor:
-        """convert logits to values
-
-        Args:
-            logits (tf.Tensor): support logits
-
-        Returns:
-            tf.Tensor: scaled values
-        """
-        return tf.reduce_sum(
-            logits * self.value_coefficients,
-            axis=-1
-        )
+        return support_to_value(logits, self.value_coefficients)
 
     def values_to_logits(self, values: tf.Tensor) -> tf.Tensor:
-        """convert values to logits
-
-        Args:
-            values (tf.Tensor): scaled values
-
-        Returns:
-            tf.Tensor: distribution of support coefficients
-        """
-        upper_bounds = tf.searchsorted(
-            self.value_coefficients,
-            values,
-            side="left"
-        )
-        lower_bounds = upper_bounds - 1
-        # linear interpolate between lower and upper bound values
-        interpolation = (
-            values - tf.gather(self.value_coefficients, lower_bounds)
-        ) / (
-            tf.gather(self.value_coefficients, upper_bounds) - tf.gather(self.value_coefficients, lower_bounds)
-        )
-        interpolation = interpolation[:, tf.newaxis]
-        logits = tf.one_hot(
-            lower_bounds,
-            depth=len(self.value_coefficients),
-            dtype=tf.float32
-        ) * (1 - interpolation) + tf.one_hot(
-            upper_bounds,
-            depth=len(self.value_coefficients),
-            dtype=tf.float32
-        ) * interpolation
-        return logits
+        return value_to_support(values, self.value_coefficients)
