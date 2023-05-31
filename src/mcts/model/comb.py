@@ -7,6 +7,8 @@ import numpy as np
 
 from typing import Dict, Tuple
 
+from ...utils import support_to_value, value_to_support
+
 class CombDistribution(distributions.Distribution):
     def __init__(
         self,
@@ -40,8 +42,14 @@ class CombDistribution(distributions.Distribution):
         self.n = len(self._pdf)
 
         self._cdf = tf.concat((tf.cumsum(self._pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self._pdf, axis=-1, keepdims=True))), axis=-1)
-        self._points = tf.transpose(tf.linspace(self._bounds[:, 0], self._bounds[:, 1], self.granularity))
+        self._points = self.generate_coefficients(bounds=self._bounds, granularity=self.granularity)
         assert self._points.shape == self._pdf.shape
+
+    @staticmethod
+    def generate_coefficients(bounds: tf.Tensor, granularity: int) -> tf.Tensor:
+        assert bounds.ndim == 2, "bounds must be a 2D tensor"
+        assert bounds.shape[-1], "bounds must have 2 pairs (min and max)"
+        return tf.transpose(tf.linspace(bounds[:, 0], bounds[:, 1], granularity))
 
     def _parameter_properties(self, dtype=None, num_classes=None) -> Dict[str, util.ParameterProperties]:
         return {
@@ -96,37 +104,31 @@ class CombDistribution(distributions.Distribution):
             (-1, np.prod(self.batch_shape))
         )
 
-        # interpolate between pdf values
-        scaled = (action - self._bounds[:, 0]) / (self._bounds[:, 1] - self._bounds[:, 0]) * (self.granularity - 1)
-        pdf_indices = tf.minimum(tf.cast(scaled, tf.int32), self.granularity - 2)
-        delta = scaled - tf.cast(pdf_indices, self.dtype)
-        # additional index for gathering
-        additional_indices = tf.stack(
-            [tf.range(self.n, dtype=tf.int32)] * len(action),
-            axis=0
+        # convert to support to get weighted coefficients
+        flat_action = tf.reshape(action, -1)
+        flat_pdf = tf.reshape(
+            tf.tile(
+                self._points[tf.newaxis],
+                (len(action),) + (1,) * (action.ndim)
+            ),
+            (-1, self.granularity)
+        )
+    
+        probability_coefficients = tf.reshape(
+            value_to_support(
+                flat_action,
+                flat_pdf
+            ),
+            (-1, self.n, self.granularity,)
         )
         return tf.reshape(
-            tf.gather_nd(
-                self._pdf,
-                tf.stack(
-                    (
-                        additional_indices,
-                        pdf_indices
-                    ),
-                    axis=-1
-                )
-            ) * delta + tf.gather_nd(
-                self._pdf,
-                tf.stack(
-                    (
-                        additional_indices,
-                        pdf_indices + 1
-                    ),
-                    axis=-1
-                )
-            ) * (1 - delta),
+            tf.reduce_sum(
+                probability_coefficients * self._pdf,
+                axis=-1
+            ),
             action_shape
-        ) * self.granularity
+        )
+            
 
     def _mean(self) -> tf.Tensor:
         return tf.reshape(
