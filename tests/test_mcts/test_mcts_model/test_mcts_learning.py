@@ -1,13 +1,17 @@
 import tensorflow as tf
 import numpy as np
 
+from dm_env.specs import BoundedArray
 from pytest import mark
 import wandb
 
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
-from src.model import MLPModelFactory, MLPModelConfig, TrainingConfig
+from src.model import MLPModelConfig, MLPModelFactory, TrainingConfig
+from src.game import Game, GameSpec
 
 from tests.utils import MDPStubGame
+
+MLPModelConfig.hidden_size = 32
 
 max_move = MDPStubGame.max_move
 MDPStubGame.max_move = 1.5
@@ -97,20 +101,85 @@ def test_ppo_model_stats(monkeypatch):
         assert 0 <= data["val_clip_fraction"] and data["val_clip_fraction"] <= 1
 
 @mark.flaky
-def test_policy_learns():
-    model = ReinforceMCTSModel(
+def test_policy_learns_correct_comb():
+    game_spec = GameSpec(
+        move_spec=BoundedArray(
+            shape=(1,),
+            dtype=np.float32,
+            minimum=-1.,
+            maximum=1.
+        ),
+        observation_spec=BoundedArray(
+            shape=(1,),
+            dtype=np.float32,
+            minimum=-1.,
+            maximum=1.
+        ),
+        value_spec=BoundedArray(
+            shape=(),
+            dtype=np.float32,
+            minimum=-1.,
+            maximum=1.
+        )
+    )
+    training_data = [
+        (1, np.zeros(1), np.array((-0,)), 0., [(np.array((0,)), 0., 1), (np.array((.5,)), 0., 3), (np.array((.75,)), 0., 1.)])
+    ]
+    predicted_distribution = [0., 0., .2, .7, .1] # [-1, -.5, 0, .5, 1]
+    model = PolicyMCTSModel(
         game_spec,
-        config=ReinforceMCTSModelConfig(
+        model_factory=MLPModelFactory,
+        config=PolicyMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-        ),
-        model_factory=MLPModelFactory
+            distribution_granularity=5
+        )
     )
-
-    model.learn(training_data, stub_game.get_symmetries, training_config=training_config)
-          
+    model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
     distribution = model.generate_distribution(training_data[0][1])
-    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 *tf.reduce_prod(distribution.prob(move * .25))
+    assert np.allclose(distribution.pdf, predicted_distribution, atol=1e-1)
+
+@mark.flaky
+def test_policy_learns_correct_comb_multiple_actions():
+    game_spec = GameSpec(
+        move_spec=BoundedArray(
+            shape=(2,),
+            dtype=np.float32,
+            minimum=(-1., 0.),
+            maximum=(1., 2.)
+        ),
+        observation_spec=BoundedArray(
+            shape=(1,),
+            dtype=np.float32,
+            minimum=-1.,
+            maximum=1.
+        ),
+        value_spec=BoundedArray(
+            shape=(),
+            dtype=np.float32,
+            minimum=-1.,
+            maximum=1.
+        )
+    )
+    training_data = [
+        (1, np.zeros(1), np.array((-1,0.)), 0., [(np.array((0,.5)), 0., 1), (np.array((.5,0.)), 0., 3), (np.array((.75,1.)), 0., 1.)])
+    ]
+    predicted_distribution = [
+        [0., 0., .2, .7, .1],
+        [.6, .2, .2, .0, .0],
+    ]
+    model = PolicyMCTSModel(
+        game_spec,
+        model_factory=MLPModelFactory,
+        config=PolicyMCTSModelConfig(
+            vf_coeff=0.,
+            ent_coeff=0.,
+            distribution_granularity=5
+        )
+    )
+    model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
+    distribution = model.generate_distribution(training_data[0][1])
+    assert np.allclose(distribution.pdf, predicted_distribution, atol=1e-1)
 
 @mark.flaky
 def test_value_learns():
@@ -157,8 +226,8 @@ def test_policy_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    ratio = tf.reduce_prod(distribution.prob(move * 1.25)) / tf.reduce_prod(distribution.prob(move * .25))
-    assert np.allclose(ratio, 5, atol=2.)
+    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 10 * tf.reduce_prod(distribution.prob(move * 0))
+    assert tf.reduce_prod(distribution.prob(move * .25)) > 10 * tf.reduce_prod(distribution.prob(move * 0))
 
 @mark.flaky
 def test_reinforce_model_losses_converge():
