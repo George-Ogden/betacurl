@@ -7,6 +7,7 @@ import numpy as np
 from typing import Callable, List, Tuple, Union
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...utils import value_to_support
 from ...game import GameSpec
 
 from .config import PolicyMCTSModelConfig
@@ -29,6 +30,12 @@ class PolicyMCTSModel(MCTSModel):
             game_spec=game_spec,
             config=config
         )
+
+        self.action_support = CombDistribution.generate_coefficients(
+            self.action_range.reshape(2, -1).transpose(1, 0),
+            granularity=config.distribution_granularity
+        )
+
         self.ent_coeff = config.ent_coeff
 
         self.feature_extractor = keras.Sequential([
@@ -125,45 +132,19 @@ class PolicyMCTSModel(MCTSModel):
     def compute_loss(
         self,
         observations: tf.Tensor,
-        action_groups: tf.RaggedTensor,
+        distribution: tf.Tensor,
         values: tf.Tensor,
-        visit_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
-
-        if isinstance(visit_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
-            policy_loss = 0.
-
-            for i, (actions, visits) in enumerate(zip(action_groups, visit_groups, strict=True)):
-                distribution = predicted_distribution[i]
-                policy = visits / tf.reduce_sum(visits, axis=-1, keepdims=True)
-                other_dims = tuple(range(1, distribution.batch_shape.ndims + 1))
-
-                log_probs = distribution.log_prob(actions.to_tensor())
-                log_probs = tf.reduce_sum(log_probs, axis=other_dims)
-                predicted_policies = tf.math.softmax(log_probs, axis=-1)
-
-                policy_loss += tf.reduce_mean(
-                    losses.kld(
-                        policy,
-                        predicted_policies
-                    )
-                )
-            policy_loss /= action_groups.shape[0]
-        else:
-            visit_groups = tf.transpose(visit_groups, (1, 0))
-            policies = visit_groups / tf.reduce_sum(visit_groups, axis=-1, keepdims=True)
-            other_dims = tuple(range(2, predicted_distribution.batch_shape.ndims + 1))
-
-            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
-            log_probs = tf.reduce_sum(log_probs, axis=other_dims)
-            predicted_policies = tf.math.softmax(log_probs, axis=-1)
-            policy_loss = tf.reduce_mean(
-                losses.kld(
-                    policies,
-                    predicted_policies
-                )
+        policy_loss = tf.reduce_mean(
+            losses.categorical_crossentropy(
+                tf.reshape(
+                    distribution,
+                    (-1, self.config.distribution_granularity),
+                ),
+                predicted_distribution._pdf
             )
+        )
 
         value_loss = self.compute_value_loss(observations, values)
         entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
@@ -205,11 +186,10 @@ class PolicyMCTSModel(MCTSModel):
         # make sure PDF sums to 1
         raw_actions = tf.nn.softmax(raw_actions, axis=-1)
 
-        range_dim = self.action_range.ndim
-        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
+        action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
         bounds = np.tile(
             action_range,
-            raw_actions.shape[:-range_dim] + (1, ) * range_dim
+            raw_actions.shape[:-self.action_dim] + (1, ) * self.action_dim
         )
         return CombDistribution(
             raw_actions,
@@ -225,19 +205,27 @@ class PolicyMCTSModel(MCTSModel):
         training_data = [
             (
                 augmented_observation,
-                augmented_actions,
+                tf.reduce_sum(
+                    tf.stack(supports, axis=-1) * visits,
+                    axis=-1
+                ) / np.sum(visits),
                 augmented_value,
-                visits
             ) for player, observation, action, value, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_value),
-                    (augmented_actions, visits)
+                    (supports, visits)
             in zip(
                 augmentation_function(player, observation, action, value),
                 [
                     zip(*policy)
                     for policy in zip(*[
                         [
-                            (augmented_action, visits)
+                            (
+                                value_to_support(
+                                    values=augmented_action.astype(np.float32),
+                                    support=self.action_support
+                                ),
+                                visits
+                            )
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, value)
                         ]

@@ -12,7 +12,7 @@ class MCTSModelConfig(Config):
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.
-    distribution_granularity: int = 63
+    distribution_granularity: int = 64
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):

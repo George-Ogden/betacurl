@@ -29,6 +29,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
 
         self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0, dtype=np.float32)
         self.action_shape = action_spec.shape
+        self.action_dim = self.action_range.ndim
         self.observation_range = (
             np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
             if isinstance(observation_spec, BoundedArray)

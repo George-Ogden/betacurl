@@ -34,10 +34,11 @@ def value_to_support(values: tf.Tensor, support: tf.Tensor) -> tf.Tensor:
     Returns:
         tf.Tensor: support
     """
+    assert support.dtype == values.dtype, "values and support must have the same dtype"
     if support.ndim == 1:
         support = tf.tile(
             support[tf.newaxis, :],
-            [values.shape[0], 1]
+            (len(values), 1)
         )
     assert support.ndim == 2, "support must be 1 or 2 dimensional"
     assert values.ndim == 1, "values must be 1 dimensional"
@@ -46,10 +47,14 @@ def value_to_support(values: tf.Tensor, support: tf.Tensor) -> tf.Tensor:
         values,
         (-1, 1)
     )
-    upper_bounds = tf.searchsorted(
-        support,
-        values,
-        side="left"
+    upper_bounds = tf.clip_by_value(
+        tf.searchsorted(
+            support,
+            values,
+            side="left"
+        ),
+        1,
+        support.shape[-1] - 1
     )
     lower_bounds = upper_bounds - 1
     # additional indices for gathering
