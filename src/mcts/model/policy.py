@@ -31,12 +31,14 @@ class PolicyMCTSModel(MCTSModel):
             config=config
         )
 
+        self.granularity = config.distribution_granularity
         self.action_support = CombDistribution.generate_coefficients(
             self.action_range.reshape(2, -1).transpose(1, 0),
-            granularity=config.distribution_granularity
+            granularity=self.granularity
         )
 
         self.ent_coeff = config.ent_coeff
+        self.noise_ratio = config.exploration_coefficient
 
         self.feature_extractor = keras.Sequential([
             layers.BatchNormalization(),
@@ -62,7 +64,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.action_shape + (config.distribution_granularity,),
+            output_shape=self.action_shape + (self.granularity,),
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -140,7 +142,7 @@ class PolicyMCTSModel(MCTSModel):
             losses.categorical_crossentropy(
                 tf.reshape(
                     distribution,
-                    (-1, self.config.distribution_granularity),
+                    (-1, self.granularity),
                 ),
                 predicted_distribution._pdf
             )
@@ -185,6 +187,17 @@ class PolicyMCTSModel(MCTSModel):
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
         # make sure PDF sums to 1
         raw_actions = tf.nn.softmax(raw_actions, axis=-1)
+        
+        # add dirichlet noise for exploration
+        dirichlet_distribution = distributions.Dirichlet(
+            tf.constant(
+                [self.granularity] * self.granularity,
+                dtype=tf.float32
+            ),
+            validate_args=False
+        )
+        noise = dirichlet_distribution.sample(raw_actions.shape[:-1])
+        raw_actions = raw_actions * (1 - self.noise_ratio) + noise * self.noise_ratio
 
         action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
         bounds = np.tile(
