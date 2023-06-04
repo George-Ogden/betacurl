@@ -11,7 +11,7 @@ class MCTSModelConfig(Config):
 
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
-    ent_coeff: float = 0.
+    ent_coeff: float = 0.01
     exploration_coefficient: float = 1.
     distribution_granularity: int = 64
 
