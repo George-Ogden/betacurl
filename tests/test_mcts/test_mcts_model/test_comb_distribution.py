@@ -104,5 +104,6 @@ def test_dirichlet_noise():
 
     distribution1 = model.generate_distribution(observation)
     distribution2 = model.generate_distribution(observation)
+    print(distribution1._pdf, distribution2._pdf)
     assert tf.reduce_all(distribution1.kl_divergence(distribution2) > 0)
     assert np.allclose(distribution1._pdf, distribution2._pdf, atol=noise_tolerance)
