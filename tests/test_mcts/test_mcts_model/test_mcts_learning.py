@@ -132,7 +132,8 @@ def test_policy_learns_correct_comb():
         config=PolicyMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-            distribution_granularity=5
+            distribution_granularity=5,
+            exploration_coefficient=0.,
         )
     )
     model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
@@ -174,7 +175,8 @@ def test_policy_learns_correct_comb_multiple_actions():
         config=PolicyMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-            distribution_granularity=5
+            distribution_granularity=5,
+            exploration_coefficient=0.,
         )
     )
     model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
@@ -218,6 +220,7 @@ def test_policy_model_losses_converge():
         config=PolicyMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.,
+            exploration_coefficient=0.,
         ),
         model_factory=MLPModelFactory
     )

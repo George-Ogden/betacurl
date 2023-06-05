@@ -18,6 +18,7 @@ game.reset()
 def test_mcts_model_io(Model: Type[MCTSModel]):
     game.reset()
     model = Model(game.game_spec)
+    model.noise_ratio = 0.
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
 
@@ -37,6 +38,7 @@ def test_nn_player_io_with_model():
     player.move(game)
 
     model = player.model
+    model.noise_ratio = 0.
     assert model.model is not None
     model.predict_values(game.get_observation())
     model.generate_distribution(game.get_observation())
