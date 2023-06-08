@@ -9,6 +9,10 @@ from src.mcts.model.comb import CombDistribution
 from tests.utils import MDPStubGame
 
 pdf = np.linspace(0, 2, 100, dtype=np.float32) / 100
+test_single = CombDistribution(
+    pdf = tf.constant(pdf),
+    bounds = tf.constant([0, 1], dtype=tf.float32),
+)
 test_distribution = CombDistribution(
     pdf = tf.constant(np.tile(pdf, (4, 1))),
     bounds = tf.constant([[2., 4.] for _ in range(4)]),
@@ -104,6 +108,12 @@ def test_dirichlet_noise():
 
     distribution1 = model.generate_distribution(observation)
     distribution2 = model.generate_distribution(observation)
-    print(distribution1._pdf, distribution2._pdf)
     assert tf.reduce_all(distribution1.kl_divergence(distribution2) > 0)
     assert np.allclose(distribution1._pdf, distribution2._pdf, atol=noise_tolerance)
+
+@mark.flaky
+def test_unqiueness():
+    distribution = test_single
+    samples = distribution.sample(1000)
+    unique_samples, _ = tf.unique(samples)
+    assert len(unique_samples) > 950
