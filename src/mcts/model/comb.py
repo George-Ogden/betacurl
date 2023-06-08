@@ -7,7 +7,7 @@ import numpy as np
 
 from typing import Dict, Tuple
 
-from ...utils import support_to_value, value_to_support
+from ...utils import value_to_support
 
 class CombDistribution(distributions.Distribution):
     def __init__(
@@ -70,27 +70,52 @@ class CombDistribution(distributions.Distribution):
             dtype=self.dtype,
             seed=seed
         )
+
+        extra_indices = tf.stack(
+            [tf.range(self.n, dtype=tf.int32)] * n,
+            axis=-1
+        )
+        lower_indices = tf.stack(
+            (
+                extra_indices,
+                tf.cast(
+                    tf.searchsorted(
+                        self._cdf,
+                        random_points,
+                        side="right"
+                    ),
+                    tf.int32
+                )
+            ),
+            axis=-1
+        )
+        upper_indices = tf.stack(
+            (
+                extra_indices,
+                tf.minimum(
+                    lower_indices[..., 1] + 1,
+                    self.granularity - 1
+                )
+            ),
+            axis=-1
+        )
+        lower_bounds = tf.gather_nd(
+            self._cdf,
+            lower_indices,
+        )
+        upper_bounds = tf.gather_nd(
+            self._cdf,
+            upper_indices,
+        )
+        interpolation = (random_points - lower_bounds) / (upper_bounds - lower_bounds + 1e-8)
         samples = tf.transpose(
             tf.gather_nd(
                 self._points,
-                tf.stack(
-                    (
-                        tf.stack(
-                            [tf.range(self.n, dtype=tf.int32)] * n,
-                            axis=-1
-                        ),
-                        tf.cast(
-                            tf.searchsorted(
-                                self._cdf,
-                                random_points,
-                                side="right"
-                            ),
-                            tf.int32
-                        )
-                    ),
-                    axis=-1
-                )
-            )
+                lower_indices
+            ) * (1 - interpolation) + tf.gather_nd(
+                self._points,
+                upper_indices
+            ) * interpolation
         )
         return tf.reshape(
             samples,
