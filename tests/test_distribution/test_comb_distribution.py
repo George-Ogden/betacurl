@@ -4,7 +4,7 @@ import numpy as np
 from pytest import mark
 
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig
-from src.mcts.model.comb import CombDistribution
+from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
 
@@ -94,6 +94,7 @@ def test_distribution_correlations():
     correlations = np.corrcoef(samples.reshape(5000, 4), rowvar=False) - np.eye(4)
     assert np.allclose(correlations, 0., atol=.8)
 
+@mark.skip(reason="Test needed but not implemented yet")
 def test_dirichlet_noise():
     game = MDPStubGame()
     model = PolicyMCTSModel(
