@@ -1,23 +1,24 @@
 from typing import Type
 
-from pytest import mark
+import pytest
 
 from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory
+from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
 
 game = MDPStubGame(10)
 move_spec = game.game_spec.move_spec
 
-multiple_distributions = mark.parametrize(
-    "DistributionFactory", [
-        CombDistributionFactory,
-    ]
-)
+distribution_mapping = {
+    CombDistributionFactory: CombDistribution
+}
+@pytest.fixture(params=list(distribution_mapping))
+def DistributionFactory(request):
+    return request.param
 
 default_config = DistributionConfig()
 
-@multiple_distributions
 def test_distribution_initialsation(DistributionFactory: Type[DistributionFactory]):
     config = DistributionFactory.CONFIG_CLASS(
         **default_config
@@ -29,7 +30,6 @@ def test_distribution_initialsation(DistributionFactory: Type[DistributionFactor
     )
     assert isinstance(distribution_factory, DistributionFactory)
 
-@multiple_distributions
 def test_distribution_parameters(DistributionFactory: Type[DistributionFactory]):
     distribution_factory = DistributionFactory(
         move_spec=move_spec
