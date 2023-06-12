@@ -42,7 +42,7 @@ class PolicyMCTSModel(MCTSModel):
             granularity=self.granularity
         )
 
-        self.distibution_factory = DistributionFactory(
+        self.distribution_factory = DistributionFactory(
             move_spec=game_spec.move_spec,
             config=DistributionFactory.CONFIG_CLASS(
                 **(
@@ -78,7 +78,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.distibution_factory.parameters_shape,
+            output_shape=self.distribution_factory.parameters_shape,
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -199,7 +199,7 @@ class PolicyMCTSModel(MCTSModel):
         return self._generate_distribution(raw_actions)
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        return self.distibution_factory.create_distribution(raw_actions)
+        return self.distribution_factory.create_distribution(raw_actions)
 
     def preprocess_data(
         self,
