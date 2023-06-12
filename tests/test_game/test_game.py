@@ -74,9 +74,9 @@ def test_valid_actions_are_valid():
     stub_game.validate_action(np.array((0, 0, 0)))
     stub_game.validate_action(np.array((10, 10, 10)))
     stub_game.validate_action(np.array((9, 4, 5)))
-    pytest.raises(AssertionError, stub_game.validate_action, np.array((0, 2)))
-    pytest.raises(AssertionError, stub_game.validate_action, np.array((3, 3, -1)))
-    pytest.raises(AssertionError, stub_game.validate_action, np.array((11, 3, 4)))
+    pytest.raises(ValueError, stub_game.validate_action, np.array((0, 2)))
+    pytest.raises(ValueError, stub_game.validate_action, np.array((3, 3, -1)))
+    pytest.raises(ValueError, stub_game.validate_action, np.array((11, 3, 4)))
 
 def test_valid_observations_are_valid():
     observation = stub_game.reset().observation

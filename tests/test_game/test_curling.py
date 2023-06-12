@@ -72,13 +72,13 @@ def test_to_play_oscillates():
 def test_valid_actions_are_valid():
     for i in range(1000):
         single_end_game.validate_action(random_player.move(single_end_game))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((0, 0)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((10, 0, 0)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((0, 10, 0)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((0, 0, 10)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((-10, 0, 0)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((0, -10, 0)))
-    pytest.raises(AssertionError, single_end_game.validate_action, np.array((0, 0, -10)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((0, 0)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((10, 0, 0)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((0, 10, 0)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((0, 0, 10)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((-10, 0, 0)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((0, -10, 0)))
+    pytest.raises(ValueError, single_end_game.validate_action, np.array((0, 0, -10)))
 
 def test_valid_observations_are_valid():
     observation = single_end_game.reset().observation

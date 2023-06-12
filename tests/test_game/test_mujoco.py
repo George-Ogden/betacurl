@@ -37,17 +37,17 @@ def test_valid_actions_are_valid():
     player = RandomPlayer(game.game_spec)
     for i in range(1000):
         game.validate_action(player.move(game))
-    pytest.raises(AssertionError, game.validate_action, np.array((.5,)))
-    pytest.raises(AssertionError, game.validate_action, np.array(.5))
-    pytest.raises(AssertionError, game.validate_action, np.array((0, 1., 0)))
-    pytest.raises(AssertionError, game.validate_action, np.array((-2., 0.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((0., -2.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((2., 0)))
-    pytest.raises(AssertionError, game.validate_action, np.array((0., 2.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((-2., 2.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((-2., -2.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((2., -2.)))
-    pytest.raises(AssertionError, game.validate_action, np.array((2., 2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((.5,)))
+    pytest.raises(ValueError, game.validate_action, np.array(.5))
+    pytest.raises(ValueError, game.validate_action, np.array((0, 1., 0)))
+    pytest.raises(ValueError, game.validate_action, np.array((-2., 0.)))
+    pytest.raises(ValueError, game.validate_action, np.array((0., -2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((2., 0)))
+    pytest.raises(ValueError, game.validate_action, np.array((0., 2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((-2., 2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((-2., -2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((2., -2.)))
+    pytest.raises(ValueError, game.validate_action, np.array((2., 2.)))
 
 def test_valid_observations_are_valid():
     observation = game.reset().observation
