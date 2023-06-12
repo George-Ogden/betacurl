@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 from typing import Type
 
 import pytest
@@ -38,3 +40,14 @@ def test_distribution_parameters(DistributionFactory: Type[DistributionFactory])
     for shape in distribution_factory.parameters_shape:
         assert isinstance(shape, int)
         assert shape > 0
+
+def test_distribution_generation(DistributionFactory: Type[DistributionFactory]):
+    Distribution = distribution_mapping[DistributionFactory]
+    distribution_factory = DistributionFactory(
+        move_spec=move_spec
+    )
+    parameter_shape = distribution_factory.parameters_shape
+    random_parameters = tf.random.normal((4, 2) + parameter_shape)
+    distribution = distribution_factory.create_distribution(random_parameters)
+    assert isinstance(distribution, Distribution)
+    assert distribution.sample().shape[0:2] == (4, 2)

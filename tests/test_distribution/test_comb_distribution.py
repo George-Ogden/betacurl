@@ -4,6 +4,7 @@ import numpy as np
 from pytest import mark
 
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig
+from src.distribution import CombDistributionConfig, CombDistributionFactory
 from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
@@ -94,16 +95,33 @@ def test_distribution_correlations():
     correlations = np.corrcoef(samples.reshape(5000, 4), rowvar=False) - np.eye(4)
     assert np.allclose(correlations, 0., atol=.8)
 
-@mark.skip(reason="Test needed but not implemented yet")
-def test_dirichlet_noise():
+def test_dirichlet_noise_through_policy():
+    distribution_factory = CombDistributionFactory(
+        distribution_config=CombDistributionConfig(
+            noise_ratio=.1
+        ),
+    )
+    noise_tolerance = distribution_factory.noise_ratio
+    assert noise_tolerance > 0
+
+    parameters = np.random.randn(distribution_factory.parameters_shape)
+    distribution1 = distribution_factory.create_distribution(parameters)
+    distribution2 = distribution_factory.create_distribution(parameters)
+    assert tf.reduce_all(distribution1.kl_divergence(distribution2) > 0)
+    assert np.allclose(distribution1._pdf, distribution2._pdf, atol=noise_tolerance)
+
+def test_dirichlet_noise_through_policy():
     game = MDPStubGame()
     model = PolicyMCTSModel(
         game_spec=game.game_spec,
         config = PolicyMCTSModelConfig(
-            exploration_coefficient=1.
-        )
+            distribution_config=CombDistributionConfig(
+                noise_ratio=.1
+            ),
+        ),
+        DistributionFactory=CombDistributionFactory,
     )
-    noise_tolerance = model.noise_ratio
+    noise_tolerance = model.distribution_factory.noise_ratio
     assert noise_tolerance > 0
     observation = game.get_observation()
 
