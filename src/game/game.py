@@ -19,18 +19,14 @@ class GameSpec:
             assert self.value_spec.shape == ()
 
     def validate_action(self, action: np.ndarray) -> np.ndarray:
-        assert action.shape == self.move_spec.shape
-        if isinstance(self.move_spec, BoundedArray):
-            assert (action >= self.move_spec.minimum).all()
-            assert (action <= self.move_spec.maximum).all()
-        return action.astype(self.move_spec.dtype)
+        action = action.astype(self.move_spec.dtype)
+        self.move_spec.validate(action)
+        return action
 
     def validate_observation(self, observation: np.ndarray) -> np.ndarray:
-        assert observation.shape == self.observation_spec.shape
-        if isinstance(self.observation_spec, BoundedArray):
-            assert (observation >= self.observation_spec.minimum).all()
-            assert (observation <= self.observation_spec.maximum).all()
-        return observation.astype(self.observation_spec.dtype)
+        observation = observation.astype(self.observation_spec.dtype)
+        self.observation_spec.validate(observation)
+        return observation
 
 class Game(metaclass=ABCMeta):
     game_spec: GameSpec = None
