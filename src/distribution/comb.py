@@ -45,7 +45,13 @@ class CombDistribution(distributions.Distribution):
         self._bounds = tf.reshape(self.bounds, (-1, 2))
         self.n = len(self._pdf)
 
-        self._cdf = tf.concat((tf.cumsum(self._pdf, axis=-1), tf.maximum(1., tf.reduce_sum(self._pdf, axis=-1, keepdims=True))), axis=-1)
+        self._cdf = tf.concat(
+            (
+                tf.cumsum(self._pdf, axis=-1, exclusive=True)[:, :-1],
+                tf.maximum(1., tf.reduce_sum(self._pdf, axis=-1, keepdims=True))
+            ),
+            axis=-1
+        )
         self._points = self.generate_coefficients(bounds=self._bounds, granularity=self.granularity)
         assert self._points.shape == self._pdf.shape
 
@@ -82,13 +88,16 @@ class CombDistribution(distributions.Distribution):
         lower_indices = tf.stack(
             (
                 extra_indices,
-                tf.cast(
-                    tf.searchsorted(
-                        self._cdf,
-                        random_points,
-                        side="right"
-                    ),
-                    tf.int32
+                tf.maximum(
+                    0,
+                    tf.cast(
+                        tf.searchsorted(
+                            self._cdf,
+                            random_points,
+                            side="right"
+                        ),
+                        tf.int32
+                    ) - 1,
                 )
             ),
             axis=-1
@@ -112,6 +121,7 @@ class CombDistribution(distributions.Distribution):
             upper_indices,
         )
         interpolation = (random_points - lower_bounds) / (upper_bounds - lower_bounds + 1e-8)
+        assert tf.reduce_all(0 <= interpolation) and tf.reduce_all(interpolation <= 1), "interpolation must be between 0 and 1"
         samples = tf.transpose(
             tf.gather_nd(
                 self._points,
@@ -227,12 +237,10 @@ class CombDistributionFactory(DistributionFactory):
         parameters = parameters * (1 - self.noise_ratio) + noise * self.noise_ratio
 
         action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
-        print(self.action_dim, action_range.shape, parameters.shape)
         bounds = np.tile(
             action_range,
             parameters.shape[:-self.action_dim] + (1, ) * self.action_dim
         )
-        print(bounds.shape, parameters.shape)
         return CombDistribution(
             parameters,
             bounds=bounds
