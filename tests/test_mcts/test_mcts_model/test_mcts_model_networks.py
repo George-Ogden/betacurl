@@ -2,9 +2,9 @@ import tensorflow as tf
 import numpy as np
 
 from dm_env.specs import Array, BoundedArray
-from pytest import mark
+from pytest import mark, fixture
 
-from src.mcts import ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import MCTSModel, PolicyMCTSModel, PPOMCTSModel, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import DenseModelFactory
 from src.game import GameSpec
 
@@ -16,11 +16,15 @@ game_spec = game.game_spec
 move_spec = game_spec.move_spec
 observation_spec = game_spec.observation_spec
 
-model = ReinforceMCTSModel(
-    game_spec=game_spec,
-)
+@fixture(params=[
+    PolicyMCTSModel,
+    PPOMCTSModel,
+    ReinforceMCTSModel
+])
+def model(request):
+    return request.param(game_spec)
 
-def test_value_network():
+def test_value_network(model: MCTSModel):
     observation = game.get_observation()
     value = model.predict_values(observation)
     assert value.ndim == 0
@@ -30,14 +34,14 @@ def test_value_network():
     assert value.shape == (5,)
     assert np.allclose(value, np.array(value).mean())
 
-def test_policy_network():
+def test_policy_network(model: MCTSModel):
     observation = game.get_observation()
     distribution = model.generate_distribution(observation)
     for i in range(1000):
         game.validate_action(distribution.sample().numpy())
 
 @mark.flaky
-def test_features_are_reasonable():
+def test_features_are_reasonable(model: MCTSModel):
     pseudo_observations = np.random.uniform(
         low=observation_spec.minimum,
         high=observation_spec.maximum,
@@ -69,11 +73,7 @@ def test_config_is_used():
     assert model.max_grad_norm == 1.
     assert model.clip_range == 1.5
 
-def test_deterministic_outside_training():
-    model = ReinforceMCTSModel(
-        game_spec=game_spec
-    )
-
+def test_deterministic_outside_training(model: MCTSModel):
     observation = np.ones_like(game.get_observation())
     features = model.feature_extractor(observation, training=False)
     features2 = model.feature_extractor(observation, training=False)

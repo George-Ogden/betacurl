@@ -51,3 +51,6 @@ def test_distribution_generation(DistributionFactory: Type[DistributionFactory])
     distribution = distribution_factory.create_distribution(random_parameters)
     assert isinstance(distribution, Distribution)
     assert distribution.sample().shape[0:2] == (4, 2)
+    for _ in range(100):
+        for sample in distribution.sample().numpy().reshape((-1,) + move_spec.shape):
+            assert move_spec.validate(sample).all()
