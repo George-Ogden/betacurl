@@ -4,14 +4,15 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Type, Union
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...distribution import DistributionFactory, CombDistributionFactory
+from ...distribution.comb import CombDistribution # remove this import after refactoring
 from ...utils import value_to_support
 from ...game import GameSpec
 
 from .config import PolicyMCTSModelConfig
-from .comb import CombDistribution
 from .base import MCTSModel
 
 class PolicyMCTSModel(MCTSModel):
@@ -24,21 +25,34 @@ class PolicyMCTSModel(MCTSModel):
         self,
         game_spec: GameSpec,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: PolicyMCTSModelConfig = PolicyMCTSModelConfig()
+        config: PolicyMCTSModelConfig = PolicyMCTSModelConfig(),
+        DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
         super().__init__(
             game_spec=game_spec,
             config=config
         )
 
-        self.granularity = config.distribution_granularity
+        if DistributionFactory is None:
+            DistributionFactory = CombDistributionFactory
+
+        self.granularity = (config.distribution_config or DistributionFactory.CONFIG_CLASS()).granularity
         self.action_support = CombDistribution.generate_coefficients(
             self.action_range.reshape(2, -1).transpose(1, 0),
             granularity=self.granularity
         )
 
+        self.distibution_factory = DistributionFactory(
+            move_spec=game_spec.move_spec,
+            config=DistributionFactory.CONFIG_CLASS(
+                **(
+                    config.distribution_config
+                    or {}
+                )
+            )
+        )
+
         self.ent_coeff = config.ent_coeff
-        self.noise_ratio = config.exploration_coefficient
 
         self.feature_extractor = keras.Sequential([
             layers.BatchNormalization(),
@@ -64,7 +78,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.action_shape + (self.granularity,),
+            output_shape=self.distibution_factory.parameters_shape,
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -185,29 +199,7 @@ class PolicyMCTSModel(MCTSModel):
         return self._generate_distribution(raw_actions)
 
     def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        # make sure PDF sums to 1
-        raw_actions = tf.nn.softmax(raw_actions, axis=-1)
-        
-        # add dirichlet noise for exploration
-        dirichlet_distribution = distributions.Dirichlet(
-            tf.constant(
-                [self.granularity] * self.granularity,
-                dtype=tf.float32
-            ),
-            validate_args=False
-        )
-        noise = dirichlet_distribution.sample(raw_actions.shape[:-1])
-        raw_actions = raw_actions * (1 - self.noise_ratio) + noise * self.noise_ratio
-
-        action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
-        bounds = np.tile(
-            action_range,
-            raw_actions.shape[:-self.action_dim] + (1, ) * self.action_dim
-        )
-        return CombDistribution(
-            raw_actions,
-            bounds=bounds
-        )
+        return self.distibution_factory.create_distribution(raw_actions)
 
     def preprocess_data(
         self,
