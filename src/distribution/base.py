@@ -5,8 +5,8 @@ import tensorflow as tf
 from copy import copy
 
 from abc import ABC, abstractmethod, abstractproperty
+from typing import List, Optional, Tuple
 from dm_env.specs import BoundedArray
-from typing import Optional, Tuple
 
 from .config import DistributionConfig
 
@@ -40,3 +40,16 @@ class DistributionFactory(ABC):
     def parameterize(self, actions: tf.Tensor) -> tf.Tensor:
         """convert actions to parameters of the distribution"""
         ...
+
+    def aggregate_parameters(
+        self,
+        parameters: List[Tuple[tf.Tensor, int]]
+    ) -> tf.Tensor:
+        """return parameters for a new distribution that aggregates the given distributions weighted by their counts"""
+        parameters, counts = zip(*parameters)
+        parameters = tf.cast(tf.stack(parameters, axis=-1), dtype=tf.float32)
+        counts = tf.constant(counts, dtype=tf.float32)
+        return tf.reduce_sum(
+            parameters * counts,
+            axis=-1
+        ) / tf.reduce_sum(counts)

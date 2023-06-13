@@ -203,14 +203,13 @@ class PolicyMCTSModel(MCTSModel):
         training_data = [
             (
                 augmented_observation,
-                tf.reduce_sum(
-                    tf.stack(supports, axis=-1) * visits,
-                    axis=-1
-                ) / np.sum(visits),
+                self.distribution_factory.aggregate_parameters(
+                    zip(parameters, visits)
+                ),
                 augmented_value,
             ) for player, observation, action, value, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_value),
-                    (supports, visits)
+                    (parameters, visits)
             in zip(
                 augmentation_function(player, observation, action, value),
                 [
