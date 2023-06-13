@@ -4,7 +4,9 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+
+from src.model.config import TrainingConfig
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...distribution import DistributionFactory, CombDistributionFactory
@@ -28,28 +30,19 @@ class PolicyMCTSModel(MCTSModel):
         config: PolicyMCTSModelConfig = PolicyMCTSModelConfig(),
         DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
-        super().__init__(
-            game_spec=game_spec,
-            config=config
-        )
-
         if DistributionFactory is None:
             DistributionFactory = CombDistributionFactory
+
+        super().__init__(
+            game_spec=game_spec,
+            config=config,
+            DistributionFactory=DistributionFactory
+        )
 
         self.granularity = (config.distribution_config or DistributionFactory.CONFIG_CLASS()).granularity
         self.action_support = CombDistribution.generate_coefficients(
             self.action_range.reshape(2, -1).transpose(1, 0),
             granularity=self.granularity
-        )
-
-        self.distribution_factory = DistributionFactory(
-            move_spec=game_spec.move_spec,
-            config=DistributionFactory.CONFIG_CLASS(
-                **(
-                    config.distribution_config
-                    or {}
-                )
-            )
         )
 
         self.ent_coeff = config.ent_coeff
@@ -225,10 +218,7 @@ class PolicyMCTSModel(MCTSModel):
                     for policy in zip(*[
                         [
                             (
-                                value_to_support(
-                                    values=augmented_action.astype(np.float32),
-                                    support=self.action_support
-                                ),
+                                self.distribution_factory.parameterize(augmented_action),
                                 visits
                             )
                             for augmented_player, augmented_observation, augmented_action, augmented_reward

@@ -23,7 +23,7 @@ class DistributionFactory(ABC):
     @abstractproperty
     def parameters_shape(self) -> Tuple[int, ...]:
         ...
-    
+
     @abstractmethod
     def create_distribution(self, parameters: tf.Tensor) -> distributions.Distribution:
         ...
@@ -34,4 +34,9 @@ class DistributionFactory(ABC):
     
     def noise_off(self):
         """set exploration noise to initial value"""
+        ...
+    
+    @abstractmethod
+    def parameterize(self, actions: tf.Tensor) -> tf.Tensor:
+        """convert actions to parameters of the distribution"""
         ...

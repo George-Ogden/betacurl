@@ -9,11 +9,11 @@ class MCTSModelConfig(Config):
     feature_size: int = 64
     vf_coeff: float = .5
     max_grad_norm: float = .5    
+    distribution_config: Optional[DistributionConfig] = None
 
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 0.01
-    distribution_config: Optional[DistributionConfig] = None
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):

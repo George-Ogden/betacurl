@@ -8,11 +8,12 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from copy import copy
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple, Type, Union
 from abc import ABCMeta, abstractmethod
 
 from ...utils import support_to_value, value_to_support
 from ...model import CustomDecorator, TrainingConfig
+from ...distribution import DistributionFactory
 from ...utils import SaveableMultiModel
 from ...game import GameSpec
 
@@ -22,8 +23,19 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
     def __init__(
         self,
         game_spec: GameSpec,
-        config: MCTSModelConfig = MCTSModelConfig()
+        DistributionFactory: Type[DistributionFactory],
+        config: MCTSModelConfig = MCTSModelConfig(),
     ):
+        self.distribution_factory = DistributionFactory(
+            move_spec=game_spec.move_spec,
+            config=DistributionFactory.CONFIG_CLASS(
+                **(
+                    config.distribution_config
+                    or {}
+                )
+            )
+        )
+
         action_spec = game_spec.move_spec
         observation_spec = game_spec.observation_spec
 
@@ -98,6 +110,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
+        self.distribution_factory.noise_off()
         dataset = self.preprocess_data(
             training_data,
             augmentation_function,
@@ -105,7 +118,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         )
         assert len(dataset) > 0, "Dataset is empty"
 
-        return self.fit(dataset, training_config)
+        history = self.fit(dataset, training_config)
+        self.distribution_factory.noise_on()
+        return history
 
     def preprocess_data(
         self,

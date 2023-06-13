@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from dm_env.specs import BoundedArray
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 from ..utils import value_to_support
 
@@ -221,6 +221,10 @@ class CombDistributionFactory(DistributionFactory):
         self.action_range = np.stack((move_spec.minimum, move_spec.maximum), axis=0, dtype=np.float32)
         self.action_shape = move_spec.shape
         self.action_dim = self.action_range.ndim
+        self.action_support = CombDistribution.generate_coefficients(
+            self.action_range.reshape(2, -1).transpose(1, 0),
+            granularity=self.granularity
+        )
     
     def noise_off(self):
         """set exploration noise to 0"""
@@ -257,3 +261,12 @@ class CombDistributionFactory(DistributionFactory):
     @property
     def parameters_shape(self) -> Tuple[int, ...]:
         return self.action_shape + (self.granularity,)
+
+    def parameterize(self, actions: Union[tf.Tensor, np.ndarray]) -> tf.Tensor:
+        """convert actions to parameters of the distribution"""
+        if not isinstance(actions, tf.Tensor):
+            actions = tf.convert_to_tensor(actions, dtype=tf.float32)
+        return value_to_support(
+            values=actions,
+            support=self.action_support
+        )
