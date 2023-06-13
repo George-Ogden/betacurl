@@ -10,3 +10,6 @@ class DistributionConfig(Config):
 class CombDistributionConfig(DistributionConfig):
     granularity: int = 64
     noise_ratio: float = .05
+
+class NormalDistributionConfig(DistributionConfig):
+    ...

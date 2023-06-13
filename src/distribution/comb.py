@@ -6,8 +6,8 @@ from tensorflow.keras import losses
 import tensorflow as tf
 import numpy as np
 
+from typing import Dict, Optional, Tuple, Union
 from dm_env.specs import BoundedArray
-from typing import Dict, Tuple, Union
 
 from ..utils import value_to_support
 
@@ -153,7 +153,7 @@ class CombDistribution(distributions.Distribution):
             ),
             (-1, self.granularity)
         )
-    
+
         probability_coefficients = tf.reshape(
             value_to_support(
                 flat_action,
@@ -168,7 +168,7 @@ class CombDistribution(distributions.Distribution):
             ),
             action_shape
         )
-            
+
 
     def _mean(self) -> tf.Tensor:
         return tf.reshape(
@@ -219,25 +219,27 @@ class CombDistributionFactory(DistributionFactory):
         super().__init__(move_spec, config=config)
         self.granularity = config.granularity
         self.noise_ratio = config.noise_ratio
-        self.action_range = np.stack((move_spec.minimum, move_spec.maximum), axis=0, dtype=np.float32)
-        self.action_shape = move_spec.shape
-        self.action_dim = self.action_range.ndim
+
         self.action_support = CombDistribution.generate_coefficients(
             self.action_range.reshape(2, -1).transpose(1, 0),
             granularity=self.granularity
         )
-    
+
     def noise_off(self):
         """set exploration noise to 0"""
         self.noise_ratio = 0
-    
+
     def noise_on(self):
         """set exploration noise to initial value"""
         self.noise_ratio = self.config.noise_ratio
-    
-    def create_distribution(self, parameters: tf.Tensor) -> CombDistribution:
+
+    def create_distribution(
+        self,
+        parameters: tf.Tensor,
+        features: Optional[tf.Tensor] = None,
+    ) -> CombDistribution:
         parameters = tf.nn.softmax(parameters, axis=-1)
-        
+
         # add dirichlet noise for exploration
         dirichlet_distribution = distributions.Dirichlet(
             tf.constant(
@@ -258,7 +260,7 @@ class CombDistributionFactory(DistributionFactory):
             parameters,
             bounds=bounds
         )
-    
+
     @property
     def parameters_shape(self) -> Tuple[int, ...]:
         return self.action_shape + (self.granularity,)
@@ -288,4 +290,3 @@ class CombDistributionFactory(DistributionFactory):
             ),
             parameters._pdf
         )
-            

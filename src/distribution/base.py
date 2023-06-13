@@ -3,6 +3,7 @@ from __future__ import annotations
 from tensorflow_probability import distributions
 import tensorflow as tf
 from copy import copy
+import numpy as np
 
 from abc import ABC, abstractmethod, abstractproperty
 from typing import List, Optional, Tuple
@@ -19,13 +20,21 @@ class DistributionFactory(ABC):
     ):
         self.config = copy(config)
         self.move_spec = move_spec
+
+        self.action_range = np.stack((move_spec.minimum, move_spec.maximum), axis=0, dtype=np.float32)
+        self.action_shape = move_spec.shape
+        self.action_dim = self.action_range.ndim
     
     @abstractproperty
     def parameters_shape(self) -> Tuple[int, ...]:
         ...
 
     @abstractmethod
-    def create_distribution(self, parameters: tf.Tensor) -> distributions.Distribution:
+    def create_distribution(
+        self,
+        parameters: tf.Tensor,
+        features: Optional[tf.Tensor] = None
+    ) -> distributions.Distribution:
         ...
     
     def noise_on(self):
