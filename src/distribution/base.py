@@ -24,6 +24,15 @@ class DistributionFactory(ABC):
         self.action_range = np.stack((move_spec.minimum, move_spec.maximum), axis=0, dtype=np.float32)
         self.action_shape = move_spec.shape
         self.action_dim = self.action_range.ndim
+        self.noise_ratio = self.config.noise_ratio
+    
+    def noise_off(self):
+        """set exploration noise to 0"""
+        self.noise_ratio = 0
+
+    def noise_on(self):
+        """set exploration noise to initial value"""
+        self.noise_ratio = self.config.noise_ratio
     
     @abstractproperty
     def parameters_shape(self) -> Tuple[int, ...]:
@@ -35,14 +44,6 @@ class DistributionFactory(ABC):
         parameters: tf.Tensor,
         features: Optional[tf.Tensor] = None
     ) -> distributions.Distribution:
-        ...
-    
-    def noise_on(self):
-        """set exploration noise to 0"""
-        ...
-    
-    def noise_off(self):
-        """set exploration noise to initial value"""
         ...
     
     @abstractmethod
@@ -70,3 +71,12 @@ class DistributionFactory(ABC):
             parameters * counts,
             axis=-1
         ) / tf.reduce_sum(counts)
+
+    def generate_bounds(self, parameters: tf.Tensor) -> np.ndarray:
+        """generate bounds for the given parameters"""
+        action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
+        bounds = np.tile(
+            action_range,
+            parameters.shape[:-self.action_dim] + (1, ) * self.action_dim
+        )
+        return bounds

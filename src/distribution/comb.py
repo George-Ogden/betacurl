@@ -218,20 +218,11 @@ class CombDistributionFactory(DistributionFactory):
     ):
         super().__init__(move_spec, config=config)
         self.granularity = config.granularity
-        self.noise_ratio = config.noise_ratio
 
         self.action_support = CombDistribution.generate_coefficients(
             self.action_range.reshape(2, -1).transpose(1, 0),
             granularity=self.granularity
         )
-
-    def noise_off(self):
-        """set exploration noise to 0"""
-        self.noise_ratio = 0
-
-    def noise_on(self):
-        """set exploration noise to initial value"""
-        self.noise_ratio = self.config.noise_ratio
 
     def create_distribution(
         self,
@@ -251,11 +242,8 @@ class CombDistributionFactory(DistributionFactory):
         noise = dirichlet_distribution.sample(parameters.shape[:-1])
         parameters = parameters * (1 - self.noise_ratio) + noise * self.noise_ratio
 
-        action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
-        bounds = np.tile(
-            action_range,
-            parameters.shape[:-self.action_dim] + (1, ) * self.action_dim
-        )
+        bounds = self.generate_bounds(parameters)
+
         return CombDistribution(
             parameters,
             bounds=bounds

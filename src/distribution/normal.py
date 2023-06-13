@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 
 from dm_env.specs import BoundedArray
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 from .config import NormalDistributionConfig
 from .base import DistributionFactory
@@ -20,7 +20,6 @@ class ClippedNormalDistribution(distributions.Normal):
         super().__init__(loc=loc, scale=scale)
         self.bounds = tf.cast(bounds, dtype=self.dtype)
         assert bounds.shape[-1] == 2, "the bounds must come in pairs (min-max)"
-        batch_size = loc.shape
         assert self.bounds.shape[:-1] == loc.shape[1-self.bounds.ndim:], "the bounds must have the same batch size as the loc"
     
     def _sample_n(self, n, seed=None):
@@ -40,7 +39,12 @@ class NormalDistributionFactory(DistributionFactory):
     ):
         super().__init__(move_spec, config=config)
 
-    def create_distribution(self, parameters: tf.Tensor) -> distributions.Normal:
+    def create_distribution(
+        self,
+        parameters: tf.Tensor,
+        features: Optional[tf.Tensor] = None
+    ) -> distributions.Normal:
+        parameters += tf.random.normal(parameters.shape) * self.noise_ratio
         mean, std = tf.split(parameters, 2, axis=-1)
         
         std = tf.squeeze(std, axis=-1)
@@ -51,18 +55,14 @@ class NormalDistributionFactory(DistributionFactory):
         mean *= self.action_range[1] - self.action_range[0]
         mean += self.action_range[0]
 
-        action_range = np.transpose(self.action_range, (*range(1, self.action_dim), 0))
-        bounds = np.tile(
-            action_range,
-            parameters.shape[:-self.action_dim] + (1, ) * self.action_dim
-        )
+        bounds = self.generate_bounds(parameters)
 
         return ClippedNormalDistribution(
             loc=mean,
             scale=std,
             bounds=bounds
         )
-    
+
     @property
     def parameters_shape(self) -> Tuple[int, ...]:
         return self.action_shape + (2,)
