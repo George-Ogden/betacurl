@@ -10,8 +10,6 @@ from src.model.config import TrainingConfig
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...distribution import DistributionFactory, CombDistributionFactory
-from ...distribution.comb import CombDistribution # remove this import after refactoring
-from ...utils import value_to_support
 from ...game import GameSpec
 
 from .config import PolicyMCTSModelConfig
@@ -37,12 +35,6 @@ class PolicyMCTSModel(MCTSModel):
             game_spec=game_spec,
             config=config,
             DistributionFactory=DistributionFactory
-        )
-
-        self.granularity = (config.distribution_config or DistributionFactory.CONFIG_CLASS()).granularity
-        self.action_support = CombDistribution.generate_coefficients(
-            self.action_range.reshape(2, -1).transpose(1, 0),
-            granularity=self.granularity
         )
 
         self.ent_coeff = config.ent_coeff
@@ -149,7 +141,7 @@ class PolicyMCTSModel(MCTSModel):
             losses.categorical_crossentropy(
                 tf.reshape(
                     distribution,
-                    (-1, self.granularity),
+                    (-1, predicted_distribution._pdf.shape[-1]),
                 ),
                 predicted_distribution._pdf
             )
