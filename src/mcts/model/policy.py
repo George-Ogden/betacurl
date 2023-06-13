@@ -4,7 +4,7 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Callable, List, Optional, Tuple, Type, Union
 
 from src.model.config import TrainingConfig
 
@@ -133,17 +133,14 @@ class PolicyMCTSModel(MCTSModel):
     def compute_loss(
         self,
         observations: tf.Tensor,
-        distribution: tf.Tensor,
+        target_distribution: tf.Tensor,
         values: tf.Tensor,
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
         policy_loss = tf.reduce_mean(
-            losses.categorical_crossentropy(
-                tf.reshape(
-                    distribution,
-                    (-1, predicted_distribution._pdf.shape[-1]),
-                ),
-                predicted_distribution._pdf
+            self.distribution_factory.compute_loss(
+                target_distribution,
+                predicted_distribution
             )
         )
 

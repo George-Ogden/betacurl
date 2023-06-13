@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions, util
+from tensorflow.keras import losses
 import tensorflow as tf
 import numpy as np
 
@@ -262,7 +263,10 @@ class CombDistributionFactory(DistributionFactory):
     def parameters_shape(self) -> Tuple[int, ...]:
         return self.action_shape + (self.granularity,)
 
-    def parameterize(self, actions: Union[tf.Tensor, np.ndarray]) -> tf.Tensor:
+    def parameterize(
+        self,
+        actions: Union[tf.Tensor, np.ndarray]
+    ) -> tf.Tensor:
         """convert actions to parameters of the distribution"""
         if not isinstance(actions, tf.Tensor):
             actions = tf.convert_to_tensor(actions, dtype=tf.float32)
@@ -270,3 +274,18 @@ class CombDistributionFactory(DistributionFactory):
             values=actions,
             support=self.action_support
         )
+
+    def compute_loss(
+        self,
+        target_parameters: tf.Tensor,
+        parameters: distributions.Distribution
+    ) -> tf.Tensor:
+        assert isinstance(parameters, CombDistribution), "predicted distribution must be CombDistribution"
+        return losses.categorical_crossentropy(
+            tf.reshape(
+                target_parameters,
+                (-1, self.granularity),
+            ),
+            parameters._pdf
+        )
+            

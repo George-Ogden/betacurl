@@ -40,6 +40,14 @@ class DistributionFactory(ABC):
     def parameterize(self, actions: tf.Tensor) -> tf.Tensor:
         """convert actions to parameters of the distribution"""
         ...
+    
+    @abstractmethod
+    def compute_loss(
+        self,
+        target_parameters: tf.Tensor,
+        parameters: distributions.Distribution
+    ) -> tf.Tensor:
+        ...
 
     def aggregate_parameters(
         self,
