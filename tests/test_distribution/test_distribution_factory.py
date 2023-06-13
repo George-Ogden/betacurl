@@ -70,3 +70,17 @@ def test_distribution_noise_switching(DistributionFactory: Type[DistributionFact
     distribution3 = distribution_factory.create_distribution(parameters)
     distribution4 = distribution_factory.create_distribution(parameters)
     assert np.any(distribution3.kl_divergence(distribution4) > 0.)
+
+def test_parameterisation(DistributionFactory: Type[DistributionFactory]):
+    distribution_factory = DistributionFactory(
+        move_spec=move_spec
+    )
+    distribution_factory.noise_off()
+    parameters = tf.random.normal(distribution_factory.parameters_shape)
+    original_distribution = distribution_factory.create_distribution(parameters)
+    
+    sample = original_distribution.sample()
+    parameters = distribution_factory.parameterize(sample)
+    
+    new_distribution = distribution_factory.create_distribution(parameters)
+    assert new_distribution.sample().shape == sample.shape
