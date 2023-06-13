@@ -17,24 +17,24 @@ distribution_mapping = {
     CombDistributionFactory: CombDistribution
 }
 @pytest.fixture(params=list(distribution_mapping))
-def DistributionFactory(request):
+def Factory(request):
     return request.param
 
 default_config = DistributionConfig()
 
-def test_distribution_initialsation(DistributionFactory: Type[DistributionFactory]):
-    config = DistributionFactory.CONFIG_CLASS(
+def test_distribution_initialsation(Factory: Type[DistributionFactory]):
+    config = Factory.CONFIG_CLASS(
         **default_config
     )
     assert not type(config) is type(default_config)
-    distribution_factory = DistributionFactory(
+    distribution_factory = Factory(
         move_spec=move_spec,
         config=config
     )
     assert isinstance(distribution_factory, DistributionFactory)
 
-def test_distribution_parameters(DistributionFactory: Type[DistributionFactory]):
-    distribution_factory = DistributionFactory(
+def test_distribution_parameters(Factory: Type[DistributionFactory]):
+    distribution_factory = Factory(
         move_spec=move_spec
     )
     assert isinstance(distribution_factory.parameters_shape, tuple)
@@ -42,9 +42,9 @@ def test_distribution_parameters(DistributionFactory: Type[DistributionFactory])
         assert isinstance(shape, int)
         assert shape > 0
 
-def test_distribution_generation(DistributionFactory: Type[DistributionFactory]):
-    Distribution = distribution_mapping[DistributionFactory]
-    distribution_factory = DistributionFactory(
+def test_distribution_generation(Factory: Type[DistributionFactory]):
+    Distribution = distribution_mapping[Factory]
+    distribution_factory = Factory(
         move_spec=move_spec
     )
     parameter_shape = distribution_factory.parameters_shape
@@ -56,8 +56,8 @@ def test_distribution_generation(DistributionFactory: Type[DistributionFactory])
         for sample in distribution.sample().numpy().reshape((-1,) + move_spec.shape):
             move_spec.validate(sample)
 
-def test_distribution_noise_switching(DistributionFactory: Type[DistributionFactory]):
-    distribution_factory = DistributionFactory(
+def test_distribution_noise_switching(Factory: Type[DistributionFactory]):
+    distribution_factory = Factory(
         move_spec=move_spec
     )
     distribution_factory.noise_off()
@@ -71,8 +71,8 @@ def test_distribution_noise_switching(DistributionFactory: Type[DistributionFact
     distribution4 = distribution_factory.create_distribution(parameters)
     assert np.any(distribution3.kl_divergence(distribution4) > 0.)
 
-def test_parameterisation(DistributionFactory: Type[DistributionFactory]):
-    distribution_factory = DistributionFactory(
+def test_parameterisation(Factory: Type[DistributionFactory]):
+    distribution_factory = Factory(
         move_spec=move_spec
     )
     distribution_factory.noise_off()
