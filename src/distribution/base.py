@@ -27,3 +27,11 @@ class DistributionFactory(ABC):
     @abstractmethod
     def create_distribution(self, parameters: tf.Tensor) -> distributions.Distribution:
         ...
+    
+    def noise_on(self):
+        """set exploration noise to 0"""
+        ...
+    
+    def noise_off(self):
+        """set exploration noise to initial value"""
+        ...

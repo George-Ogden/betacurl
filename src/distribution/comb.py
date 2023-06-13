@@ -222,6 +222,14 @@ class CombDistributionFactory(DistributionFactory):
         self.action_shape = move_spec.shape
         self.action_dim = self.action_range.ndim
     
+    def noise_off(self):
+        """set exploration noise to 0"""
+        self.noise_ratio = 0
+    
+    def noise_on(self):
+        """set exploration noise to initial value"""
+        self.noise_ratio = self.config.noise_ratio
+    
     def create_distribution(self, parameters: tf.Tensor) -> CombDistribution:
         parameters = tf.nn.softmax(parameters, axis=-1)
         
