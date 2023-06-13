@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from typing import Type
 
@@ -53,4 +54,19 @@ def test_distribution_generation(DistributionFactory: Type[DistributionFactory])
     assert distribution.sample().shape[0:2] == (4, 2)
     for _ in range(100):
         for sample in distribution.sample().numpy().reshape((-1,) + move_spec.shape):
-            assert move_spec.validate(sample).all()
+            move_spec.validate(sample)
+
+def test_distribution_noise_switching(DistributionFactory: Type[DistributionFactory]):
+    distribution_factory = DistributionFactory(
+        move_spec=move_spec
+    )
+    distribution_factory.noise_off()
+    parameters = tf.random.normal(distribution_factory.parameters_shape)
+    distribution1 = distribution_factory.create_distribution(parameters)
+    distribution2 = distribution_factory.create_distribution(parameters)
+    assert np.allclose(distribution1.kl_divergence(distribution2), 0.)
+    
+    distribution_factory.noise_on()
+    distribution3 = distribution_factory.create_distribution(parameters)
+    distribution4 = distribution_factory.create_distribution(parameters)
+    assert np.any(distribution3.kl_divergence(distribution4) > 0.)
