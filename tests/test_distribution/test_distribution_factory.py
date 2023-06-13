@@ -84,3 +84,18 @@ def test_parameterisation(Factory: Type[DistributionFactory]):
     
     new_distribution = distribution_factory.create_distribution(parameters)
     assert new_distribution.sample().shape == sample.shape
+
+def test_aggregation(Factory: Type[DistributionFactory]):
+    distribution_factory = Factory(
+        move_spec=move_spec
+    )
+    parameters = [
+        (
+            tf.random.normal(distribution_factory.parameters_shape),
+            np.random.randint(1, 10)
+        )
+        for _ in range(10)
+    ]
+    aggregated_parameters = distribution_factory.aggregate_parameters(parameters)
+    assert aggregated_parameters.shape == distribution_factory.parameters_shape
+    distribution = distribution_factory.create_distribution(aggregated_parameters)
