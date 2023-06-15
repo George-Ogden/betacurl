@@ -59,8 +59,8 @@ class DistributionFactory(ABC):
     ) -> tf.Tensor:
         ...
 
+    @staticmethod
     def aggregate_parameters(
-        self,
         parameters: List[Tuple[tf.Tensor, int]]
     ) -> tf.Tensor:
         """return parameters for a new distribution that aggregates the given distributions weighted by their counts"""

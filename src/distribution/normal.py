@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from tensorflow_probability import distributions
+from tensorflow_probability import distributions, math
 import tensorflow as tf
 import numpy as np
 
 from dm_env.specs import BoundedArray
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from .config import NormalDistributionConfig
 from .base import DistributionFactory
@@ -71,11 +71,51 @@ class NormalDistributionFactory(DistributionFactory):
         self,
         actions: Union[tf.Tensor, np.ndarray]
     ) -> tf.Tensor:
-        ...
+        return tf.stack(
+            [
+                (   
+                    actions - self.action_range[0]
+                ) / (
+                    self.action_range[1] - self.action_range[0]
+                ),
+                math.softplus_inverse(tf.ones_like(actions))
+            ],
+            axis=-1
+        )
 
     def compute_loss(
         self,
         target_parameters: tf.Tensor,
         parameters: distributions.Distribution
     ) -> tf.Tensor:
-        ...
+        raise NotImplementedError("not implemented yet")
+    
+    @staticmethod
+    def aggregate_parameters(
+        parameters: List[Tuple[tf.Tensor, int]]
+    ) -> tf.Tensor:
+        parameters, counts = zip(*parameters)
+        parameters = tf.cast(tf.stack(parameters, axis=-1), dtype=tf.float32)
+        
+        means, stds = tf.split(parameters, 2, axis=-2)
+        means = tf.squeeze(means, axis=-2)
+        stds = tf.squeeze(stds, axis=-2)
+        stds = tf.nn.softplus(stds) + 1e-5
+        variances = tf.square(stds)
+
+        counts = tf.constant(counts, dtype=tf.float32)
+
+        return tf.stack(
+            (
+                tf.reduce_sum(
+                    means * counts,
+                    axis=-1
+                ) / tf.reduce_sum(counts),
+                math.softplus_inverse(
+                    tf.sqrt(
+                        tf.reduce_sum(variances * counts, axis=-1) / tf.reduce_sum(counts)
+                    )
+                )
+            ),
+            axis=-1
+        )
