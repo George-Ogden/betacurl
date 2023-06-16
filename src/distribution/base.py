@@ -16,7 +16,7 @@ class DistributionFactory(ABC):
     def __init__(
         self,
         move_spec: BoundedArray,
-        config: Optional[DistributionConfig]
+        config: DistributionConfig
     ):
         self.config = copy(config)
         self.move_spec = move_spec
