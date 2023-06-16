@@ -5,28 +5,28 @@ from typing import Type
 
 import pytest
 
-from src.distribution import DistributionFactory, NormalSDEDistributionFactory
-from src.distribution.config import SDEDistributionConfig
+from src.distribution import DistributionFactory, NormalSDNDistributionFactory
+from src.distribution.config import SDNDistributionConfig
 
 from tests.utils import MDPStubGame
 
 game = MDPStubGame(10)
 move_spec = game.game_spec.move_spec
 
-SDEDistributions = [
-    NormalSDEDistributionFactory
+SDNDistributions = [
+    NormalSDNDistributionFactory
 ]
 
-@pytest.fixture(params=SDEDistributions)
+@pytest.fixture(params=SDNDistributions)
 def Factory(request):
     return request.param
 
 def test_distribution_config(Factory: Type[DistributionFactory]):
     config = Factory.CONFIG_CLASS()
-    assert config.noise_ratio == SDEDistributionConfig.noise_ratio
+    assert config.noise_ratio == SDNDistributionConfig.noise_ratio
 
 def test_noise_continuation(Factory: Type[DistributionFactory]):
-    config: SDEDistributionConfig = Factory.CONFIG_CLASS(
+    config: SDNDistributionConfig = Factory.CONFIG_CLASS(
         exploration_steps=2
     )
     distribution_factory = Factory(

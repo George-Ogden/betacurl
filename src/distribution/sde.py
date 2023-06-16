@@ -5,16 +5,16 @@ import tensorflow as tf
 from typing import Optional, Tuple, Type
 from dm_env.specs import BoundedArray
 
-from .config import NormalSDEDistributionConfig, SDEDistributionConfig
+from .config import NormalSDNDistributionConfig, SDNDistributionConfig
 from .normal import NormalDistributionFactory
 from .base import DistributionFactory
 
-class SDEDistributionDecorator(DistributionFactory):
+class SDNDistributionDecorator(DistributionFactory):
     def __init__(
         self,
         Distribution: Type[DistributionFactory],
         move_spec: BoundedArray,
-        config: SDEDistributionConfig,
+        config: SDNDistributionConfig,
         *args, **kwargs
     ):
         self.noise_ratio = config.noise_ratio
@@ -78,11 +78,11 @@ class SDEDistributionDecorator(DistributionFactory):
     ) -> tf.Tensor:
         return self.distribution.compute_loss(target_parameters, parameters)
 
-class NormalSDEDistributionFactory(SDEDistributionDecorator):
-    CONFIG_CLASS = NormalSDEDistributionConfig
+class NormalSDNDistributionFactory(SDNDistributionDecorator):
+    CONFIG_CLASS = NormalSDNDistributionConfig
     def __init__(
         self,
         move_spec: BoundedArray,
-        config: SDEDistributionConfig = SDEDistributionConfig()
+        config: SDNDistributionConfig = SDNDistributionConfig()
     ):
         super().__init__(NormalDistributionFactory, move_spec=move_spec, config=config)

@@ -6,7 +6,7 @@ from typing import Type
 
 import pytest
 
-from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory, NormalDistributionFactory, NormalSDEDistributionFactory
+from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory, NormalDistributionFactory, NormalSDNDistributionFactory
 from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
@@ -17,7 +17,7 @@ move_spec = game.game_spec.move_spec
 distribution_mapping = {
     CombDistributionFactory: CombDistribution,
     NormalDistributionFactory: distributions.Normal,
-    NormalSDEDistributionFactory: distributions.Normal
+    NormalSDNDistributionFactory: distributions.Normal
 }
 @pytest.fixture(params=list(distribution_mapping))
 def Factory(request):
@@ -76,7 +76,7 @@ def test_distribution_noise_switching(Factory: Type[DistributionFactory]):
     
     distribution_factory.noise_on()
     distribution_3 = distribution_factory.create_distribution(parameters, features=features)
-    distribution_factory.noise_on() # SDE requires resetting noise for difference 
+    distribution_factory.noise_on() # SDN requires resetting noise for difference 
     distribution_4 = distribution_factory.create_distribution(parameters, features=features)
     assert np.any(distribution_3.kl_divergence(distribution_4) > 0.)
 
