@@ -52,7 +52,8 @@ def test_distribution_generation(Factory: Type[DistributionFactory]):
     )
     parameter_shape = distribution_factory.parameters_shape
     random_parameters = tf.random.normal((4, 2) + parameter_shape)
-    distribution = distribution_factory.create_distribution(random_parameters)
+    random_features = tf.random.normal((4, 2, 32))
+    distribution = distribution_factory.create_distribution(random_parameters, features=random_features)
     assert isinstance(distribution, Distribution)
     assert distribution.sample().shape[0:2] == (4, 2)
     for _ in range(100):
@@ -61,18 +62,23 @@ def test_distribution_generation(Factory: Type[DistributionFactory]):
 
 def test_distribution_noise_switching(Factory: Type[DistributionFactory]):
     distribution_factory = Factory(
-        move_spec=move_spec
+        move_spec=move_spec,
+        config=Factory.CONFIG_CLASS(
+            noise_ratio=1.
+        )
     )
     distribution_factory.noise_off()
     parameters = tf.random.normal(distribution_factory.parameters_shape)
-    distribution1 = distribution_factory.create_distribution(parameters)
-    distribution2 = distribution_factory.create_distribution(parameters)
-    assert np.allclose(distribution1.kl_divergence(distribution2), 0.)
+    features = tf.random.normal((32,))
+    distribution_1 = distribution_factory.create_distribution(parameters, features=features)
+    distribution_2 = distribution_factory.create_distribution(parameters, features=features)
+    assert np.allclose(distribution_1.kl_divergence(distribution_2), 0.)
     
     distribution_factory.noise_on()
-    distribution3 = distribution_factory.create_distribution(parameters)
-    distribution4 = distribution_factory.create_distribution(parameters)
-    assert np.any(distribution3.kl_divergence(distribution4) > 0.)
+    distribution_3 = distribution_factory.create_distribution(parameters, features=features)
+    distribution_factory.noise_on() # SDE requires resetting noise for difference 
+    distribution_4 = distribution_factory.create_distribution(parameters, features=features)
+    assert np.any(distribution_3.kl_divergence(distribution_4) > 0.)
 
 def test_parameterisation(Factory: Type[DistributionFactory]):
     distribution_factory = Factory(
@@ -80,12 +86,13 @@ def test_parameterisation(Factory: Type[DistributionFactory]):
     )
     distribution_factory.noise_off()
     parameters = tf.random.normal(distribution_factory.parameters_shape)
-    original_distribution = distribution_factory.create_distribution(parameters)
+    features = tf.random.normal((32,))
+    original_distribution = distribution_factory.create_distribution(parameters, features=features)
     
     sample = original_distribution.sample()
     parameters = distribution_factory.parameterize(sample)
     
-    new_distribution = distribution_factory.create_distribution(parameters)
+    new_distribution = distribution_factory.create_distribution(parameters, features=features)
     assert new_distribution.sample().shape == sample.shape
 
 def test_aggregation(Factory: Type[DistributionFactory]):
@@ -101,4 +108,4 @@ def test_aggregation(Factory: Type[DistributionFactory]):
     ]
     aggregated_parameters = distribution_factory.aggregate_parameters(parameters)
     assert aggregated_parameters.shape == distribution_factory.parameters_shape
-    distribution = distribution_factory.create_distribution(aggregated_parameters)
+    distribution = distribution_factory.create_distribution(aggregated_parameters, features=tf.random.normal((32,)))
