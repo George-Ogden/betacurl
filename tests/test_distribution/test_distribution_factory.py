@@ -1,3 +1,4 @@
+from tensorflow_probability import distributions
 import tensorflow as tf
 import numpy as np
 
@@ -5,7 +6,7 @@ from typing import Type
 
 import pytest
 
-from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory
+from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory, NormalDistributionFactory
 from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
@@ -14,7 +15,8 @@ game = MDPStubGame(10)
 move_spec = game.game_spec.move_spec
 
 distribution_mapping = {
-    CombDistributionFactory: CombDistribution
+    CombDistributionFactory: CombDistribution,
+    NormalDistributionFactory: distributions.Normal
 }
 @pytest.fixture(params=list(distribution_mapping))
 def Factory(request):
