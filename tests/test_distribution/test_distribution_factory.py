@@ -6,7 +6,7 @@ from typing import Type
 
 import pytest
 
-from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory, NormalDistributionFactory
+from src.distribution import DistributionFactory, DistributionConfig, CombDistributionFactory, NormalDistributionFactory, NormalSDEDistributionFactory
 from src.distribution.comb import CombDistribution
 
 from tests.utils import MDPStubGame
@@ -16,7 +16,8 @@ move_spec = game.game_spec.move_spec
 
 distribution_mapping = {
     CombDistributionFactory: CombDistribution,
-    NormalDistributionFactory: distributions.Normal
+    NormalDistributionFactory: distributions.Normal,
+    NormalSDEDistributionFactory: distributions.Normal
 }
 @pytest.fixture(params=list(distribution_mapping))
 def Factory(request):
