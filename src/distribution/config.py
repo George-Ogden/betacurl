@@ -16,8 +16,9 @@ class NormalDistributionConfig(DistributionConfig):
 
 @dataclass
 class SDEDistributionConfig(DistributionConfig):
-    noise_ratio: float = .1
+    noise_ratio: float = 1e-6
+    exploration_steps: int = 1000
 
 @dataclass
-class NormalSDEDistributionConfig(NormalDistributionConfig, SDEDistributionConfig):
+class NormalSDEDistributionConfig(SDEDistributionConfig, NormalDistributionConfig):
     ...
