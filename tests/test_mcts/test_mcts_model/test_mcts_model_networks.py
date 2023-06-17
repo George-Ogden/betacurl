@@ -5,6 +5,7 @@ from dm_env.specs import Array, BoundedArray
 from pytest import mark, fixture
 
 from src.mcts import MCTSModel, PolicyMCTSModel, PPOMCTSModel, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.distribution import DistributionConfig
 from src.model import DenseModelFactory
 from src.game import GameSpec
 
@@ -22,7 +23,14 @@ observation_spec = game_spec.observation_spec
     ReinforceMCTSModel
 ])
 def model(request):
-    return request.param(game_spec)
+    return request.param(
+        game_spec,
+        config=request.param.CONFIG_CLASS(
+            distribution_config=DistributionConfig(
+                noise_ratio=0.
+            )
+        )
+    )
 
 def test_value_network(model: MCTSModel):
     observation = game.get_observation()

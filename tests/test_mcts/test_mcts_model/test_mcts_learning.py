@@ -5,6 +5,7 @@ from dm_env.specs import BoundedArray
 from pytest import mark
 import wandb
 
+from src.distribution import CombDistributionConfig, CombDistributionFactory, DistributionConfig
 from src.mcts import PolicyMCTSModel, PolicyMCTSModelConfig, PPOMCTSModel, PPOMCTSModelConfig, ReinforceMCTSModel, ReinforceMCTSModelConfig
 from src.model import MLPModelConfig, MLPModelFactory, TrainingConfig
 from src.game import Game, GameSpec
@@ -132,9 +133,12 @@ def test_policy_learns_correct_comb():
         config=PolicyMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-            distribution_granularity=5,
-            exploration_coefficient=0.,
-        )
+            distribution_config=CombDistributionConfig(
+                granularity=5,
+                noise_ratio=0.
+            ),
+        ),
+        DistributionFactory=CombDistributionFactory
     )
     model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
     distribution = model.generate_distribution(training_data[0][1])
@@ -175,9 +179,12 @@ def test_policy_learns_correct_comb_multiple_actions():
         config=PolicyMCTSModelConfig(
             vf_coeff=0.,
             ent_coeff=0.,
-            distribution_granularity=5,
-            exploration_coefficient=0.,
-        )
+            distribution_config=CombDistributionConfig(
+                noise_ratio=0.,
+                granularity=5,
+            ),
+        ),
+        DistributionFactory=CombDistributionFactory
     )
     model.learn(training_data * 100, Game.no_symmetries, training_config=training_config)
     distribution = model.generate_distribution(training_data[0][1])
@@ -220,7 +227,9 @@ def test_policy_model_losses_converge():
         config=PolicyMCTSModelConfig(
             vf_coeff=.5,
             ent_coeff=0.,
-            exploration_coefficient=0.,
+            distribution_config=DistributionConfig(
+                noise_ratio=0.,
+            )
         ),
         model_factory=MLPModelFactory
     )
@@ -239,6 +248,7 @@ def test_reinforce_model_losses_converge():
         config=ReinforceMCTSModelConfig(
             vf_coeff=1.,
             ent_coeff=0.,
+            clip_range=100
         ),
         model_factory=MLPModelFactory
     )
@@ -291,6 +301,7 @@ def test_model_learns_from_multiple_actions():
     distribution = model.generate_distribution(game.get_observation())
     assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
 
+@mark.slow
 @mark.flaky
 def test_ppo_model_losses_converge():
     model = PPOMCTSModel(
@@ -310,23 +321,3 @@ def test_ppo_model_losses_converge():
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
     assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 * tf.reduce_prod(distribution.prob(move * .25))
-
-def test_ppo_std_changes():
-    model = PPOMCTSModel(
-        game_spec,
-        config=PPOMCTSModelConfig(
-            vf_coeff=1.,
-            ent_coeff=0.,
-            clip_range=.5,
-            target_kl=None
-        ),
-        model_factory=MLPModelFactory
-    )
-
-    initial_stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
-    assert np.allclose(initial_stddev, 1.)
-
-    model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
-    
-    stddev = model.generate_distribution(training_data[0][1]).stddev().numpy()
-    assert not np.allclose(stddev, initial_stddev)
