@@ -224,7 +224,7 @@ class CombDistributionFactory(DistributionFactory):
             granularity=self.granularity
         )
 
-    def create_distribution(
+    def _create_distribution(
         self,
         parameters: tf.Tensor,
         features: Optional[tf.Tensor] = None,

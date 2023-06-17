@@ -38,8 +38,20 @@ class DistributionFactory(ABC):
     def parameters_shape(self) -> Tuple[int, ...]:
         ...
 
-    @abstractmethod
     def create_distribution(
+        self,
+        parameters: tf.Tensor,
+        features: Optional[tf.Tensor] = None
+    ) -> distributions.Distribution:
+        """create a distribution from the given parameters"""
+        parameter_ndim = len(self.parameters_shape)
+        assert parameters.shape[-parameter_ndim:] == self.parameters_shape, "parameters shape does not match distribution"
+        if features is not None:
+            assert parameters.shape[:-parameter_ndim] == features.shape[:-1], "`features` shape does not match parameters"
+        return self._create_distribution(parameters, features=features)
+    
+    @abstractmethod
+    def _create_distribution(
         self,
         parameters: tf.Tensor,
         features: Optional[tf.Tensor] = None

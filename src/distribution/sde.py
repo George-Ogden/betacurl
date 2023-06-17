@@ -58,14 +58,13 @@ class SDNDistributionDecorator(DistributionFactory):
     def parameters_shape(self) -> Tuple[int, ...]:
         return self.distribution.parameters_shape
 
-    def create_distribution(
+    def _create_distribution(
         self,
         parameters: tf.Tensor,
         features: Optional[tf.Tensor] = None
     ) -> distributions.Distribution:
-        assert features is not None, "features must be provided"
         parameters += self.generate_noise(features)
-        return self.distribution.create_distribution(parameters, features)
+        return self.distribution._create_distribution(parameters, features)
 
     def parameterize(self, actions: tf.Tensor) -> tf.Tensor:
         """convert actions to parameters of the distribution"""

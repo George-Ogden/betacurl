@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tensorflow_probability import distributions, math
+from tensorflow_probability import distributions, math, util
 import tensorflow as tf
 import numpy as np
 
@@ -15,12 +15,49 @@ class ClippedNormalDistribution(distributions.Normal):
         self,
         loc: tf.Tensor,
         scale: tf.Tensor,
-        bounds: tf.Tensor
+        *args,
+        **kwargs
     ):
-        super().__init__(loc=loc, scale=scale)
-        self.bounds = tf.cast(bounds, dtype=self.dtype)
+        """either specify `bounds` or `lower_bound` and `upper_bound`"""
+        # parameters must all have the same shape so the lower/upper bounds is a workaround
+        
+        if "bounds" in kwargs:
+            bounds = kwargs.pop("bounds")
+        elif len(args) == 1:
+            bounds = args[0]
+            args = ()
+        elif len(args) == 2:
+            bounds = tf.stack(args, axis=-1)
+            args = ()
+        else:
+            assert "lower_bound" in kwargs and "upper_bound" in kwargs, "either `bounds` or `lower_bound` and `upper_bound` must be given"
+            lower_bound = kwargs.pop("lower_bound")
+            upper_bound = kwargs.pop("upper_bound")
+            bounds = tf.stack((lower_bound, upper_bound), axis=-1)
+        
         assert bounds.shape[-1] == 2, "the bounds must come in pairs (min-max)"
-        assert self.bounds.shape[:-1] == loc.shape[1-self.bounds.ndim:], "the bounds must have the same batch size as the loc"
+        assert bounds.shape[:-1] == loc.shape[1-bounds.ndim:], "the bounds must have the same batch size as the loc"
+        
+        super().__init__(loc=loc, scale=scale, **kwargs)
+        
+        self.bounds = tf.cast(bounds, dtype=self.dtype)
+        
+        lower_bound, upper_bound = tf.split(self.bounds, 2, axis=-1)
+        self.lower_bound = tf.squeeze(lower_bound, axis=-1)
+        self.upper_bound = tf.squeeze(upper_bound, axis=-1)
+
+        self._parameters["lower_bound"] = self.lower_bound
+        self._parameters["upper_bound"] = self.upper_bound
+    
+    @classmethod
+    def _parameter_properties(cls, dtype, num_classes=None):
+        return super()._parameter_properties(
+            dtype=dtype,
+            num_classes=num_classes
+        ) | dict(
+            lower_bound=util.ParameterProperties(),
+            upper_bound=util.ParameterProperties()
+        )
     
     def _sample_n(self, n, seed=None):
         sample = super()._sample_n(n, seed=seed)
@@ -39,7 +76,7 @@ class NormalDistributionFactory(DistributionFactory):
     ):
         super().__init__(move_spec, config=config)
 
-    def create_distribution(
+    def _create_distribution(
         self,
         parameters: tf.Tensor,
         features: Optional[tf.Tensor] = None

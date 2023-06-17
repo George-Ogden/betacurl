@@ -1,4 +1,3 @@
-from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
 from tensorflow import data
@@ -8,7 +7,7 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from copy import copy
 
-from typing import Callable, List, Tuple, Type, Union
+from typing import Callable, Optional, List, Tuple, Type, Union
 from abc import ABCMeta, abstractmethod
 
 from ...utils import support_to_value, value_to_support
@@ -20,12 +19,16 @@ from ...game import GameSpec
 from .config import MCTSModelConfig
 
 class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
+    CONFIG_CLASS = MCTSModelConfig
     def __init__(
         self,
         game_spec: GameSpec,
         DistributionFactory: Type[DistributionFactory],
-        config: MCTSModelConfig = MCTSModelConfig(),
+        config: Optional[MCTSModelConfig] = None,
     ):
+        if config is None:
+            config = self.CONFIG_CLASS()
+
         self.distribution_factory = DistributionFactory(
             move_spec=game_spec.move_spec,
             config=DistributionFactory.CONFIG_CLASS(
