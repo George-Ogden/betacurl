@@ -14,7 +14,7 @@ def support_to_value(coefficients: tf.Tensor, support: tf.Tensor) -> tf.Tensor:
     if support.ndim == 1:
         support = tf.tile(
             support[tf.newaxis, :],
-            [coefficients.shape[0], 1]
+            [coefficients.shape[-2], 1]
         )
     assert support.ndim == 2, "support must be 1 or 2 dimensional"
     assert support.shape[-1] == coefficients.shape[-1], "support and coefficients must match"
