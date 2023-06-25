@@ -1,6 +1,6 @@
 import wandb
 
-from src.coach import Coach, CoachConfig
+from src.coach import SinglePlayerCoach, SinglePlayerCoachConfig
 from src.mcts import PolicyMCTSModel
 from src.utils import ParserBuilder
 from src.game import MujocoGame
@@ -14,8 +14,8 @@ def main(args):
         task_name=args.task_name,
     )
 
-    coach_config = CoachConfig.from_args(args)
-    coach = Coach(
+    coach_config = SinglePlayerCoachConfig.from_args(args)
+    coach = SinglePlayerCoach(
         game=env,
         config=coach_config,
         ModelClass=PolicyMCTSModel,
@@ -24,7 +24,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ParserBuilder().add_dataclass(
-        CoachConfig()
+        SinglePlayerCoachConfig()
     ).add_argument(
         name="domain_name",
         help="mujoco domain",
