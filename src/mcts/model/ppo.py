@@ -4,8 +4,8 @@ import numpy as np
 
 from typing import Callable, Optional, List, Tuple, Type
 
-from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
-from ...distribution import DistributionFactory
+from ...distribution import DistributionFactory, NormalSDNDistributionFactory
+from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import PPOMCTSModelConfig
@@ -21,6 +21,9 @@ class PPOMCTSModel(ReinforceMCTSModel):
         config: Optional[PPOMCTSModelConfig] = None,
         DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
+        if DistributionFactory is None:
+            DistributionFactory = NormalSDNDistributionFactory
+
         super().__init__(
             game_spec,
             model_factory,

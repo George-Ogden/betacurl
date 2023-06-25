@@ -8,7 +8,7 @@ class DistributionConfig(Config):
 
 @dataclass
 class CombDistributionConfig(DistributionConfig):
-    granularity: int = 64
+    granularity: int = 16
 
 @dataclass
 class NormalDistributionConfig(DistributionConfig):

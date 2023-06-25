@@ -9,7 +9,7 @@ class MCTSConfig(Config):
 
 @dataclass
 class FixedMCTSConfig(MCTSConfig):
-    num_actions: int = 24
+    num_actions: int = 8
 
 @dataclass
 class WideningMCTSConfig(MCTSConfig):

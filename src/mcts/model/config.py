@@ -1,8 +1,8 @@
-from typing import ClassVar, Optional
 from dataclasses import dataclass
+from typing import Optional
 
-from ...utils import Config
 from ...distribution import DistributionConfig
+from ...utils import Config
 
 @dataclass
 class MCTSModelConfig(Config):
@@ -13,7 +13,7 @@ class MCTSModelConfig(Config):
 
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
-    ent_coeff: float = 0.01
+    ent_coeff: float = 0.05
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
