@@ -13,7 +13,7 @@ class MCTSModelConfig(Config):
 
 @dataclass
 class PolicyMCTSModelConfig(MCTSModelConfig):
-    ent_coeff: float = 0.05
+    ent_coeff: float = 1e-3
 
 @dataclass
 class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):

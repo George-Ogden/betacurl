@@ -4,7 +4,7 @@ import numpy as np
 
 from typing import Callable, Optional, List, Tuple, Type
 
-from ...distribution import DistributionFactory, NormalSDNDistributionFactory
+from ...distribution import DistributionFactory, NormalDistributionFactory
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
@@ -22,7 +22,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
         DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
         if DistributionFactory is None:
-            DistributionFactory = NormalSDNDistributionFactory
+            DistributionFactory = NormalDistributionFactory
 
         super().__init__(
             game_spec,
