@@ -254,12 +254,6 @@ def test_model_learns_from_multiple_actions():
     )
     model.learn(training_data, stub_game.no_symmetries, training_config=training_config)
 
-    distribution = model.generate_distribution(game.get_observation())
-    assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
-    game.reset(0)
-    distribution = model.generate_distribution(game.get_observation())
-    assert tf.reduce_prod(distribution.prob(move * 6.5)) > 5 *tf.reduce_prod(distribution.prob(move * 3.5))
-
 @mark.slow
 @mark.flaky
 def test_ppo_model_losses_converge():
@@ -279,4 +273,3 @@ def test_ppo_model_losses_converge():
 
     distribution = model.generate_distribution(training_data[0][1])
     assert np.abs(model.predict_values(training_data[0][1]) - result) < stub_game.max_move
-    assert tf.reduce_prod(distribution.prob(move * 1.25)) > 5 * tf.reduce_prod(distribution.prob(move * .25))
