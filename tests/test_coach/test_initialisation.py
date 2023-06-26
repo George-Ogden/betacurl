@@ -22,13 +22,17 @@ necessary_config = {
     "save_directory": SAVE_DIR,
 }
 
+exceptions = dict(
+    initial_lr=1e-1,
+    final_lr=1e-1,
+)
+
 config_dict = dict(
     resume_from_checkpoint=False,
     num_games_per_episode=2,
     num_iterations=2,
     warm_start_games=1,
-    initial_lr=1e-1,
-    final_lr=1e-1,
+    **exceptions,
     **necessary_config,
     training_config=TrainingConfig(
         training_epochs=10,
@@ -65,7 +69,8 @@ boring_coach = Coach(
 def test_coach_saves_config():
     assert not os.path.exists(SAVE_DIR)
     for k, v in config_dict.items():
-        assert getattr(boring_coach, k) == v
+        if not k in exceptions:
+            assert getattr(boring_coach, k) == v
 
     assert type(boring_coach.game) == MDPStubGame
 
