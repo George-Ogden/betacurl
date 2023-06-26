@@ -2,7 +2,6 @@ import wandb
 
 from src.coach import PPOCoach, PPOCoachConfig
 from src.utils import ParserBuilder
-from src.mcts import PPOMCTSModel
 from src.game import MujocoGame
 
 def main(args):
@@ -17,8 +16,7 @@ def main(args):
     coach_config = PPOCoachConfig.from_args(args)
     coach = PPOCoach(
         game=env,
-        config=coach_config,
-        ModelClass=PPOMCTSModel,
+        config=coach_config
     )
     coach.learn()
 

@@ -1,10 +1,10 @@
+from copy import copy, deepcopy
 from tqdm import trange
 import numpy as np
+import wandb
 import os
-from copy import deepcopy
 
 from typing import List, Optional, Tuple, Type
-from copy import copy
 
 from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, PolicyMCTSModel, Transition
 from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
@@ -144,15 +144,21 @@ class Coach(SaveableObject):
         self.training_config.lr = self.lr_schedule[iteration]
         self.player.learn(train_examples, self.game.get_symmetries, self.training_config)
 
-        self.save_model(current_iteration=iteration)
+        if iteration % self.save_frequency == 0:
+            score = self.evaluate()
+            if score is not None:
+                wandb.log({"eval_score": score})
+            self.save_model(current_iteration=iteration, score=score)
+        
+    def evaluate(self) -> Optional[float]:
+        ...
 
-    def save_model(self, current_iteration: int):
+    def save_model(self, current_iteration: int, score: Optional[float]=None):
         if not os.path.exists(self.save_directory):
             os.mkdir(self.save_directory)
 
-        if current_iteration % self.save_frequency == 0:
-            print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
-            self.save(self.get_checkpoint_path(current_iteration))
+        print(f"Saving model after {current_iteration} learning iteration{'s' * (current_iteration != 1)}")
+        self.save(self.get_checkpoint_path(current_iteration))
         self.save(self.get_last_checkpoint_path())
 
     def transform_history_for_training(

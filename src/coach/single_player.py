@@ -1,8 +1,7 @@
 import numpy as np
-import wandb
 import os
 
-from typing import List, Tuple, Type
+from typing import Optional, List, Tuple, Type
 
 from ..mcts import Node, ReinforceMCTSModel, Transition
 from ..player import Arena
@@ -20,7 +19,7 @@ class SinglePlayerCoach(Coach):
     ):
         super().__init__(game=game, config=config, ModelClass=ModelClass)
         self.eval_environment = game.clone()
-        self.best_reward = -float("inf")
+        self.best_score = -float("inf")
         assert self.game.num_players == 1, f"the `{type(self).__name__}` class is for single player games only"
     
     def set_config(self, config: SinglePlayerCoachConfig):
@@ -33,12 +32,10 @@ class SinglePlayerCoach(Coach):
     def get_best_checkpoint_path(self) -> str:
         return os.path.join(self.save_directory, self.best_checkpoint_filename)
     
-    def save_model(self, current_iteration: int):
-        super().save_model(current_iteration)
-        reward = self.evaluate()
-        wandb.log({"eval_reward": reward})
-        if reward > self.best_reward:
-            self.best_reward = reward
+    def save_model(self, current_iteration: int, score: Optional[float]=None):
+        super().save_model(current_iteration, score=score)
+        if score is not None and score > self.best_score:
+            self.best_score = score
             self.save(self.get_best_checkpoint_path())
     
     def evaluate(self) -> float:

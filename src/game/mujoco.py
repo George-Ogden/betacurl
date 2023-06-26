@@ -8,7 +8,7 @@ from .game import Game, GameSpec
 
 class MujocoGame(Game):
     player_deltas = [1]
-    discount = .9
+    discount = .95
     time_limit = 10.
     timestep = .1
     def __init__(self, domain_name: str, task_name: str):
@@ -18,8 +18,7 @@ class MujocoGame(Game):
             domain_name=domain_name,
             task_name=task_name,
             task_kwargs={
-                "random": True,
-                "time_limit": self.time_limit
+                "random": True
             },
             environment_kwargs={
                 "control_timestep": self.timestep,
@@ -36,7 +35,7 @@ class MujocoGame(Game):
                 dtype=np.float32
             )
         )
-        self.max_round = int(self.env._step_limit)
+        self.max_round = int(self.time_limit / self.timestep)
         self.reset()
     
     def _reset(self):

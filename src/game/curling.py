@@ -66,12 +66,12 @@ class SingleEndCurlingGame(Game):
 
     def get_stone_positions(self, stones: List[Stone]) -> np.ndarray:
         positions = np.concatenate([stone.position for stone in stones]) if len(stones) > 0 else np.zeros(())
-        positions.resize(self.num_stones_per_end)
+        positions.resize(self.num_stones_per_end, refcheck=False)
         return positions
 
     def get_stone_mask(self, stones: List[Stone]) -> np.ndarray:
         stone_mask = np.ones(len(stones))
-        stone_mask.resize(self.num_stones_per_end // 2)
+        stone_mask.resize(self.num_stones_per_end // 2, refcheck=False)
         return stone_mask
 
     def _step(self, action: np.ndarray, display: bool = False) -> Optional[float]:

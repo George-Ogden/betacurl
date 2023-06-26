@@ -1,4 +1,3 @@
-from tensorflow_probability.python.internal import dtype_util
 from tensorflow_probability import distributions
 from tensorflow.keras import callbacks
 from tensorflow import data
@@ -8,26 +7,44 @@ import numpy as np
 from dm_env.specs import BoundedArray
 from copy import copy
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, Optional, List, Tuple, Type, Union
 from abc import ABCMeta, abstractmethod
 
+from ...utils import support_to_value, value_to_support
 from ...model import CustomDecorator, TrainingConfig
+from ...distribution import DistributionFactory
 from ...utils import SaveableMultiModel
 from ...game import GameSpec
 
 from .config import MCTSModelConfig
 
 class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
+    CONFIG_CLASS = MCTSModelConfig
     def __init__(
         self,
         game_spec: GameSpec,
-        config: MCTSModelConfig = MCTSModelConfig()
+        DistributionFactory: Type[DistributionFactory],
+        config: Optional[MCTSModelConfig] = None,
     ):
+        if config is None:
+            config = self.CONFIG_CLASS()
+
+        self.distribution_factory = DistributionFactory(
+            move_spec=game_spec.move_spec,
+            config=DistributionFactory.CONFIG_CLASS(
+                **(
+                    config.distribution_config
+                    or {}
+                )
+            )
+        )
+
         action_spec = game_spec.move_spec
         observation_spec = game_spec.observation_spec
 
         self.action_range = np.stack((action_spec.minimum, action_spec.maximum), axis=0, dtype=np.float32)
         self.action_shape = action_spec.shape
+        self.action_dim = self.action_range.ndim
         self.observation_range = (
             np.stack((observation_spec.minimum, observation_spec.maximum), axis=0)
             if isinstance(observation_spec, BoundedArray)
@@ -96,6 +113,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> callbacks.History:
+        self.distribution_factory.noise_off()
         dataset = self.preprocess_data(
             training_data,
             augmentation_function,
@@ -103,7 +121,9 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         )
         assert len(dataset) > 0, "Dataset is empty"
 
-        return self.fit(dataset, training_config)
+        history = self.fit(dataset, training_config)
+        self.distribution_factory.noise_on()
+        return history
 
     def preprocess_data(
         self,
@@ -135,48 +155,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
         ) + 0.001 * values
 
     def logits_to_values(self, logits: tf.Tensor) -> tf.Tensor:
-        """convert logits to values
-
-        Args:
-            logits (tf.Tensor): support logits
-
-        Returns:
-            tf.Tensor: scaled values
-        """
-        return tf.reduce_sum(
-            logits * self.value_coefficients,
-            axis=-1
-        )
+        return support_to_value(logits, self.value_coefficients)
 
     def values_to_logits(self, values: tf.Tensor) -> tf.Tensor:
-        """convert values to logits
-
-        Args:
-            values (tf.Tensor): scaled values
-
-        Returns:
-            tf.Tensor: distribution of support coefficients
-        """
-        upper_bounds = tf.searchsorted(
-            self.value_coefficients,
-            values,
-            side="left"
-        )
-        lower_bounds = upper_bounds - 1
-        # linear interpolate between lower and upper bound values
-        interpolation = (
-            values - tf.gather(self.value_coefficients, lower_bounds)
-        ) / (
-            tf.gather(self.value_coefficients, upper_bounds) - tf.gather(self.value_coefficients, lower_bounds)
-        )
-        interpolation = interpolation[:, tf.newaxis]
-        logits = tf.one_hot(
-            lower_bounds,
-            depth=len(self.value_coefficients),
-            dtype=tf.float32
-        ) * (1 - interpolation) + tf.one_hot(
-            upper_bounds,
-            depth=len(self.value_coefficients),
-            dtype=tf.float32
-        ) * interpolation
-        return logits
+        return value_to_support(values, self.value_coefficients)

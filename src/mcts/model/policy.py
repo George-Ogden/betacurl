@@ -4,16 +4,19 @@ from tensorflow import data, keras
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Type, Union
+
+from src.model.config import TrainingConfig
 
 from ...model import DenseModelFactory, ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...distribution import DistributionFactory, CombDistributionFactory
 from ...game import GameSpec
 
 from .config import PolicyMCTSModelConfig
-from .fourier import FourierDistribution
 from .base import MCTSModel
 
 class PolicyMCTSModel(MCTSModel):
+    CONFIG_CLASS = PolicyMCTSModelConfig
     MODELS = {
         "feature_extractor": "feature_extractor.h5",
         "policy_head": "policy.h5",
@@ -23,13 +26,19 @@ class PolicyMCTSModel(MCTSModel):
         self,
         game_spec: GameSpec,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: PolicyMCTSModelConfig = PolicyMCTSModelConfig()
+        config: Optional[PolicyMCTSModelConfig] = None,
+        DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
+        if DistributionFactory is None:
+            DistributionFactory = CombDistributionFactory
+
         super().__init__(
             game_spec=game_spec,
-            config=config
+            config=config,
+            DistributionFactory=DistributionFactory
         )
-        self.ent_coeff = config.ent_coeff
+
+        self.ent_coeff = self.config.ent_coeff
 
         self.feature_extractor = keras.Sequential([
             layers.BatchNormalization(),
@@ -55,7 +64,7 @@ class PolicyMCTSModel(MCTSModel):
 
         self.policy_head = DenseModelFactory.create_model(
             input_shape=self.feature_size,
-            output_shape=self.action_shape + (config.fourier_features, 2),
+            output_shape=self.distribution_factory.parameters_shape,
             config=DenseModelFactory.CONFIG_CLASS(
                 output_activation="linear"
             )
@@ -125,45 +134,16 @@ class PolicyMCTSModel(MCTSModel):
     def compute_loss(
         self,
         observations: tf.Tensor,
-        action_groups: tf.RaggedTensor,
+        target_distribution: tf.Tensor,
         values: tf.Tensor,
-        visit_groups: tf.RaggedTensor
     ) -> tf.Tensor:
         predicted_distribution = self.generate_distribution(observations, training=True)
-
-        if isinstance(visit_groups, tf.RaggedTensor) or isinstance(action_groups, tf.RaggedTensor):
-            policy_loss = 0.
-
-            for i, (actions, visits) in enumerate(zip(action_groups, visit_groups, strict=True)):
-                distribution = predicted_distribution[i]
-                policy = visits / tf.reduce_sum(visits, axis=-1, keepdims=True)
-                other_dims = tuple(range(1, distribution.batch_shape.ndims + 1))
-
-                log_probs = distribution.log_prob(actions.to_tensor())
-                log_probs = tf.reduce_sum(log_probs, axis=other_dims)
-                predicted_policies = tf.math.softmax(log_probs, axis=-1)
-
-                policy_loss += tf.reduce_mean(
-                    losses.kld(
-                        policy,
-                        predicted_policies
-                    )
-                )
-            policy_loss /= action_groups.shape[0]
-        else:
-            visit_groups = tf.transpose(visit_groups, (1, 0))
-            policies = visit_groups / tf.reduce_sum(visit_groups, axis=-1, keepdims=True)
-            other_dims = tuple(range(2, predicted_distribution.batch_shape.ndims + 1))
-
-            log_probs = predicted_distribution.log_prob(tf.transpose(action_groups, (1, 0, *range(2, action_groups.ndim))))
-            log_probs = tf.reduce_sum(log_probs, axis=other_dims)
-            predicted_policies = tf.math.softmax(log_probs, axis=-1)
-            policy_loss = tf.reduce_mean(
-                losses.kld(
-                    policies,
-                    predicted_policies
-                )
+        policy_loss = tf.reduce_mean(
+            self.distribution_factory.compute_loss(
+                target_distribution,
+                predicted_distribution
             )
+        )
 
         value_loss = self.compute_value_loss(observations, values)
         entropy_loss = -tf.reduce_mean(predicted_distribution.entropy())
@@ -197,21 +177,10 @@ class PolicyMCTSModel(MCTSModel):
         raw_actions = self.policy_head(features, training=training)
 
         if not batch_throughput:
+            features = tf.squeeze(features, 0)
             raw_actions = tf.squeeze(raw_actions, 0)
 
-        return self._generate_distribution(raw_actions)
-
-    def _generate_distribution(self, raw_actions: tf.Tensor) -> distributions.Distribution:
-        range_dim = self.action_range.ndim
-        action_range = np.transpose(self.action_range, (*range(1, range_dim), 0))
-        bounds = np.tile(
-            action_range,
-            raw_actions.shape[:-range_dim-1] + (1, ) * range_dim
-        )
-        return FourierDistribution(
-            raw_actions,
-            bounds=bounds
-        )
+        return self.distribution_factory.create_distribution(raw_actions, features=features)
 
     def preprocess_data(
         self,
@@ -222,19 +191,23 @@ class PolicyMCTSModel(MCTSModel):
         training_data = [
             (
                 augmented_observation,
-                augmented_actions,
+                self.distribution_factory.aggregate_parameters(
+                    zip(parameters, visits)
+                ),
                 augmented_value,
-                visits
             ) for player, observation, action, value, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_value),
-                    (augmented_actions, visits)
+                    (parameters, visits)
             in zip(
                 augmentation_function(player, observation, action, value),
                 [
                     zip(*policy)
                     for policy in zip(*[
                         [
-                            (augmented_action, visits)
+                            (
+                                self.distribution_factory.parameterize(augmented_action),
+                                visits
+                            )
                             for augmented_player, augmented_observation, augmented_action, augmented_reward
                             in augmentation_function(player, observation, action, value)
                         ]

@@ -27,6 +27,8 @@ config_dict = dict(
     num_games_per_episode=2,
     num_iterations=2,
     warm_start_games=1,
+    initial_lr=1e-1,
+    final_lr=1e-1,
     **necessary_config,
     training_config=TrainingConfig(
         training_epochs=10,

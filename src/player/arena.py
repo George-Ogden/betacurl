@@ -41,6 +41,7 @@ class Arena():
             if return_history:
                 node: Node = player.get_current_node(self.game)
                 transition: Transition = node.get_transition(action)
+                # history.append((node, transition, player.model.generate_distribution(node.game.get_observation())))
                 history.append((node, transition))
 
             time_step = self.game.step(action, display=display)

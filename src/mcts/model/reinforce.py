@@ -1,29 +1,35 @@
-from tensorflow.keras import losses
-from tensorflow import data, keras
+from tensorflow import data
 import tensorflow as tf
 import numpy as np
 
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple, Type
 
 from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
+from ...distribution import DistributionFactory, NormalSDNDistributionFactory
 from ...game import GameSpec
 
 from .config import ReinforceMCTSModelConfig
 from .policy import PolicyMCTSModel
 
 class ReinforceMCTSModel(PolicyMCTSModel):
+    CONFIG_CLASS = ReinforceMCTSModelConfig
     def __init__(
         self,
         game_spec: GameSpec,
         model_factory: ModelFactory = BEST_MODEL_FACTORY,
-        config: ReinforceMCTSModelConfig = ReinforceMCTSModelConfig()
+        config: Optional[ReinforceMCTSModelConfig] = None,
+        DistributionFactory: Optional[Type[DistributionFactory]] = None
     ):
+        if DistributionFactory is None:
+            DistributionFactory = NormalSDNDistributionFactory
+
         super().__init__(
             game_spec=game_spec,
             model_factory=model_factory,
-            config=config
+            config=config,
+            DistributionFactory=DistributionFactory
         )
-        self.clip_range = config.clip_range
+        self.clip_range = self.config.clip_range
 
     def compute_loss(
         self,
