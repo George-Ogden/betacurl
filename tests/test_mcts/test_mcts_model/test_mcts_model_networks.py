@@ -4,7 +4,7 @@ import numpy as np
 from dm_env.specs import Array, BoundedArray
 from pytest import mark, fixture
 
-from src.mcts import MCTSModel, PolicyMCTSModel, PPOMCTSModel, ReinforceMCTSModel, ReinforceMCTSModelConfig
+from src.mcts import MCTSModel, PolicyMCTSModel, PPOMCTSModel, PPOMCTSModelConfig
 from src.distribution import DistributionConfig
 from src.model import DenseModelFactory
 from src.game import GameSpec
@@ -19,8 +19,7 @@ observation_spec = game_spec.observation_spec
 
 @fixture(params=[
     PolicyMCTSModel,
-    PPOMCTSModel,
-    ReinforceMCTSModel
+    PPOMCTSModel
 ])
 def model(request):
     return request.param(
@@ -60,10 +59,10 @@ def test_features_are_reasonable(model: MCTSModel):
     assert np.std(features) < 1.
 
 def test_config_is_used():
-    model = ReinforceMCTSModel(
+    model = PPOMCTSModel(
         game_spec=game_spec,
         model_factory=DenseModelFactory,
-        config=ReinforceMCTSModelConfig(
+        config=PPOMCTSModelConfig(
             feature_size=10,
             vf_coeff=.5,
             ent_coeff=.1,
@@ -115,7 +114,7 @@ def test_training_transform():
         ],
     ))
 
-    class DummyMCTSModel(ReinforceMCTSModel):
+    class DummyMCTSModel(PPOMCTSModel):
         def fit(self, dataset, training_config):
             self.dataset = dataset
 
@@ -124,7 +123,7 @@ def test_training_transform():
         training_data, game.get_symmetries
     )
     seen_actions = set()
-    for observation, actions, values, advantages in model.dataset:
+    for observation, actions, values, advantages, *target_distribution in model.dataset:
         assert (observation[0] % 2 == 0) ^ tf.reduce_all(actions % 2 == 0)
         for action, advantage in zip(actions, advantages):
             seen_actions.update(list(action.numpy()))
@@ -146,7 +145,7 @@ def test_without_bounds():
             dtype=np.float32
         )
     )
-    model = ReinforceMCTSModel(
+    model = PPOMCTSModel(
         game_spec=game_spec
     )
     observations = np.random.randn(100, 3)
