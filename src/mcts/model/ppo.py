@@ -9,10 +9,9 @@ from ...model import ModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 from ...game import GameSpec
 
 from .config import PPOMCTSModelConfig
+from .policy import PolicyMCTSModel
 
-from .reinforce import ReinforceMCTSModel
-
-class PPOMCTSModel(ReinforceMCTSModel):
+class PPOMCTSModel(PolicyMCTSModel):
     CONFIG_CLASS = PPOMCTSModelConfig
     def __init__(
         self,
@@ -26,10 +25,12 @@ class PPOMCTSModel(ReinforceMCTSModel):
 
         super().__init__(
             game_spec,
-            model_factory,
+            model_factory=model_factory,
             config=config,
             DistributionFactory=DistributionFactory
         )
+        self.config: PPOMCTSModelConfig
+        self.clip_range = self.config.clip_range
         self.target_kl = self.config.target_kl
 
     def compute_loss(
@@ -143,7 +144,36 @@ class PPOMCTSModel(ReinforceMCTSModel):
         augmentation_function: Callable[[int, np.ndarray, np.ndarray, float], List[Tuple[int, np.ndarray, np.ndarray, float]]],
         training_config: TrainingConfig = TrainingConfig()
     ) -> data.Dataset:
-        dataset = super().preprocess_data(training_data, augmentation_function, training_config)
+        
+        training_data = [
+            (
+                augmented_observation,
+                augmented_actions,
+                augmented_value,
+                advantages
+            ) for player, observation, action, value, policy in training_data
+                for (augmented_player, augmented_observation, augmented_action, augmented_value),
+                    (augmented_actions, advantages)
+            in zip(
+                augmentation_function(player, observation, action, value),
+                [
+                    zip(*policy)
+                    for policy in zip(*[
+                        [
+                            (augmented_action, advantage)
+                            for augmented_player, augmented_observation, augmented_action, augmented_reward
+                            in augmentation_function(player, observation, action, value)
+                        ]
+                        for action, advantage, visits in policy
+                    ])
+                ],
+                strict=True
+            )
+        ]
+
+
+        dataset = self.create_dataset(training_data)
+
         # generate target distributions from current model
         target_distributions = [
             self.generate_distribution(observation, training=False) 
@@ -163,6 +193,7 @@ class PPOMCTSModel(ReinforceMCTSModel):
             ])
         ]
 
+        training_config.optimizer_kwargs["clipnorm"] = self.max_grad_norm
         # zip with dataset
         return self.create_dataset(
             [

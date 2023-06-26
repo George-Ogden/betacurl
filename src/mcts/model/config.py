@@ -16,10 +16,6 @@ class PolicyMCTSModelConfig(MCTSModelConfig):
     ent_coeff: float = 1e-3
 
 @dataclass
-class ReinforceMCTSModelConfig(PolicyMCTSModelConfig):
-    clip_range: float = 2.
-
-@dataclass
-class PPOMCTSModelConfig(ReinforceMCTSModelConfig):
+class PPOMCTSModelConfig(PolicyMCTSModelConfig):
     clip_range: float = .1
     target_kl: Optional[float] = 1.5

@@ -3,7 +3,7 @@ import os
 
 from typing import Optional, List, Tuple, Type
 
-from ..mcts import Node, ReinforceMCTSModel, Transition
+from ..mcts import PolicyMCTSModel, Node, Transition
 from ..player import Arena
 from ..game import Game
 
@@ -15,7 +15,7 @@ class SinglePlayerCoach(Coach):
         self,
         game: Game,
         config: SinglePlayerCoachConfig=SinglePlayerCoachConfig(),
-        ModelClass: Type[ReinforceMCTSModel]=ReinforceMCTSModel,
+        ModelClass: Type[PolicyMCTSModel]=PolicyMCTSModel,
     ):
         super().__init__(game=game, config=config, ModelClass=ModelClass)
         self.eval_environment = game.clone()
