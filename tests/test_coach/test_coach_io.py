@@ -153,7 +153,6 @@ def test_save_frequency():
     assert os.path.exists(f"{SAVE_DIR}/model-000000")
     assert os.path.exists(f"{SAVE_DIR}/model-000002")
 
-@mark.slow
 @requires_cleanup
 def test_single_player_best_checkpoint():
     coach = SinglePlayerCoach(
@@ -161,7 +160,10 @@ def test_single_player_best_checkpoint():
         config=SinglePlayerCoachConfig(
             **(
                 single_config_dict | dict(
-                    best_checkpoint_path="best"
+                    best_checkpoint_path="best",
+                    eval_games=1,
+                    eval_simulations=2,
+                    warm_start_games=0
                 )
             )
         )
