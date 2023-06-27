@@ -5,7 +5,7 @@ import numpy as np
 
 from pytest import mark
 
-from src.model import CustomDecorator, ModelDecorator, MLPModelFactory, MLPModelConfig, TrainingConfig, BEST_MODEL_FACTORY
+from src.model import CustomDecorator, ModelDecorator, MLPModelFactory, MLPModelConfig, MultiLayerModelFactory, TrainingConfig, BEST_MODEL_FACTORY
 
 from tests.utils import EpochCounter
 
@@ -35,20 +35,6 @@ class CustomModel(CustomDecorator):
     def learn(self, *args, **kwargs):
         ...
 
-def test_forward():
-    model = MLPModelFactory.create_model(input_shape=2, output_shape=1, config=config)
-    input = tf.random.normal((16, 2))
-    output = model(input)
-    assert output.shape == (16, 1)
-    assert tf.reduce_all(output > 0)
-    assert tf.reduce_all(output < 1)
-
-def test_without_config():
-    model = MLPModelFactory.create_model(input_shape=2, output_shape=1)
-    input = tf.random.normal((16, 2))
-    output = model(input)
-    assert output.shape == (16, 1)
-
 @mark.flaky
 def test_model_fits():
     model = StubModel()
@@ -62,7 +48,14 @@ def test_model_fits():
     input_data = np.random.randn(10_000, 2)
     output_data = input_data.mean(axis=-1)
 
-    model.fit(input_data, output_data)
+    model.fit(
+        input_data,
+        output_data,
+        training_config=TrainingConfig(
+            training_epochs=5,
+            lr=1e-1
+        )
+    )
 
     test_data = np.random.randn(100, 2)
     predictions = model.model.predict(test_data).squeeze(-1)

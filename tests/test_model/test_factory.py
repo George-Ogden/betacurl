@@ -2,20 +2,37 @@ from tensorflow.keras import layers
 from tensorflow import keras
 import numpy as np
 
+from pytest import mark
+
 from src.model import DenseModelFactory, EmbeddingFactory, ModelConfig, ModelFactory, MLPModelFactory, MultiLayerModelFactory, BEST_MODEL_FACTORY
 
 from tests.utils import find_hidden_size
 
-def generic_factory_test(Factory: ModelFactory):
+
+@mark.parametrize(
+    "Factory",
+    [
+        MLPModelFactory,
+        MultiLayerModelFactory,
+        DenseModelFactory,
+        BEST_MODEL_FACTORY
+    ]
+)
+def test_model_factory(Factory: ModelFactory):
     model = Factory.create_model(
         input_shape=2,
         output_shape=3,
         config=Factory.CONFIG_CLASS(
             output_activation="sigmoid",
-            hidden_size=63
+            **(
+                dict(hidden_size=63)
+                if Factory != DenseModelFactory
+                else dict()
+            )
         )
     )
-    assert find_hidden_size(model.layers)
+    if Factory != DenseModelFactory:
+        assert find_hidden_size(model.layers)
 
     assert isinstance(model, keras.Model)
     batch = np.random.randn(20, 2)
@@ -23,15 +40,6 @@ def generic_factory_test(Factory: ModelFactory):
     assert output.shape == (20, 3)
     assert (0 <= output).all() and (output <= 1).all()
     return model
-
-def test_mlp_factory():
-    generic_factory_test(MLPModelFactory)
-
-def test_multi_layer_factory():
-    generic_factory_test(MultiLayerModelFactory)
-
-def test_best_model_factory():
-    generic_factory_test(BEST_MODEL_FACTORY)
 
 def test_embedding_factory():
     embedding_layer = EmbeddingFactory.create_model(
