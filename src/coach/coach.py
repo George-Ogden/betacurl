@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple, Type
 
 from ..mcts import FixedMCTS, FixedMCTSConfig, MCTSModel, Node, PolicyMCTSModel, Transition
 from ..player import Arena, MCTSPlayer, Player, NNMCTSPlayer, NNMCTSPlayerConfig
-from ..schedule import GeometricSchedule, LinearSchedule
+from ..utils import GeometricSchedule, LinearSchedule
 from ..utils import SaveableObject
 from ..game import Game, GameSpec
 
