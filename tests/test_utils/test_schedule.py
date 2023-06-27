@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.schedule import GeometricSchedule, LinearSchedule
+from src.utils import GeometricSchedule, LinearSchedule
 
 def test_linear_schedule():
     schedule = LinearSchedule((0.11, 1.01), (11, 101))
