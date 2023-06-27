@@ -97,7 +97,7 @@ def test_works_with_less_information():
     scores = arena.play_games(2)
     assert len(scores) == 2
 
-def test_config_is_used():
+def test_player_config_is_used():
     player = MCTSPlayer(
         stub_game.game_spec,
         WideningMCTS,
@@ -127,7 +127,6 @@ def test_config_is_used():
     assert 4 <= player.mcts.get_node(stub_game.get_observation()).num_visits <= 5
 
 def test_mcts_config_is_used():
-    observation_shape = stub_game.game_spec.observation_spec.shape
     player = NNMCTSPlayer(
         stub_game.game_spec,
         config=NNMCTSPlayerConfig(
