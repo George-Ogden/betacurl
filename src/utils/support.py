@@ -34,7 +34,7 @@ def value_to_support(values: tf.Tensor, support: tf.Tensor) -> tf.Tensor:
     Returns:
         tf.Tensor: support
     """
-    assert support.dtype == values.dtype, "values and support must have the same dtype"
+    assert support.dtype == values.dtype, f"values and support must have the same dtype (given {values.dtype} and {support.dtype})"
     if support.ndim == 1:
         support = tf.tile(
             support[tf.newaxis, :],

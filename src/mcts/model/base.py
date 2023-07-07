@@ -58,7 +58,7 @@ class MCTSModel(SaveableMultiModel, CustomDecorator, metaclass=ABCMeta):
             else np.arange(
                 np.floor(self.scale_values(game_spec.value_spec.minimum)),
                 np.ceil(self.scale_values(game_spec.value_spec.maximum)) + 1,
-                dtype=np.result_type(game_spec.value_spec.dtype, np.float32)
+                dtype=np.float32
             )
         )
 

@@ -194,7 +194,7 @@ class PolicyMCTSModel(MCTSModel):
                 self.distribution_factory.aggregate_parameters(
                     zip(parameters, visits)
                 ),
-                augmented_value,
+                float(augmented_value),
             ) for player, observation, action, value, policy in training_data
                 for (augmented_player, augmented_observation, augmented_action, augmented_value),
                     (parameters, visits)

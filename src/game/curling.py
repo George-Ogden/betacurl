@@ -104,7 +104,7 @@ class SingleEndCurlingGame(Game):
             score = 0
             if self.curling.stones:
                 score = self.evaluate_position()
-            return score
+            return float(score)
 
     @property
     def in_free_guard_period(self):
