@@ -13,7 +13,7 @@ class ModelConfig(Config):
 
 @dataclass
 class MLPModelConfig(ModelConfig):
-    hidden_size: int = 256
+    hidden_size: int = 1024
     dropout: float = .1
 
 @dataclass

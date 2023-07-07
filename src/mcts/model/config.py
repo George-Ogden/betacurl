@@ -6,7 +6,7 @@ from ...utils import Config
 
 @dataclass
 class MCTSModelConfig(Config):
-    feature_size: int = 64
+    feature_size: int = 128
     vf_coeff: float = .5
     max_grad_norm: float = .5    
     distribution_config: Optional[DistributionConfig] = None
