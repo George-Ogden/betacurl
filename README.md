@@ -1,6 +1,8 @@
 # BetaCurl
-Attempts at acheiving superhuman curling in a simulated curling environment (https://github.com/George-Ogden/curling). 
+Attempts at acheiving superhuman curling in a simulated curling environment (https://github.com/George-Ogden/curling)  
+Read more at [https://go281.srcf.net/blog/curling](https://go281.user.srcf.net/blog/curling)
 ## Installation
+Runs on Python 3.10
 ```
 pip install -r requirements.txt
 ```
